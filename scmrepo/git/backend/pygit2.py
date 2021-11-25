@@ -17,8 +17,8 @@ from typing import (
 
 from funcy import cached_property
 
-from dvc.scm.exceptions import MergeConflictError, RevError, SCMError
-from dvc.scm.utils import relpath
+from scmrepo.exceptions import MergeConflictError, RevError, SCMError
+from scmrepo.utils import relpath
 
 from ..objects import GitCommit, GitObject
 from .base import BaseGitBackend
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from dvc.scm.progress import GitProgressEvent
+    from scmrepo.progress import GitProgressEvent
 
 # NOTE: constant from libgit2 git2/checkout.h
 # This can be removed after next pygit2 release:
@@ -399,7 +399,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         message: Optional[str] = None,
         include_untracked: Optional[bool] = False,
     ) -> Tuple[Optional[str], bool]:
-        from dvc.scm.git import Stash
+        from scmrepo.git import Stash
 
         oid = self.repo.stash(
             self.default_signature,
@@ -416,7 +416,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def _stash_apply(self, rev: str):
         from pygit2 import GitError
 
-        from dvc.scm.git import Stash
+        from scmrepo.git import Stash
 
         def _apply(index):
             try:
@@ -446,7 +446,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.stash_drop()
 
     def _stash_drop(self, ref: str, index: int):
-        from dvc.scm.git import Stash
+        from scmrepo.git import Stash
 
         if ref != Stash.DEFAULT_STASH:
             raise NotImplementedError

@@ -15,8 +15,8 @@ from fsspec.spec import AbstractFileSystem
 if TYPE_CHECKING:
     from io import BytesIO
 
-    from dvc.scm.git import Git
-    from dvc.scm.git.objects import GitTrie
+    from scmrepo.git import Git
+    from scmrepo.git.objects import GitTrie
 
 
 def bytesio_len(obj: "BytesIO") -> Optional[int]:
@@ -43,8 +43,8 @@ class GitFileSystem(AbstractFileSystem):
         rev_resolver: Callable[["Git", str], str] = None,
         **kwargs,
     ):
-        from dvc.scm.git import Git
-        from dvc.scm.git.objects import GitTrie
+        from scmrepo.git import Git
+        from scmrepo.git.objects import GitTrie
 
         super().__init__(**kwargs)
         if not trie:
@@ -62,7 +62,7 @@ class GitFileSystem(AbstractFileSystem):
         self.rev = self.trie.rev
 
     def _get_key(self, path: str) -> Tuple[str, ...]:
-        from dvc.scm.utils import relpath
+        from scmrepo.utils import relpath
 
         if os.path.isabs(path):
             path = relpath(path, self.root_dir)

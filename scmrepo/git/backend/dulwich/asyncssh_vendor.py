@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from dulwich.client import SSHVendor
 
-from dvc.scm.asyn import BaseAsyncObject, sync_wrapper
+from scmrepo.asyn import BaseAsyncObject, sync_wrapper
 
 
 class _StderrWrapper:

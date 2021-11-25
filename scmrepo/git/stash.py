@@ -3,7 +3,7 @@
 import logging
 from typing import Optional
 
-from dvc.scm.exceptions import SCMError
+from scmrepo.exceptions import SCMError
 
 logger = logging.getLogger(__name__)
 

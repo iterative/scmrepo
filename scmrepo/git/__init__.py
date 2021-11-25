@@ -11,13 +11,13 @@ from typing import Dict, Iterable, Optional, Tuple, Type
 from funcy import cached_property, first
 from pathspec.patterns import GitWildMatchPattern
 
-from dvc.scm.base import Base
-from dvc.scm.exceptions import (
+from scmrepo.base import Base
+from scmrepo.exceptions import (
     FileNotInRepoError,
     GitHookAlreadyExists,
     RevError,
 )
-from dvc.scm.utils import relpath
+from scmrepo.utils import relpath
 
 from .backend.base import BaseGitBackend, NoGitBackendError
 from .backend.dulwich import DulwichBackend
@@ -256,7 +256,7 @@ class Git(Base):
         raise NoGitBackendError(name)
 
     def get_fs(self, rev: str):
-        from dvc.fs.git import GitFileSystem
+        from scmrepo.fs import GitFileSystem
 
         return GitFileSystem(scm=self, rev=rev)
 

@@ -10,12 +10,12 @@ from typing import (
     Union,
 )
 
-from dvc.scm.exceptions import SCMError
+from scmrepo.exceptions import SCMError
 
 from ..objects import GitObject
 
 if TYPE_CHECKING:
-    from dvc.scm.progress import GitProgressEvent
+    from scmrepo.progress import GitProgressEvent
 
     from ..objects import GitCommit
 

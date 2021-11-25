@@ -18,14 +18,14 @@ from typing import (
 
 from funcy import cached_property
 
-from dvc.scm.exceptions import AuthError, InvalidRemote, SCMError
-from dvc.scm.utils import relpath
+from scmrepo.exceptions import AuthError, InvalidRemote, SCMError
+from scmrepo.utils import relpath
 
 from ...objects import GitObject
 from ..base import BaseGitBackend
 
 if TYPE_CHECKING:
-    from dvc.scm.progress import GitProgressEvent
+    from scmrepo.progress import GitProgressEvent
 
     from ...objects import GitCommit
 
@@ -442,7 +442,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             return new_refs
 
         try:
-            from dvc.scm.progress import GitProgressReporter
+            from scmrepo.progress import GitProgressReporter
 
             client.send_pack(
                 path,
@@ -515,7 +515,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 f"'{url}' is not a valid Git remote or URL"
             ) from exc
 
-        from dvc.scm.progress import GitProgressReporter
+        from scmrepo.progress import GitProgressReporter
 
         fetch_result = client.fetch(
             path,
@@ -552,7 +552,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     ) -> Tuple[Optional[str], bool]:
         from dulwich.repo import InvalidUserIdentity
 
-        from dvc.scm.git import Stash
+        from scmrepo.git import Stash
 
         if include_untracked or ref == Stash.DEFAULT_STASH:
             # dulwich stash.push does not support include_untracked and does
@@ -573,7 +573,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         raise NotImplementedError
 
     def _stash_drop(self, ref: str, index: int):
-        from dvc.scm.git import Stash
+        from scmrepo.git import Stash
 
         if ref == Stash.DEFAULT_STASH:
             raise NotImplementedError

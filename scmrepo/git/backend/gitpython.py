@@ -18,20 +18,20 @@ from typing import (
 
 from funcy import ignore
 
-from dvc.scm.exceptions import (
+from scmrepo.exceptions import (
     CloneError,
     MergeConflictError,
     RevError,
     SCMError,
     UnsupportedIndexFormat,
 )
-from dvc.scm.utils import relpath
+from scmrepo.utils import relpath
 
 from ..objects import GitCommit, GitObject
 from .base import BaseGitBackend
 
 if TYPE_CHECKING:
-    from dvc.scm.progress import GitProgressEvent
+    from scmrepo.progress import GitProgressEvent
 
 
 logger = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 # scheme is used
                 url = f"file://{url}"
 
-            from dvc.scm.progress import GitProgressReporter
+            from scmrepo.progress import GitProgressReporter
 
             clone_from = partial(
                 Repo.clone_from,
@@ -487,7 +487,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         message: Optional[str] = None,
         include_untracked: Optional[bool] = False,
     ) -> Tuple[Optional[str], bool]:
-        from dvc.scm.git import Stash
+        from scmrepo.git import Stash
 
         args = ["push"]
         if message:
@@ -523,7 +523,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def _stash_drop(self, ref: str, index: int):
         from git.exc import GitCommandError
 
-        from dvc.scm.git import Stash
+        from scmrepo.git import Stash
 
         if ref == Stash.DEFAULT_STASH:
             self.git.stash("drop", index)
