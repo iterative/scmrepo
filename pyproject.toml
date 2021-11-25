@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=48", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 79
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+known_first_party = ["scmrepo"]
+line_length = 79
+
+[tool.mypy]
+# Error output
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
+show_traceback = true
+pretty = true
+check_untyped_defs = false
+# Warnings
+warn_no_return = true
+warn_redundant_casts = true
+warn_unreachable = true
+files = ["scmrepo"]
+
+[[tool.mypy.overrides]]
+module = [
+    "pygtrie",
+    "packagename2",
+    "funcy",
+    "git",
+    "fsspec.*",
+    "pathspec.patterns",
+    "asyncssh.*",
+    "pygit2",
+]
+ignore_missing_imports = true
+
+[tool.pylint.master]
+extension-pkg-whitelist = ["pygit2"]
+
+[tool.pylint.message_control]
+disable = [
+    "format", "refactoring", "design", "no-self-use", "invalid-name", "duplicate-code",
+    "missing-function-docstring", "missing-module-docstring", "missing-class-docstring",
+    "raise-missing-from", "import-outside-toplevel", "cyclic-import"
+]
+enable = ["c-extension-no-member", "no-else-return"]
+
+[tool.pylint.variables]
+dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_"
+ignored-argument-names = "_.*|^ignored_|^unused_|args|kwargs"
