@@ -260,6 +260,21 @@ class Git(Base):
 
         return GitFileSystem(scm=self, rev=rev)
 
+    @classmethod
+    def init(
+        cls, path: str, bare: bool = False, _backend: str = None
+    ) -> "Git":
+        for name, backend in GitBackends.DEFAULT.items():
+            if _backend and name != _backend:
+                continue
+            try:
+                backend.init(path, bare=bare)
+                # TODO: reuse created object instead of initializing a new one.
+                return cls(path)
+            except NotImplementedError:
+                pass
+        raise NoGitBackendError("init")
+
     is_ignored = partialmethod(_backend_func, "is_ignored")
     add = partialmethod(_backend_func, "add")
     commit = partialmethod(_backend_func, "commit")

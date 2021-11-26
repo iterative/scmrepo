@@ -203,6 +203,21 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 ) from exc
 
     @staticmethod
+    def init(path: str, bare: bool = False) -> None:
+        from funcy import retry
+        from git import Repo
+        from git.exc import GitCommandNotFound
+
+        # NOTE: handles EAGAIN error on BSD systems (osx in our case).
+        # Otherwise when running tests you might get this exception:
+        #
+        #    GitCommandNotFound: Cmd('git') not found due to:
+        #        OSError('[Errno 35] Resource temporarily unavailable')
+        method = retry(5, GitCommandNotFound)(Repo.init)
+        git = method(path, bare=bare)
+        git.close()
+
+    @staticmethod
     def is_sha(rev):
         import git
 

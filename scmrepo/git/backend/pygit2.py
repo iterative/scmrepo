@@ -156,6 +156,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     ):
         raise NotImplementedError
 
+    @staticmethod
+    def init(path: str, bare: bool = False) -> None:
+        from pygit2 import init_repository
+
+        init_repository(path, bare=bare)
+
     @property
     def dir(self) -> str:
         raise NotImplementedError

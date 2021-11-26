@@ -37,7 +37,7 @@ check_untyped_defs = false
 warn_no_return = true
 warn_redundant_casts = true
 warn_unreachable = true
-files = ["scmrepo"]
+files = ["scmrepo", "tests"]
 
 [[tool.mypy.overrides]]
 module = [

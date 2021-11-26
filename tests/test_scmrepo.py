@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+from pytest_test_utils import ANY, TmpDir
+
 from scmrepo.git import Git
 from scmrepo.progress import GitProgressEvent
 
