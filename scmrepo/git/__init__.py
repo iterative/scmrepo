@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import partialmethod
-from typing import Dict, Iterable, Optional, Tuple, Type
+from typing import Dict, Iterable, Optional, Tuple, Type, Union
 
 from funcy import cached_property, first
 from pathspec.patterns import GitWildMatchPattern
@@ -274,6 +274,14 @@ class Git(Base):
             except NotImplementedError:
                 pass
         raise NoGitBackendError("init")
+
+    def add_commit(
+        self,
+        paths: Union[str, Iterable[str]],
+        message: str,
+    ) -> None:
+        self.add(paths)
+        self.commit(msg=message)
 
     is_ignored = partialmethod(_backend_func, "is_ignored")
     add = partialmethod(_backend_func, "add")
