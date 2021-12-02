@@ -139,6 +139,12 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     ):
         raise NotImplementedError
 
+    @staticmethod
+    def init(path: str, bare: bool = False) -> None:
+        from dulwich.porcelain import init
+
+        init(path, bare=bare)
+
     @property
     def dir(self) -> str:
         return self.repo.commondir()

@@ -25,6 +25,11 @@ profile = "black"
 known_first_party = ["scmrepo"]
 line_length = 79
 
+[tool.pytest.ini_options]
+markers = [
+    "skip_git_backend: skip tests for given backend",
+]
+
 [tool.mypy]
 # Error output
 show_column_numbers = true
@@ -37,7 +42,7 @@ check_untyped_defs = false
 warn_no_return = true
 warn_redundant_casts = true
 warn_unreachable = true
-files = ["scmrepo"]
+files = ["scmrepo", "tests"]
 
 [[tool.mypy.overrides]]
 module = [
@@ -59,7 +64,7 @@ extension-pkg-whitelist = ["pygit2"]
 disable = [
     "format", "refactoring", "design", "no-self-use", "invalid-name", "duplicate-code",
     "missing-function-docstring", "missing-module-docstring", "missing-class-docstring",
-    "raise-missing-from", "import-outside-toplevel", "cyclic-import"
+    "raise-missing-from", "import-outside-toplevel", "cyclic-import", "fixme",
 ]
 enable = ["c-extension-no-member", "no-else-return"]
 

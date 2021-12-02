@@ -55,6 +55,11 @@ class BaseGitBackend(ABC):
     ):
         pass
 
+    @staticmethod
+    @abstractmethod
+    def init(path: str, bare: bool = False) -> None:
+        pass
+
     @property
     @abstractmethod
     def dir(self) -> str:

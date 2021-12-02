@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import partialmethod
-from typing import Dict, Iterable, Optional, Tuple, Type
+from typing import Dict, Iterable, Optional, Tuple, Type, Union
 
 from funcy import cached_property, first
 from pathspec.patterns import GitWildMatchPattern
@@ -259,6 +259,29 @@ class Git(Base):
         from scmrepo.fs import GitFileSystem
 
         return GitFileSystem(scm=self, rev=rev)
+
+    @classmethod
+    def init(
+        cls, path: str, bare: bool = False, _backend: str = None
+    ) -> "Git":
+        for name, backend in GitBackends.DEFAULT.items():
+            if _backend and name != _backend:
+                continue
+            try:
+                backend.init(path, bare=bare)
+                # TODO: reuse created object instead of initializing a new one.
+                return cls(path)
+            except NotImplementedError:
+                pass
+        raise NoGitBackendError("init")
+
+    def add_commit(
+        self,
+        paths: Union[str, Iterable[str]],
+        message: str,
+    ) -> None:
+        self.add(paths)
+        self.commit(msg=message)
 
     is_ignored = partialmethod(_backend_func, "is_ignored")
     add = partialmethod(_backend_func, "add")
