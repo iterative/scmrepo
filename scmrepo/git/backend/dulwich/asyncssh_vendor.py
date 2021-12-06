@@ -131,8 +131,8 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
         conn = await asyncssh.connect(
             host,
             port=port if port is not None else (),
-            username=username,
-            password=password,
+            username=username if username is not None else (),
+            password=password if password is not None else (),
             client_keys=[key_filename] if key_filename else (),
             ignore_encrypted=not key_filename,
             known_hosts=None,
