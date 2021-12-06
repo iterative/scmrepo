@@ -459,7 +459,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         self.repo.stash_drop(index)
 
-    def describe(
+    def _describe(
         self,
         rev: str,
         base: Optional[str] = None,

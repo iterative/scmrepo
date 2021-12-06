@@ -590,7 +590,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except ValueError as exc:
             raise SCMError("Failed to drop stash entry") from exc
 
-    def describe(
+    def _describe(
         self,
         rev: str,
         base: Optional[str] = None,

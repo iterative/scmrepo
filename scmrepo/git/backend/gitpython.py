@@ -552,7 +552,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except GitCommandError:
             self.remove_ref(ref)
 
-    def describe(
+    def _describe(
         self,
         rev: str,
         base: Optional[str] = None,

@@ -607,3 +607,30 @@ def test_checkout_subdir(tmp_dir: TmpDir, scm: Git, git: Git):
     with (tmp_dir / "dir").chdir():
         git.checkout(rev)
         assert not (tmp_dir / "dir" / "bar").exists()
+
+
+@pytest.mark.skip_git_backend("pygit2", "gitpython")
+def test_describe(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"foo": "foo"})
+    scm.add_commit("foo", message="foo")
+    rev_foo = scm.get_rev()
+
+    tmp_dir.gen({"foo": "bar"})
+    scm.add_commit("foo", message="bar")
+    rev_bar = scm.get_rev()
+
+    assert git.describe(rev_foo, "refs/heads") is None
+
+    scm.checkout("branch", create_new=True)
+    assert git.describe(rev_bar, "refs/heads") == "refs/heads/branch"
+
+    tmp_dir.gen({"foo": "foobar"})
+    scm.add_commit("foo", message="foobar")
+    rev_foobar = scm.get_rev()
+
+    scm.checkout("master")
+    assert git.describe(rev_bar, "refs/heads") == "refs/heads/master"
+    assert git.describe(rev_foobar, "refs/heads") == "refs/heads/branch"
+
+    scm.tag("tag")
+    assert git.describe(rev_bar) == "refs/tags/tag"

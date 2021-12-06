@@ -278,7 +278,7 @@ class BaseGitBackend(ABC):
         """Drop the specified stash revision."""
 
     @abstractmethod
-    def describe(
+    def _describe(
         self,
         rev: str,
         base: Optional[str] = None,
