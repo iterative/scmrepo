@@ -314,7 +314,7 @@ class Git(Base):
     _stash_push = partialmethod(_backend_func, "_stash_push")
     _stash_apply = partialmethod(_backend_func, "_stash_apply")
     _stash_drop = partialmethod(_backend_func, "_stash_drop")
-    describe = partialmethod(_backend_func, "describe")
+    _describe = partialmethod(_backend_func, "_describe")
     diff = partialmethod(_backend_func, "diff")
     reset = partialmethod(_backend_func, "reset")
     checkout_index = partialmethod(_backend_func, "checkout_index")
@@ -397,3 +397,18 @@ class Git(Base):
 
     def _reset(self) -> None:
         self.backends.reset_all()
+
+    def describe(
+        self,
+        rev: str,
+        base: Optional[str] = None,
+        match: Optional[str] = None,
+        exclude: Optional[str] = None,
+    ) -> Optional[str]:
+        if (
+            base == "refs/heads"
+            and self.get_rev() == rev
+            and self.get_ref("HEAD", follow=False).startswith(base)
+        ):
+            return self.get_ref("HEAD", follow=False)
+        return self._describe(rev, base, match, exclude)
