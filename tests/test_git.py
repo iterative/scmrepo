@@ -2,16 +2,19 @@ import os
 from typing import Iterator, Type
 
 import pytest
+from git import Repo as GitPythonRepo
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
 
 from scmrepo.exceptions import MergeConflictError, RevError, SCMError
 from scmrepo.git import Git
 
-# pylint: disable=redefined-outer-name,unused-argument
+# pylint: disable=redefined-outer-name,unused-argument,protected-access
+
+backends = ["gitpython", "dulwich", "pygit2"]
 
 
-@pytest.fixture(params=["gitpython", "dulwich", "pygit2"])
+@pytest.fixture(params=backends)
 def git_backend(request) -> str:
     marker = request.node.get_closest_marker("skip_git_backend")
     to_skip = marker.args if marker else []
@@ -37,18 +40,58 @@ def remote_git_dir(tmp_dir_factory: TempDirFactory):
     return git_dir
 
 
-@pytest.mark.parametrize("backend", ["gitpython", "dulwich", "pygit2"])
-def test_git_init(tmp_dir: TmpDir, backend: str):
-    Git.init(".", _backend=backend)
+@pytest.fixture
+def submodule_dir(tmp_dir: TmpDir, scm: Git):
+    scm.commit("init")
+
+    subrepo = GitPythonRepo.init()
+    subrepo_path = "subrepo"
+    subrepo.create_submodule(subrepo_path, subrepo_path, subrepo.git_dir)
+    subrepo.close()
+
+    yield tmp_dir / subrepo_path
+
+
+def test_git_init(tmp_dir: TmpDir, git_backend: str):
+    Git.init(".", _backend=git_backend)
     assert (tmp_dir / ".git").is_dir()
-    Git(tmp_dir)
+
+    for backend in backends:
+        Git(tmp_dir, backends=[backend])
 
 
-@pytest.mark.parametrize("backend", ["gitpython", "dulwich", "pygit2"])
-def test_git_init_bare(tmp_dir: TmpDir, backend: str):
-    Git.init(".", bare=True, _backend=backend)
+def test_git_init_bare(tmp_dir: TmpDir, git_backend: str):
+    Git.init(".", bare=True, _backend=git_backend)
     assert list(tmp_dir.iterdir())
-    Git(tmp_dir)
+
+    for backend in backends:
+        Git(tmp_dir, backends=[backend])
+
+
+def test_git_submodule(submodule_dir: TmpDir, git_backend: str):
+    git = Git(backends=[git_backend])
+    git.close()
+
+    git = Git(submodule_dir, backends=[git_backend])
+    git.close()
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_commit(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"foo": "foo"})
+    git.add(["foo"])
+    git.commit("add")
+    assert "foo" in scm.gitpython.git.ls_files()
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_commit_in_root_repo_with_submodule(
+    tmp_dir: TmpDir, scm: Git, git: Git, submodule_dir: TmpDir
+):
+    tmp_dir.gen("foo", "foo")
+    git.add(["foo"])
+    git.commit("add foo")
+    assert "foo" in scm.gitpython.git.ls_files()
 
 
 @pytest.mark.parametrize(
@@ -149,6 +192,26 @@ def test_is_tracked_unicode(tmp_dir: TmpDir, scm: Git, git: Git):
 
     assert git.is_tracked("ṭṝḁḉḵḗḋ")
     assert not git.is_tracked("ṳṋṭṝḁḉḵḗḋ")
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_is_tracked_func(tmp_dir, scm, git):
+    tmp_dir.gen({"foo": "foo", "тест": "проверка"})
+    scm.add(["foo", "тест"])
+
+    abs_foo = os.path.abspath("foo")
+    assert git.is_tracked(abs_foo)
+    assert git.is_tracked("foo")
+    assert git.is_tracked("тест")
+
+    git.commit("add")
+    assert git.is_tracked(abs_foo)
+    assert git.is_tracked("foo")
+
+    scm.gitpython.repo.index.remove(["foo"], working_tree=True)
+    assert not git.is_tracked(abs_foo)
+    assert not git.is_tracked("foo")
+    assert not git.is_tracked("not-existing-file")
 
 
 @pytest.mark.skip_git_backend("pygit2")
@@ -595,7 +658,6 @@ def test_add(tmp_dir: TmpDir, scm: Git, git: Git):
 
 
 @pytest.mark.skip_git_backend("dulwich", "gitpython")
-@pytest.mark.skipif(os.name != "nt", reason="Windows only")
 def test_checkout_subdir(tmp_dir: TmpDir, scm: Git, git: Git):
     tmp_dir.gen("foo", "foo")
     scm.add_commit("foo", message="init")
@@ -634,3 +696,134 @@ def test_describe(tmp_dir: TmpDir, scm: Git, git: Git):
 
     scm.tag("tag")
     assert git.describe(rev_bar) == "refs/tags/tag"
+
+
+def test_ignore(tmp_dir: TmpDir, scm: Git, git: Git):
+    file = os.fspath(tmp_dir / "foo")
+
+    git.ignore(file)
+    assert (tmp_dir / ".gitignore").cat() == "/foo\n"
+
+    git._reset()
+    git.ignore(file)
+    assert (tmp_dir / ".gitignore").cat() == "/foo\n"
+
+    git._reset()
+    git.ignore_remove(file)
+    assert not (tmp_dir / ".gitignore").exists()
+
+
+def test_ignored(tmp_dir: TmpDir, scm: Git, git: Git, git_backend: str):
+    if os.name == "nt" and git_backend == "pygit2":
+        pytest.skip()
+
+    tmp_dir.gen({"dir1": {"file1.jpg": "cont", "file2.txt": "cont"}})
+    tmp_dir.gen({".gitignore": "dir1/*.jpg"})
+
+    git._reset()
+
+    assert git.is_ignored(tmp_dir / "dir1" / "file1.jpg")
+    assert not git.is_ignored(tmp_dir / "dir1" / "file2.txt")
+
+
+@pytest.mark.skip_git_backend("pygit2", "gitpython")
+def test_ignored_dir_unignored_subdirs(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({".gitignore": "data/**\n!data/**/\n!data/**/*.csv"})
+    scm.add([".gitignore"])
+    tmp_dir.gen(
+        {
+            os.path.join("data", "raw", "tracked.csv"): "cont",
+            os.path.join("data", "raw", "not_tracked.json"): "cont",
+        }
+    )
+
+    git._reset()
+
+    assert not git.is_ignored(tmp_dir / "data" / "raw" / "tracked.csv")
+    assert git.is_ignored(tmp_dir / "data" / "raw" / "not_tracked.json")
+    assert not git.is_ignored(tmp_dir / "data" / "raw" / "non_existent.csv")
+    assert git.is_ignored(tmp_dir / "data" / "raw" / "non_existent.json")
+    assert not git.is_ignored(tmp_dir / "data" / "non_existent.csv")
+    assert git.is_ignored(tmp_dir / "data" / "non_existent.json")
+
+    assert not git.is_ignored(f"data{os.sep}")
+    # git check-ignore would now mark "data/raw" as ignored
+    # after detecting it's a directory in the file system;
+    # instead, we rely on the trailing separator to determine if handling a
+    # a directory - for consistency between existent and non-existent paths
+    assert git.is_ignored(os.path.join("data", "raw"))
+    assert not git.is_ignored(os.path.join("data", f"raw{os.sep}"))
+
+    assert git.is_ignored(os.path.join("data", "non_existent"))
+    assert not git.is_ignored(os.path.join("data", f"non_existent{os.sep}"))
+
+
+def test_get_gitignore(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"file1": "contents", "dir": {}})
+
+    data_dir = os.fspath(tmp_dir / "file1")
+    entry, gitignore = git._get_gitignore(data_dir)
+    assert entry == "/file1"
+    assert gitignore == os.fspath(tmp_dir / ".gitignore")
+
+    data_dir = os.fspath(tmp_dir / "dir")
+    entry, gitignore = git._get_gitignore(data_dir)
+
+    assert entry == "/dir"
+    assert gitignore == os.fspath(tmp_dir / ".gitignore")
+
+
+def test_get_gitignore_symlink(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"dir": {"subdir": {"data": "contents"}}})
+    link = tmp_dir / "link"
+    link.symlink_to(tmp_dir / "dir" / "subdir" / "data")
+
+    entry, gitignore = git._get_gitignore(os.fspath(link))
+    assert entry == "/link"
+    assert gitignore == os.fspath(tmp_dir / ".gitignore")
+
+
+def test_get_gitignore_subdir(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"dir1": {"file1": "cont", "dir2": {}}})
+
+    data_dir = os.fspath(tmp_dir / "dir1" / "file1")
+    entry, gitignore = git._get_gitignore(data_dir)
+    assert entry == "/file1"
+    assert gitignore == os.fspath(tmp_dir / "dir1" / ".gitignore")
+
+    data_dir = os.fspath(tmp_dir / "dir1" / "dir2")
+    entry, gitignore = git._get_gitignore(data_dir)
+    assert entry == "/dir2"
+    assert gitignore == os.fspath(tmp_dir / "dir1" / ".gitignore")
+
+
+def test_gitignore_should_append_newline_to_gitignore(
+    tmp_dir: TmpDir, scm: Git, git: Git
+):
+    tmp_dir.gen({"foo": "foo", "bar": "bar"})
+
+    bar_path = os.fspath(tmp_dir / "bar")
+    gitignore = tmp_dir / ".gitignore"
+
+    gitignore.write_text("/foo")
+    assert not gitignore.read_text().endswith("\n")
+
+    git.ignore(bar_path)
+    contents = gitignore.read_text()
+    assert gitignore.read_text().endswith("\n")
+
+    assert contents.splitlines() == ["/foo", "/bar"]
+
+
+@pytest.mark.skip_git_backend("dulwich")
+def test_git_detach_head(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"file": "0"})
+    scm.add_commit("file", message="init")
+    init_rev = scm.get_rev()
+
+    with git.detach_head() as rev:
+        assert init_rev == rev
+        assert init_rev == (tmp_dir / ".git" / "HEAD").read_text().strip()
+    assert (
+        tmp_dir / ".git" / "HEAD"
+    ).read_text().strip() == "ref: refs/heads/master"
