@@ -1,5 +1,9 @@
 import pytest
 from pytest_mock import MockerFixture
+from pytest_test_utils import TmpDir
+
+from scmrepo.git import Git
+from scmrepo.git.backend.dulwich import DulwichBackend
 
 
 @pytest.mark.parametrize(
@@ -26,3 +30,21 @@ def test_dulwich_github_compat(mocker: MockerFixture, algorithm: bytes):
     strings = iter((b"ssh-rsa", key_data))
     packet.get_string = lambda: next(strings)
     _process_public_key_ok_gh(auth, None, None, packet)
+
+
+def test_dulwich_get_ref(tmp_dir: TmpDir, scm: Git):
+    backend = DulwichBackend(tmp_dir)
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="foo")
+
+    scm.set_ref("refs/exp/base", "refs/heads/master")
+
+    custom_ref = backend.get_ref("refs/exp/base", follow=False)
+    assert str(custom_ref).rstrip("\n") == "refs/heads/master"
+
+    head = scm.get_rev()
+    tag = "my_tag"
+    scm.tag(["-a", tag, "-m", "Annotated Tag"])
+
+    tag_ref = backend.get_ref(f"refs/tags/{tag}", follow=False)
+    assert head == tag_ref
