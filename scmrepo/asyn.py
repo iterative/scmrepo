@@ -2,7 +2,7 @@
 import asyncio
 import os
 import threading
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fsspec.asyn import (  # noqa: F401, pylint:disable=unused-import
     _selector_policy,
@@ -37,12 +37,14 @@ def get_loop() -> asyncio.AbstractEventLoop:
 
 
 class BaseAsyncObject:
-    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
+    def __init__(
+        self, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs: Any
+    ) -> None:
         self._loop: asyncio.AbstractEventLoop = loop or get_loop()
         self._pid = os.getpid()
 
     @property
-    def loop(self):
+    def loop(self) -> asyncio.AbstractEventLoop:
         # AsyncMixin is not fork-safe
         assert self._pid == os.getpid()
         return self._loop

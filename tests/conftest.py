@@ -1,15 +1,44 @@
+import asyncio
 import os
+import subprocess
 import sys
+from typing import Any, AsyncIterator, Dict, Iterator
 
+import asyncssh
 import pygit2
 import pytest
+from pytest_docker.plugin import Services
 from pytest_test_utils import TempDirFactory, TmpDir
 
 from scmrepo.git import Git
 
+TEST_SSH_USER = "user"
+TEST_SSH_KEY_PATH = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)), f"{TEST_SSH_USER}.key"
+)
+
+# pylint: disable=redefined-outer-name
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--slow", action="store_true", default=False, help="run slow tests"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--slow"):
+        return
+    skip_slow = pytest.mark.skip(reason="need --slow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
+
 
 @pytest.fixture(autouse=True)
-def isolate(tmp_dir_factory: TempDirFactory, monkeypatch: pytest.MonkeyPatch):
+def isolate(
+    tmp_dir_factory: TempDirFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
     path = tmp_dir_factory.mktemp("mock")
     home_dir = path / "home"
     home_dir.mkdir()
@@ -35,7 +64,7 @@ defaultBranch=master
 
 
 @pytest.fixture
-def scm(tmp_dir: TmpDir):
+def scm(tmp_dir: TmpDir) -> Iterator[Git]:
     git_ = Git.init(tmp_dir)
     sig = git_.pygit2.default_signature
 
@@ -44,3 +73,68 @@ def scm(tmp_dir: TmpDir):
 
     yield git_
     git_.close()
+
+
+@pytest.fixture(scope="session")
+def docker(request: pytest.FixtureRequest) -> Iterator[Services]:
+    for cmd in [("docker", "ps"), ("docker-compose", "version")]:
+        try:
+            subprocess.call(
+                cmd,
+                shell=True,
+                stderr=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+            )
+        except (subprocess.CalledProcessError, OSError):
+            pytest.skip(f"no {cmd[0]} installed")
+
+    if "CI" in os.environ and sys.platform != "linux":
+        pytest.skip(f"skip for {sys.platform} in CI")
+
+    yield request.getfixturevalue("docker_services")
+
+
+@pytest.fixture
+def ssh_conn_info(
+    docker: Services,  # pylint: disable=unused-argument
+) -> Dict[str, Any]:
+    conn_info = {
+        "host": "127.0.0.1",
+        "port": docker.port_for("git-server", 2222),
+        "client_keys": TEST_SSH_KEY_PATH,
+        "known_hosts": None,
+        "username": TEST_SSH_USER,
+    }
+
+    async def _check() -> bool:
+        try:
+            async with asyncssh.connect(**conn_info) as conn:
+                result = await conn.run("git --version")
+                assert result.returncode == 0
+                async with conn.start_sftp_client() as sftp:
+                    assert await sftp.exists("/")
+        except Exception:  # pylint: disable=broad-except
+            return False
+        return True
+
+    def check() -> bool:
+        return asyncio.run(_check())
+
+    docker.wait_until_responsive(timeout=30.0, pause=1, check=check)
+    return conn_info
+
+
+@pytest.fixture
+async def ssh_connection(
+    ssh_conn_info: Dict[str, Any],
+) -> AsyncIterator[asyncssh.connection.SSHConnection]:
+    async with asyncssh.connect(**ssh_conn_info) as conn:
+        yield conn
+
+
+@pytest.fixture
+async def sftp(
+    ssh_connection: asyncssh.connection.SSHConnection,
+) -> AsyncIterator[asyncssh.SFTPClient]:
+    async with ssh_connection.start_sftp_client() as sftp:
+        yield sftp

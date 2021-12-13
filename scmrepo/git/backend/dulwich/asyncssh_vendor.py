@@ -1,16 +1,23 @@
 """asyncssh SSH vendor for Dulwich."""
+import asyncio
 from typing import List, Optional
 
+from asyncssh.connection import SSHClientConnection, SSHConnection
+from asyncssh.process import SSHClientProcess
+from asyncssh.stream import SSHReader
 from dulwich.client import SSHVendor
 
 from scmrepo.asyn import BaseAsyncObject, sync_wrapper
 
 
 class _StderrWrapper:
-    def __init__(self, stderr):
+    def __init__(
+        self, stderr: SSHReader, loop: asyncio.AbstractEventLoop
+    ) -> None:
         self.stderr = stderr
+        self.loop = loop
 
-    async def _readlines(self):
+    async def _readlines(self) -> List[bytes]:
         lines = []
         while True:
             line = await self.stderr.readline()
@@ -19,15 +26,19 @@ class _StderrWrapper:
             lines.append(line)
         return lines
 
+    async def _read(self, n: Optional[int] = None) -> bytes:
+        return await self.stderr.read(n=n if n is not None else -1)
+
+    read = sync_wrapper(_read)
     readlines = sync_wrapper(_readlines)
 
 
 class AsyncSSHWrapper(BaseAsyncObject):
-    def __init__(self, conn, proc, **kwargs):
+    def __init__(self, conn: SSHConnection, proc: SSHClientProcess, **kwargs):
         super().__init__(**kwargs)
-        self.conn = conn
-        self.proc = proc
-        self.stderr = _StderrWrapper(proc.stderr)
+        self.conn: SSHClientConnection = conn
+        self.proc: SSHClientProcess = proc
+        self.stderr = _StderrWrapper(proc.stderr, self.loop)
 
     def can_read(self) -> bool:
         # pylint:disable=protected-access
@@ -41,13 +52,16 @@ class AsyncSSHWrapper(BaseAsyncObject):
 
     read = sync_wrapper(_read)
 
-    async def _write(self, data: bytes):
+    def read_stderr(self, n: Optional[int] = None) -> bytes:
+        return self.stderr.read(n)
+
+    async def _write(self, data: bytes) -> None:
         self.proc.stdin.write(data)
         await self.proc.stdin.drain()
 
     write = sync_wrapper(_write)
 
-    async def _close(self):
+    async def _close(self) -> None:
         self.conn.close()
         await self.conn.wait_closed()
 
@@ -94,7 +108,7 @@ def _process_public_key_ok_gh(self, _pkttype, _pktid, packet):
 
 
 class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
     async def _run_command(
@@ -105,8 +119,8 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
         port: Optional[int] = None,
         password: Optional[str] = None,
         key_filename: Optional[str] = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> AsyncSSHWrapper:
         """Connect to an SSH server.
 
         Run a command remotely and return a file-like object for interaction
@@ -128,7 +142,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
             MSG_USERAUTH_PK_OK
         ] = _process_public_key_ok_gh
 
-        conn = await asyncssh.connect(
+        conn: SSHClientConnection = await asyncssh.connect(
             host,
             port=port if port is not None else (),
             username=username if username is not None else (),
@@ -138,7 +152,9 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
             known_hosts=None,
             encoding=None,
         )
-        proc = await conn.create_process(command, encoding=None)
+        proc: SSHClientProcess = await conn.create_process(
+            command, encoding=None
+        )
         return AsyncSSHWrapper(conn, proc)
 
     run_command = sync_wrapper(_run_command)

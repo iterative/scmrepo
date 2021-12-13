@@ -12,7 +12,7 @@ locations = "scmrepo", "tests"
 @nox.session(python=["3.7", "3.8", "3.9", "3.10"])
 def tests(session: nox.Session) -> None:
     session.install("-e", ".[dev]")
-    session.run("pytest")
+    session.run("pytest", *session.posargs)
 
 
 @nox.session

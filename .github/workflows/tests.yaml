@@ -2,8 +2,10 @@ name: Tests
 on: [push, pull_request]
 jobs:
   tests:
+    timeout-minutes: 10
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-latest, macos-latest]
         python-version: ['3.7', '3.8', '3.9', '3.10']
@@ -13,5 +15,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - run: pip install -U nox pip wheel
-    - run: nox
+    - run: nox -s lint
+    - run: nox -s tests-${{ matrix.python-version }} -- --slow --cov
     - run: nox -s build
