@@ -1,7 +1,10 @@
 import os
-from typing import Iterator, Type
+import shutil
+from typing import Any, Dict, Iterator, Type
 
 import pytest
+from asyncssh import SFTPClient
+from asyncssh.connection import SSHConnection
 from git import Repo as GitPythonRepo
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
@@ -827,3 +830,52 @@ def test_git_detach_head(tmp_dir: TmpDir, scm: Git, git: Git):
     assert (
         tmp_dir / ".git" / "HEAD"
     ).read_text().strip() == "ref: refs/heads/master"
+
+
+@pytest.mark.skip_git_backend("pygit2", "gitpython")
+@pytest.mark.slow
+@pytest.mark.asyncio
+async def test_git_ssh(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+    sftp: SFTPClient,
+    ssh_connection: SSHConnection,
+    ssh_conn_info: Dict[str, Any],
+):
+    host, port = ssh_conn_info["host"], ssh_conn_info["port"]
+    key_filename = ssh_conn_info["client_keys"]
+    user = ssh_conn_info["username"]
+    url = f"ssh://{user}@{host}:{port}/~/test-repo.git"
+
+    result = await ssh_connection.run("git init --bare test-repo.git")
+    assert result.returncode == 0
+
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="init")
+    rev = scm.get_rev()
+
+    git.push_refspec(
+        url,
+        "refs/heads/master",
+        "refs/heads/master",
+        force=True,
+        key_filename=key_filename,
+    )
+
+    async with sftp.open("test-repo.git/refs/heads/master") as fobj:
+        assert (await fobj.read()).strip() == rev
+
+    shutil.rmtree(tmp_dir / ".git")
+    (tmp_dir / "foo").unlink()
+    scm = Git.init(str(tmp_dir))
+
+    git.fetch_refspecs(
+        url,
+        ["refs/heads/master"],
+        force=True,
+        key_filename=key_filename,
+    )
+    assert git.get_ref("refs/heads/master") == rev
+    scm.checkout("master")
+    assert (tmp_dir / "foo").read_text() == "foo"
