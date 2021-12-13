@@ -1,4 +1,3 @@
-import os
 import socket
 import threading
 from io import StringIO
@@ -13,6 +12,7 @@ from dulwich.contrib.test_paramiko_vendor import (
     USER,
     Server,
 )
+from funcy import retry
 from pytest_mock import MockerFixture
 
 from scmrepo.git.backend.dulwich.asyncssh_vendor import AsyncSSHVendor
@@ -89,7 +89,6 @@ def test_run_command_with_privkey(server: Server, ssh_port: int):
     assert b"test_run_command_with_privkey" in server.commands
 
 
-@pytest.mark.xfail("CI" in os.environ, reason="failing in CI")
 def test_run_command_data_transfer(server: Server, ssh_port: int):
     vendor = AsyncSSHVendor()
     con = vendor.run_command(
@@ -107,7 +106,13 @@ def test_run_command_data_transfer(server: Server, ssh_port: int):
     channel.send_stderr(b"stderr\n")
     channel.close()
 
-    assert con.can_read()
+    def check_can_read():
+        assert con.can_read()
+        return True
+
+    # pylint: disable=no-value-for-parameter
+    can_read = retry(10, timeout=0.1)(check_can_read)
+    assert can_read()
     assert con.read(4096) == b"stdout\n"
     assert con.read_stderr(4096) == b"stderr\n"
 
