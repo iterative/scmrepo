@@ -7,7 +7,6 @@ from typing import Any, AsyncIterator, Dict, Iterator
 import asyncssh
 import pygit2
 import pytest
-from pytest_docker.plugin import Services
 from pytest_test_utils import TempDirFactory, TmpDir
 
 from scmrepo.git import Git
@@ -76,7 +75,7 @@ def scm(tmp_dir: TmpDir) -> Iterator[Git]:
 
 
 @pytest.fixture(scope="session")
-def docker(request: pytest.FixtureRequest) -> Iterator[Services]:
+def docker(request: pytest.FixtureRequest):
     for cmd in [("docker", "ps"), ("docker-compose", "version")]:
         try:
             subprocess.call(
@@ -91,12 +90,13 @@ def docker(request: pytest.FixtureRequest) -> Iterator[Services]:
     if "CI" in os.environ and sys.platform != "linux":
         pytest.skip(f"skip for {sys.platform} in CI")
 
+    pytest.importorskip("pytest_docker")
     yield request.getfixturevalue("docker_services")
 
 
 @pytest.fixture
 def ssh_conn_info(
-    docker: Services,  # pylint: disable=unused-argument
+    docker,  # pylint: disable=unused-argument
 ) -> Dict[str, Any]:
     conn_info = {
         "host": "127.0.0.1",
