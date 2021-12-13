@@ -1,5 +1,5 @@
-from typing import NamedTuple, Optional, Union
 import locale
+from typing import NamedTuple, Optional, Union
 
 from funcy import compose
 
