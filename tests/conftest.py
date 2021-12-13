@@ -79,8 +79,7 @@ def docker(request: pytest.FixtureRequest):
     for cmd in [("docker", "ps"), ("docker-compose", "version")]:
         try:
             subprocess.call(
-                cmd,
-                shell=True,
+                " ".join(cmd),
                 stderr=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
             )

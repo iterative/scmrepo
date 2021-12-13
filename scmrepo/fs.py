@@ -80,6 +80,9 @@ class GitFileSystem(AbstractFileSystem):
         cache_options: Dict = None,
         **kwargs: Any,
     ) -> BinaryIO:
+        if mode != "rb":
+            raise NotImplementedError
+
         key = self._get_key(path)
         try:
             obj = self.trie.open(key, mode=mode)
