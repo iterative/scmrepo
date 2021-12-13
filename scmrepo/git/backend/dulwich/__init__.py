@@ -680,3 +680,12 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.refs import check_ref_format
 
         return check_ref_format(refname.encode())
+
+    def last_n_commits(
+        self, rev: Optional[str] = None, max_count: Optional[int] = None
+    ) -> Iterable[str]:
+        if not rev:
+            rev = self.get_rev()
+
+        gen = self.repo.get_walker(os.fsencode(rev), max_entries=max_count)
+        return [os.fsdecode(entry.commit.id) for entry in gen]

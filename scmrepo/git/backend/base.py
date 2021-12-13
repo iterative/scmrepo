@@ -363,3 +363,16 @@ class BaseGitBackend(ABC):
     @abstractmethod
     def validate_git_remote(self, url: str, **kwargs):
         """Verify that url is a valid git URL or remote name."""
+
+    @abstractmethod
+    def last_n_commits(
+        self, rev: Optional[str] = None, max_count: Optional[int] = None
+    ) -> Iterable[str]:
+        """
+        Return a list of commit rev with a depth representing the history
+        of a given ref/commit
+        Args:
+            rev: Git revision as baseline, if `None` then `HEAD` as baseline.
+            max_count: is the maximum number of commits to fetch. If `None`
+                then it will return the whole history of commits.
+        """

@@ -827,3 +827,31 @@ def test_git_detach_head(tmp_dir: TmpDir, scm: Git, git: Git):
     assert (
         tmp_dir / ".git" / "HEAD"
     ).read_text().strip() == "ref: refs/heads/master"
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_last_n_commits(tmp_dir: TmpDir, scm: Git, git: Git):
+
+    foo_list = []
+    for i in range(5):
+        tmp_dir.gen({"foo": f"{i}"})
+        scm.add_commit("foo", message=f"{i}")
+        foo_list.append(scm.get_rev())
+
+    scm.checkout(foo_list[2])
+    scm.branch("bar")
+
+    bar_list = []
+    for i in range(3):
+        tmp_dir.gen({"bar": f"{i}"})
+        scm.add_commit("bar", message=f"{i}")
+        bar_list.append(scm.get_rev())
+
+    scm.checkout(foo_list[4])
+
+    assert git.last_n_commits()[::-1] == foo_list
+    assert git.last_n_commits(max_count=3)[::-1] == foo_list[2:]
+    assert (
+        git.last_n_commits(rev=bar_list[-1], max_count=4)[::-1]
+        == [foo_list[2]] + bar_list
+    )

@@ -596,3 +596,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def validate_git_remote(self, url: str, **kwargs):
         raise NotImplementedError
+
+    def last_n_commits(
+        self, rev: Optional[str] = None, max_count: Optional[int] = None
+    ) -> Iterable[str]:
+        raise NotImplementedError
