@@ -12,8 +12,8 @@ from dulwich.contrib.test_paramiko_vendor import (
     USER,
     Server,
 )
-from funcy import retry
 from pytest_mock import MockerFixture
+from pytest_test_utils.waiters import wait_until
 
 from scmrepo.git.backend.dulwich.asyncssh_vendor import AsyncSSHVendor
 
@@ -106,13 +106,7 @@ def test_run_command_data_transfer(server: Server, ssh_port: int):
     channel.send_stderr(b"stderr\n")
     channel.close()
 
-    def check_can_read():
-        assert con.can_read()
-        return True
-
-    # pylint: disable=no-value-for-parameter
-    can_read = retry(10, timeout=0.1)(check_can_read)
-    assert can_read()
+    assert wait_until(con.can_read, timeout=1, pause=0.1)
     assert con.read(4096) == b"stdout\n"
     assert con.read_stderr(4096) == b"stderr\n"
 
