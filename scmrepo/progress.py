@@ -50,7 +50,9 @@ class GitProgressReporter:
 
     def __call__(self, msg: Union[str, bytes]) -> None:
         self._reporter._parse_progress_line(
-            msg.decode("ascii").strip() if isinstance(msg, bytes) else msg
+            msg.decode("utf-8", errors="replace").strip()
+            if isinstance(msg, bytes)
+            else msg
         )
 
     @staticmethod
