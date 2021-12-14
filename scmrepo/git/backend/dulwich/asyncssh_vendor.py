@@ -1,18 +1,20 @@
 """asyncssh SSH vendor for Dulwich."""
 import asyncio
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
-from asyncssh.connection import SSHClientConnection, SSHConnection
-from asyncssh.process import SSHClientProcess
-from asyncssh.stream import SSHReader
 from dulwich.client import SSHVendor
 
 from scmrepo.asyn import BaseAsyncObject, sync_wrapper
 
+if TYPE_CHECKING:
+    from asyncssh.connection import SSHClientConnection, SSHConnection
+    from asyncssh.process import SSHClientProcess
+    from asyncssh.stream import SSHReader
+
 
 class _StderrWrapper:
     def __init__(
-        self, stderr: SSHReader, loop: asyncio.AbstractEventLoop
+        self, stderr: "SSHReader", loop: asyncio.AbstractEventLoop
     ) -> None:
         self.stderr = stderr
         self.loop = loop
@@ -34,10 +36,12 @@ class _StderrWrapper:
 
 
 class AsyncSSHWrapper(BaseAsyncObject):
-    def __init__(self, conn: SSHConnection, proc: SSHClientProcess, **kwargs):
+    def __init__(
+        self, conn: "SSHConnection", proc: "SSHClientProcess", **kwargs
+    ):
         super().__init__(**kwargs)
-        self.conn: SSHClientConnection = conn
-        self.proc: SSHClientProcess = proc
+        self.conn: "SSHClientConnection" = conn
+        self.proc: "SSHClientProcess" = proc
         self.stderr = _StderrWrapper(proc.stderr, self.loop)
 
     def can_read(self) -> bool:
@@ -142,7 +146,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
             MSG_USERAUTH_PK_OK
         ] = _process_public_key_ok_gh
 
-        conn: SSHClientConnection = await asyncssh.connect(
+        conn: "SSHClientConnection" = await asyncssh.connect(
             host,
             port=port if port is not None else (),
             username=username if username is not None else (),
@@ -152,7 +156,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
             known_hosts=None,
             encoding=None,
         )
-        proc: SSHClientProcess = await conn.create_process(
+        proc: "SSHClientProcess" = await conn.create_process(
             command, encoding=None
         )
         return AsyncSSHWrapper(conn, proc)
