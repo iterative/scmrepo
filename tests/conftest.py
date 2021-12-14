@@ -86,6 +86,9 @@ def docker(request: pytest.FixtureRequest):
         except (subprocess.CalledProcessError, OSError):
             pytest.skip(f"no {cmd[0]} installed")
 
+    if "CI" in os.environ and os.name == "nt":
+        pytest.skip("disabled for Windows on Github Actions")
+
     pytest.importorskip("pytest_docker")
     yield request.getfixturevalue("docker_services")
 
