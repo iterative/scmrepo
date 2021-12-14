@@ -1,4 +1,3 @@
-import locale
 from typing import NamedTuple, Optional, Union
 
 from funcy import compose
@@ -50,9 +49,10 @@ class GitProgressReporter:
         self._reporter = CallableRemoteProgress(self.wrap_fn(fn))
 
     def __call__(self, msg: Union[str, bytes]) -> None:
-        encoding = locale.getpreferredencoding()
         self._reporter._parse_progress_line(
-            msg.decode(encoding).strip() if isinstance(msg, bytes) else msg
+            msg.decode("utf-8", errors="replace").strip()
+            if isinstance(msg, bytes)
+            else msg
         )
 
     @staticmethod
