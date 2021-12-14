@@ -78,16 +78,13 @@ def scm(tmp_dir: TmpDir) -> Iterator[Git]:
 def docker(request: pytest.FixtureRequest):
     for cmd in [("docker", "ps"), ("docker-compose", "version")]:
         try:
-            subprocess.call(
-                " ".join(cmd),
+            subprocess.check_call(
+                cmd,
                 stderr=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
             )
         except (subprocess.CalledProcessError, OSError):
             pytest.skip(f"no {cmd[0]} installed")
-
-    if "CI" in os.environ and sys.platform != "linux":
-        pytest.skip(f"skip for {sys.platform} in CI")
 
     pytest.importorskip("pytest_docker")
     yield request.getfixturevalue("docker_services")
