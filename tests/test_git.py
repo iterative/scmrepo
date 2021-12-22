@@ -280,9 +280,12 @@ def test_get_ref(tmp_dir: TmpDir, scm: Git, git: Git):
             ): "ref: refs/heads/master",
         }
     )
+    scm.tag(["-a", "annotated", "-m", "Annotated Tag"])
 
     assert init_rev == git.get_ref("refs/foo/bar")
     assert init_rev == git.get_ref("refs/foo/baz")
+    assert init_rev == git.get_ref("refs/tags/annotated", follow=True)
+    assert init_rev == git.get_ref("refs/tags/annotated", follow=False)
     assert git.get_ref("refs/foo/baz", follow=False) == "refs/heads/master"
     assert git.get_ref("refs/foo/qux") is None
 

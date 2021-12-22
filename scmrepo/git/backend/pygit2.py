@@ -317,13 +317,20 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             )
 
     def get_ref(self, name, follow: bool = True) -> Optional[str]:
-        from pygit2 import GIT_REF_SYMBOLIC
+        from pygit2 import GIT_OBJ_COMMIT, GIT_REF_SYMBOLIC, Tag
 
         ref = self.repo.references.get(name)
         if not ref:
             return None
         if follow and ref.type == GIT_REF_SYMBOLIC:
             ref = ref.resolve()
+        try:
+            obj = self.repo[ref.target]
+            if isinstance(obj, Tag):
+                return str(obj.peel(GIT_OBJ_COMMIT).id)
+        except ValueError:
+            pass
+
         return str(ref.target)
 
     def remove_ref(self, name: str, old_ref: Optional[str] = None):
