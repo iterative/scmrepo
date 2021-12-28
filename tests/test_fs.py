@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from pytest_test_utils import TmpDir
 
@@ -34,7 +32,7 @@ def test_exists(tmp_dir: TmpDir, scm: Git):
     assert not fs.exists("foo")
     assert not fs.exists("тест")
     assert not fs.exists("data")
-    assert not fs.exists(os.path.join("data", "lorem"))
+    assert not fs.exists("data/lorem")
 
     scm.add_commit(files, message="add")
 
@@ -42,7 +40,7 @@ def test_exists(tmp_dir: TmpDir, scm: Git):
     assert fs.exists("foo")
     assert fs.exists("тест")
     assert fs.exists("data")
-    assert fs.exists(os.path.join("data", "lorem"))
+    assert fs.exists("data/lorem")
     assert not fs.exists("non-existing-file")
 
 
@@ -75,7 +73,7 @@ def test_walk(tmp_dir: TmpDir, scm: Git):
             "data": {"lorem": "ipsum", "subdir": {"sub": "sub"}},
         }
     )
-    scm.add_commit(os.path.join("data", "subdir"), message="add")
+    scm.add_commit("data/subdir", message="add")
     fs = scm.get_fs("master")
 
     def convert_to_sets(walk_results):
@@ -86,22 +84,20 @@ def test_walk(tmp_dir: TmpDir, scm: Git):
 
     assert convert_to_sets(fs.walk(".")) == convert_to_sets(
         [
-            (scm.root_dir, ["data"], []),
-            (os.path.join(scm.root_dir, "data"), ["subdir"], []),
+            ("", ["data"], []),
+            ("data", ["subdir"], []),
             (
-                os.path.join(scm.root_dir, "data", "subdir"),
+                "data/subdir",
                 [],
                 ["sub"],
             ),
         ]
     )
 
-    assert convert_to_sets(
-        fs.walk(os.path.join("data", "subdir"))
-    ) == convert_to_sets(
+    assert convert_to_sets(fs.walk("data/subdir")) == convert_to_sets(
         [
             (
-                os.path.join(scm.root_dir, "data", "subdir"),
+                "data/subdir",
                 [],
                 ["sub"],
             )
@@ -124,21 +120,21 @@ def test_ls(tmp_dir: TmpDir, scm: Git):
     assert fs.ls(".") == [
         {
             "mode": 16384,
-            "name": str(tmp_dir / "data"),
+            "name": "data",
             "sha": "f5d6ac1955c85410b71bb6e35e4c57c54e2ad524",
             "size": 66,
             "type": "directory",
         },
         {
             "mode": 33188,
-            "name": str(tmp_dir / "foo"),
+            "name": "foo",
             "sha": "19102815663d23f8b75a47e7a01965dcdc96468c",
             "size": 3,
             "type": "file",
         },
         {
             "mode": 33188,
-            "name": str(tmp_dir / "тест"),
+            "name": "тест",
             "sha": "eeeba1738f4c12844163b89112070c6e57eb764e",
             "size": 16,
             "type": "file",
