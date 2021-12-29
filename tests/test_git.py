@@ -126,7 +126,7 @@ def test_walk_with_submodules(
     files = []
     dirs = []
     fs = scm.get_fs("HEAD")
-    for _, dnames, fnames in fs.walk("."):
+    for _, dnames, fnames in fs.walk(""):
         dirs.extend(dnames)
         files.extend(fnames)
 
