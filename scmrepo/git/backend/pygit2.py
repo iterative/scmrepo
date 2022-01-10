@@ -291,7 +291,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def is_ignored(self, path: "Union[str, os.PathLike[str]]") -> bool:
         rel = relpath(path, self.root_dir)
         if os.name == "nt":
-            rel.replace("\\", "/")
+            rel = rel.replace("\\", "/")
         return self.repo.path_is_ignored(rel)
 
     def set_ref(
