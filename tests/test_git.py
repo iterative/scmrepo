@@ -720,9 +720,6 @@ def test_ignore(tmp_dir: TmpDir, scm: Git, git: Git):
 
 
 def test_ignored(tmp_dir: TmpDir, scm: Git, git: Git, git_backend: str):
-    if os.name == "nt" and git_backend == "pygit2":
-        pytest.skip()
-
     tmp_dir.gen({"dir1": {"file1.jpg": "cont", "file2.txt": "cont"}})
     tmp_dir.gen({".gitignore": "dir1/*.jpg"})
 
