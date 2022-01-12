@@ -17,7 +17,12 @@ from typing import (
 
 from funcy import cached_property
 
-from scmrepo.exceptions import MergeConflictError, RevError, SCMError
+from scmrepo.exceptions import (
+    CloneError,
+    MergeConflictError,
+    RevError,
+    SCMError,
+)
 from scmrepo.utils import relpath
 
 from ..objects import GitCommit, GitObject
@@ -153,7 +158,14 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
     ):
-        raise NotImplementedError
+        from pygit2 import GitError, clone_repository
+
+        if shallow_branch:
+            raise NotImplementedError
+        try:
+            clone_repository(url, to_path)
+        except GitError as exc:
+            raise CloneError(url, to_path) from exc
 
     @staticmethod
     def init(path: str, bare: bool = False) -> None:
