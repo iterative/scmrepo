@@ -883,3 +883,17 @@ async def test_git_ssh(
     assert git.get_ref("refs/heads/master") == rev
     scm.checkout("master")
     assert (tmp_dir / "foo").read_text() == "foo"
+
+
+def test_clone(
+    tmp_dir: TmpDir, scm: Git, git: Git, tmp_dir_factory: TempDirFactory
+):
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="init")
+    rev = scm.get_rev()
+
+    target_dir = tmp_dir_factory.mktemp("git-clone")
+    git.clone(str(tmp_dir), (target_dir))
+    target = Git(str(target_dir))
+    assert target.get_rev() == rev
+    assert (target_dir / "foo").read_text() == "foo"
