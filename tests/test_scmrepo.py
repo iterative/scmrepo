@@ -11,8 +11,10 @@ from scmrepo.progress import GitProgressEvent
 def test_clone(tmp_dir: TmpDir, matcher: Type[Matcher]):
     progress = MagicMock()
     url = "https://github.com/iterative/dvcyaml-schema"
+    rev = "cf279597596b54c5b0ce089eb4bda41ebbbb5db4"
 
-    Git.clone(url, "dir", progress=progress)
+    repo = Git.clone(url, "dir", rev=rev, progress=progress)
+    assert repo.get_rev() == rev
 
     progress.assert_called_with(matcher.instance_of(GitProgressEvent))
     assert (tmp_dir / "dir").exists()
