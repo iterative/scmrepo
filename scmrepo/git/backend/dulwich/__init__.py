@@ -3,6 +3,7 @@ import locale
 import logging
 import os
 import stat
+from functools import partial
 from io import BytesIO, StringIO
 from typing import (
     TYPE_CHECKING,
@@ -18,7 +19,7 @@ from typing import (
 
 from funcy import cached_property
 
-from scmrepo.exceptions import AuthError, InvalidRemote, SCMError
+from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, SCMError
 from scmrepo.utils import relpath
 
 from ...objects import GitObject
@@ -136,7 +137,26 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
     ):
-        raise NotImplementedError
+        from urllib.parse import urlparse
+
+        from dulwich.porcelain import clone as git_clone
+
+        try:
+            clone_from = partial(git_clone, url, target=to_path)
+            if shallow_branch:
+                # NOTE: dulwich only supports shallow/depth for non-local
+                # clones. This differs from CLI git, where depth is used for
+                # file:// URLs but not direct local paths
+                parsed = urlparse(url)
+                if not parsed.scheme or parsed.scheme == "file":
+                    depth = 0
+                else:
+                    depth = 1
+                clone_from(depth=depth, branch=os.fsencode(shallow_branch))
+            else:
+                clone_from()
+        except Exception as exc:
+            raise CloneError(url, to_path) from exc
 
     @staticmethod
     def init(path: str, bare: bool = False) -> None:
