@@ -115,11 +115,20 @@ class Git(Base):
         return Stash(self)
 
     @classmethod
-    def clone(cls, url, to_path, **kwargs):
+    def clone(
+        cls,
+        url: str,
+        to_path: str,
+        rev: Optional[str] = None,
+        **kwargs,
+    ):
         for _, backend in GitBackends.DEFAULT.items():
             try:
                 backend.clone(url, to_path, **kwargs)
-                return Git(to_path)
+                repo = cls(to_path)
+                if rev:
+                    repo.checkout(rev)
+                return repo
             except NotImplementedError:
                 pass
         raise NoGitBackendError("clone")

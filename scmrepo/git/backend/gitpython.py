@@ -143,7 +143,6 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def clone(
         url: str,
         to_path: str,
-        rev: Optional[str] = None,
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
     ):
@@ -188,19 +187,6 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             tmp_repo.close()
         except GitCommandError as exc:  # pylint: disable=no-member
             raise CloneError(url, to_path) from exc
-
-        # NOTE: using our wrapper to make sure that env is fixed in __init__
-        repo = GitPythonBackend(to_path)
-
-        if rev:
-            try:
-                repo.checkout(rev)
-            except GitCommandError as exc:  # pylint: disable=no-member
-                raise RevError(
-                    "failed to access revision '{}' for repo '{}'".format(
-                        rev, url
-                    )
-                ) from exc
 
     @staticmethod
     def init(path: str, bare: bool = False) -> None:

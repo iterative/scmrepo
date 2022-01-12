@@ -150,7 +150,6 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def clone(
         url: str,
         to_path: str,
-        rev: Optional[str] = None,
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
     ):
