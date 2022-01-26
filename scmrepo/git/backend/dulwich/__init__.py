@@ -20,6 +20,7 @@ from typing import (
 from funcy import cached_property
 
 from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, SCMError
+from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
 
 from ...objects import GitObject
@@ -75,6 +76,19 @@ class DulwichObject(GitObject):
     @property
     def sha(self) -> str:
         return self._sha
+
+
+class DulwichProgressReporter(GitProgressReporter):
+    """Dulwich progress reporter.
+
+    Works with both dulwich.porcelain methods which expect an 'errstream'
+    stream object and internal dulwich methods which expect a 'progress' stream
+    write method.
+    """
+
+    def write(self, msg: Union[str, bytes]) -> int:
+        self.__call__(msg)
+        return len(msg)
 
 
 class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
@@ -139,10 +153,20 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     ):
         from urllib.parse import urlparse
 
+        from dulwich.porcelain import NoneStream
         from dulwich.porcelain import clone as git_clone
 
         try:
-            clone_from = partial(git_clone, url, target=to_path)
+            clone_from = partial(
+                git_clone,
+                url,
+                target=to_path,
+                errstream=(
+                    DulwichProgressReporter(progress)
+                    if progress
+                    else NoneStream()
+                ),
+            )
             if shallow_branch:
                 # NOTE: dulwich only supports shallow/depth for non-local
                 # clones. This differs from CLI git, where depth is used for
@@ -470,13 +494,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             return new_refs
 
         try:
-            from scmrepo.progress import GitProgressReporter
-
             client.send_pack(
                 path,
                 update_refs,
                 self.repo.object_store.generate_pack_data,
-                progress=GitProgressReporter(progress) if progress else None,
+                progress=(
+                    DulwichProgressReporter(progress) if progress else None
+                ),
             )
         except (NotGitRepository, SendPackError) as exc:
             raise SCMError("Git failed to push '{src}' to '{url}'") from exc
@@ -543,12 +567,10 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 f"'{url}' is not a valid Git remote or URL"
             ) from exc
 
-        from scmrepo.progress import GitProgressReporter
-
         fetch_result = client.fetch(
             path,
             self.repo,
-            progress=GitProgressReporter(progress) if progress else None,
+            progress=DulwichProgressReporter(progress) if progress else None,
             determine_wants=determine_wants,
         )
         for (lh, rh, _) in fetch_refs:
