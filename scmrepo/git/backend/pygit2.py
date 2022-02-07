@@ -317,9 +317,17 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             )
 
     def get_ref(self, name, follow: bool = True) -> Optional[str]:
-        from pygit2 import GIT_OBJ_COMMIT, GIT_REF_SYMBOLIC, Tag
+        from pygit2 import (
+            GIT_OBJ_COMMIT,
+            GIT_REF_SYMBOLIC,
+            InvalidSpecError,
+            Tag,
+        )
 
-        ref = self.repo.references.get(name)
+        try:
+            ref = self.repo.references.get(name)
+        except InvalidSpecError:
+            return None
         if not ref:
             return None
         if follow and ref.type == GIT_REF_SYMBOLIC:

@@ -571,12 +571,16 @@ def test_resolve_rev(
     assert git.resolve_rev("refs/foo") == rev
     assert git.resolve_rev("bar") == rev
     assert git.resolve_rev("origin/baz") == rev
+    assert git.resolve_rev("HEAD~1") == init_rev
 
     with pytest.raises(RevError):
         git.resolve_rev("qux")
 
     with pytest.raises(RevError):
         git.resolve_rev("baz")
+
+    with pytest.raises(RevError):
+        git.resolve_rev("HEAD~3")
 
 
 @pytest.mark.skip_git_backend("dulwich")
