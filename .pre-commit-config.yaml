@@ -30,6 +30,6 @@ repos:
           - flake8-comprehensions
           - flake8-debugger
           - flake8-string-format
-          - flake8-bandit
+          - flake8-bandit<1.7.3
     repo: https://gitlab.com/pycqa/flake8
     rev: 3.9.2
