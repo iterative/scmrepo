@@ -31,5 +31,6 @@ repos:
           - flake8-debugger
           - flake8-string-format
           - flake8-bandit
+          - bandit<1.7.3
     repo: https://gitlab.com/pycqa/flake8
     rev: 3.9.2
