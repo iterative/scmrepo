@@ -82,7 +82,7 @@ def test_walk(tmp_dir: TmpDir, scm: Git):
             for root, dirs, nondirs in walk_results
         ]
 
-    assert convert_to_sets(fs.walk("")) == convert_to_sets(
+    assert convert_to_sets(fs.walk(".")) == convert_to_sets(
         [
             ("", ["data"], []),
             ("data", ["subdir"], []),
@@ -116,8 +116,8 @@ def test_ls(tmp_dir: TmpDir, scm: Git):
     scm.add_commit(files, message="add")
     fs = scm.get_fs("master")
 
-    assert fs.ls("", detail=False) == ["foo", "тест", "data"]
-    assert fs.ls("") == {
+    assert fs.ls(".", detail=False) == ["foo", "тест", "data"]
+    assert fs.ls(".") == {
         "data": {
             "mode": 16384,
             "name": "data",
