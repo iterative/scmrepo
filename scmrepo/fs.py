@@ -59,7 +59,7 @@ class GitFileSystem(AbstractFileSystem):
 
     def _get_key(self, path: str) -> Tuple[str, ...]:
         relparts = path.split(self.sep)
-        if relparts == [self.root_marker]:
+        if relparts == ["."]:
             return ()
         return tuple(relparts)
 
