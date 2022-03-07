@@ -1,6 +1,5 @@
 import errno
 import os
-import posixpath
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -32,6 +31,7 @@ def bytesio_len(obj: "BytesIO") -> Optional[int]:
 
 class GitFileSystem(AbstractFileSystem):
     # pylint: disable=abstract-method
+    sep = os.sep
     cachable = False
 
     def __init__(
@@ -53,12 +53,20 @@ class GitFileSystem(AbstractFileSystem):
             resolved = resolver(scm, rev or "HEAD")
             tree_obj = scm.pygit2.get_tree_obj(rev=resolved)
             trie = GitTrie(tree_obj, resolved)
+            path = scm.root_dir
+        else:
+            assert path
 
         self.trie = trie
+        self.root_dir = path
         self.rev = self.trie.rev
 
     def _get_key(self, path: str) -> Tuple[str, ...]:
-        relparts = path.split(self.sep)
+        from scmrepo.utils import relpath
+
+        if os.path.isabs(path):
+            path = relpath(path, self.root_dir)
+        relparts = path.split(os.sep)
         if relparts == ["."]:
             return ()
         return tuple(relparts)
@@ -93,7 +101,7 @@ class GitFileSystem(AbstractFileSystem):
         try:
             return {
                 **self.trie.info(key),
-                "name": path,
+                "name": os.path.join(self.root_dir, self.sep.join(key)),
             }
         except KeyError:
             raise FileNotFoundError(
@@ -137,13 +145,15 @@ class GitFileSystem(AbstractFileSystem):
 
         key = self._get_key(top)
         for prefix, dirs, files in self.trie.walk(key, topdown=topdown):
-            root = self.sep.join(prefix) if prefix else ""
+            root = self.root_dir
 
+            if prefix:
+                root = os.path.join(root, os.sep.join(prefix))
             if detail:
                 yield (
                     root,
-                    {d: self.info(posixpath.join(root, d)) for d in dirs},
-                    {f: self.info(posixpath.join(root, f)) for f in files},
+                    {d: self.info(os.path.join(root, d)) for d in dirs},
+                    {f: self.info(os.path.join(root, f)) for f in files},
                 )
             else:
                 yield root, dirs, files
