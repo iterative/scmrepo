@@ -3,10 +3,11 @@
 import logging
 import os
 import re
+import threading
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import partialmethod
-from typing import Dict, Iterable, Optional, Tuple, Type, Union
+from typing import Any, Dict, Iterable, Optional, Tuple, Type, Union
 
 from funcy import cached_property, first
 from pathspec.patterns import GitWildMatchPattern
@@ -318,7 +319,6 @@ class Git(Base):
     diff = partialmethod(_backend_func, "diff")
     reset = partialmethod(_backend_func, "reset")
     checkout_index = partialmethod(_backend_func, "checkout_index")
-    status = partialmethod(_backend_func, "status")
     merge = partialmethod(_backend_func, "merge")
     validate_git_remote = partialmethod(_backend_func, "validate_git_remote")
     check_ref_format = partialmethod(_backend_func, "check_ref_format")
@@ -412,3 +412,38 @@ class Git(Base):
         ):
             return self.get_ref("HEAD", follow=False)
         return self._describe(rev, base, match, exclude)
+
+    def status(self, *args, **kwargs):
+
+        event = threading.Event()
+        status_result: Union[Any, Exception, None] = None
+
+        def worker():
+            nonlocal status_result
+            try:
+                status_result = self._backend_func("status", *args, **kwargs)
+            except Exception as exc:  # pylint: disable=broad-except
+                status_result = exc
+            event.set()
+
+        thread = threading.Thread(target=worker, name="scm-status")
+        thread.start()
+
+        counter = 0
+        while True:
+            if event.wait(1):
+                break
+            counter += 1
+            if counter == 5:
+                logger.warning("Getting git status..")
+            elif counter == 10:
+                msg = (
+                    "This is taking a while. If there's any large untracked"
+                    + "directories, you can try adding these to .gitignore."
+                )
+                logger.warning(msg)
+
+        if isinstance(status_result, Exception):
+            raise status_result  # pylint: disable=raising-bad-type
+
+        return status_result
