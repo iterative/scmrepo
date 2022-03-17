@@ -126,14 +126,14 @@ def ssh_conn_info(
 @pytest.fixture
 async def ssh_connection(
     ssh_conn_info: Dict[str, Any],
-) -> AsyncIterator[asyncssh.connection.SSHConnection]:
+) -> AsyncIterator[asyncssh.connection.SSHClientConnection]:
     async with asyncssh.connect(**ssh_conn_info) as conn:
         yield conn
 
 
 @pytest.fixture
 async def sftp(
-    ssh_connection: asyncssh.connection.SSHConnection,
+    ssh_connection: asyncssh.connection.SSHClientConnection,
 ) -> AsyncIterator[asyncssh.SFTPClient]:
     async with ssh_connection.start_sftp_client() as sftp:
         yield sftp

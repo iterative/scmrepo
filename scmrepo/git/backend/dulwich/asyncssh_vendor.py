@@ -7,7 +7,7 @@ from dulwich.client import SSHVendor
 from scmrepo.asyn import BaseAsyncObject, sync_wrapper
 
 if TYPE_CHECKING:
-    from asyncssh.connection import SSHClientConnection, SSHConnection
+    from asyncssh.connection import SSHClientConnection
     from asyncssh.process import SSHClientProcess
     from asyncssh.stream import SSHReader
 
@@ -37,7 +37,7 @@ class _StderrWrapper:
 
 class AsyncSSHWrapper(BaseAsyncObject):
     def __init__(
-        self, conn: "SSHConnection", proc: "SSHClientProcess", **kwargs
+        self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs
     ):
         super().__init__(**kwargs)
         self.conn: "SSHClientConnection" = conn
@@ -146,7 +146,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
             MSG_USERAUTH_PK_OK
         ] = _process_public_key_ok_gh
 
-        conn: "SSHClientConnection" = await asyncssh.connect(
+        conn = await asyncssh.connect(
             host,
             port=port if port is not None else (),
             username=username if username is not None else (),
@@ -156,9 +156,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
             known_hosts=None,
             encoding=None,
         )
-        proc: "SSHClientProcess" = await conn.create_process(
-            command, encoding=None
-        )
+        proc = await conn.create_process(command, encoding=None)
         return AsyncSSHWrapper(conn, proc)
 
     run_command = sync_wrapper(_run_command)
