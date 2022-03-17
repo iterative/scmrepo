@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterator, Type
 
 import pytest
 from asyncssh import SFTPClient
-from asyncssh.connection import SSHConnection
+from asyncssh.connection import SSHClientConnection
 from git import Repo as GitPythonRepo
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
@@ -844,7 +844,7 @@ async def test_git_ssh(
     scm: Git,
     git: Git,
     sftp: SFTPClient,
-    ssh_connection: SSHConnection,
+    ssh_connection: SSHClientConnection,
     ssh_conn_info: Dict[str, Any],
 ):
     host, port = ssh_conn_info["host"], ssh_conn_info["port"]
@@ -868,7 +868,7 @@ async def test_git_ssh(
     )
 
     async with sftp.open("test-repo.git/refs/heads/master") as fobj:
-        assert (await fobj.read()).strip() == rev
+        assert (await fobj.read(-1, 0)).strip() == rev
 
     shutil.rmtree(tmp_dir / ".git")
     (tmp_dir / "foo").unlink()
