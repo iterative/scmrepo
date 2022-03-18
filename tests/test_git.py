@@ -897,3 +897,21 @@ def test_clone(
     target = Git(str(target_dir))
     assert target.get_rev() == rev
     assert (target_dir / "foo").read_text() == "foo"
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_fetch(
+    tmp_dir: TmpDir, scm: Git, git: Git, tmp_dir_factory: TempDirFactory
+):
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="init")
+
+    target_dir = tmp_dir_factory.mktemp("git-clone")
+    git.clone(str(tmp_dir), (target_dir))
+    target = Git(str(target_dir))
+
+    scm.add_commit("bar", message="update")
+    rev = scm.get_rev()
+
+    target.fetch()
+    assert target.get_ref("refs/remotes/origin/master") == rev
