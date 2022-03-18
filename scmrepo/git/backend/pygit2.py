@@ -251,7 +251,14 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         raise NotImplementedError
 
     def active_branch(self) -> str:
-        raise NotImplementedError
+        if self.repo.head_is_detached:
+            raise SCMError("No active branch (detached HEAD)")
+        if self.repo.head_is_unborn:
+            # if HEAD points to a nonexistent branch we still return the
+            # branch name (without "refs/heads/" prefix) to match gitpython's
+            # behavior
+            return self.repo.references["HEAD"].target[11:]
+        return self.repo.head.shorthand
 
     def list_branches(self) -> Iterable[str]:
         raise NotImplementedError
