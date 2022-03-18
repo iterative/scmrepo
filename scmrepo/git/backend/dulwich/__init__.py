@@ -27,6 +27,8 @@ from ...objects import GitObject
 from ..base import BaseGitBackend
 
 if TYPE_CHECKING:
+    from dulwich.repo import Repo
+
     from scmrepo.progress import GitProgressEvent
 
     from ...objects import GitCommit
@@ -144,8 +146,9 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def root_dir(self) -> str:
         return self.repo.path
 
-    @staticmethod
+    @classmethod
     def clone(
+        cls,
         url: str,
         to_path: str,
         shallow_branch: Optional[str] = None,
@@ -176,11 +179,29 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                     depth = 0
                 else:
                     depth = 1
-                clone_from(depth=depth, branch=os.fsencode(shallow_branch))
+                repo = clone_from(
+                    depth=depth, branch=os.fsencode(shallow_branch)
+                )
             else:
-                clone_from()
+                repo = clone_from()
+            cls._set_default_tracking_branch(repo)
         except Exception as exc:
             raise CloneError(url, to_path) from exc
+
+    @staticmethod
+    def _set_default_tracking_branch(repo: "Repo"):
+        from dulwich.refs import LOCAL_BRANCH_PREFIX, parse_symref_value
+
+        try:
+            ref = parse_symref_value(repo.refs.read_ref(b"HEAD"))
+        except ValueError:
+            return
+        if ref.startswith(LOCAL_BRANCH_PREFIX):
+            branch = ref[len(LOCAL_BRANCH_PREFIX) :]
+            config = repo.get_config()
+            section = ("branch", os.fsencode(branch))
+            config.set(section, b"remote", b"origin")
+            config.set(section, b"merge", ref)
 
     @staticmethod
     def init(path: str, bare: bool = False) -> None:
