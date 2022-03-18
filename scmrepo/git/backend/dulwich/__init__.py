@@ -291,6 +291,23 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     ):
         raise NotImplementedError
 
+    def fetch(
+        self,
+        remote: Optional[str] = None,
+        force: bool = False,
+        unshallow: bool = False,
+    ):
+        from dulwich.porcelain import fetch
+        from dulwich.protocol import DEPTH_INFINITE
+
+        remote_b = os.fsencode(remote) if remote else b"origin"
+        fetch(
+            self.repo,
+            remote_location=remote_b,
+            force=force,
+            depth=DEPTH_INFINITE if unshallow else None,
+        )
+
     def pull(self, **kwargs):
         raise NotImplementedError
 
