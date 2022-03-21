@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Any, Dict, Iterator, Type
+from typing import Any, Dict, Iterator, Optional, Type
 
 import pytest
 from asyncssh import SFTPClient
@@ -885,15 +885,24 @@ async def test_git_ssh(
     assert (tmp_dir / "foo").read_text() == "foo"
 
 
+@pytest.mark.parametrize("scheme", ["", "file://"])
+@pytest.mark.parametrize("shallow_branch", [None, "master"])
 def test_clone(
-    tmp_dir: TmpDir, scm: Git, git: Git, tmp_dir_factory: TempDirFactory
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+    tmp_dir_factory: TempDirFactory,
+    scheme: str,
+    shallow_branch: Optional[str],
 ):
     tmp_dir.gen("foo", "foo")
     scm.add_commit("foo", message="init")
     rev = scm.get_rev()
 
     target_dir = tmp_dir_factory.mktemp("git-clone")
-    git.clone(str(tmp_dir), (target_dir))
+    git.clone(
+        f"{scheme}{tmp_dir}", str(target_dir), shallow_branch=shallow_branch
+    )
     target = Git(str(target_dir))
     assert target.get_rev() == rev
     assert (target_dir / "foo").read_text() == "foo"

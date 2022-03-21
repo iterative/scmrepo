@@ -159,6 +159,14 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.porcelain import NoneStream
         from dulwich.porcelain import clone as git_clone
 
+        parsed = urlparse(url)
+        if os.name == "nt":
+            # NOTE: Dulwich client code doesn't handle mixed path seps when
+            # passed a file:// URL (i.e. file://C:\foo\bar) but we can just
+            # strip the prefix since Dulwich uses the same clone behavior
+            # for both paths and file:// URLs (as opposed to C-git)
+            if parsed.scheme == "file":
+                url = url[7:]
         try:
             clone_from = partial(
                 git_clone,
@@ -174,11 +182,10 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 # NOTE: dulwich only supports shallow/depth for non-local
                 # clones. This differs from CLI git, where depth is used for
                 # file:// URLs but not direct local paths
-                parsed = urlparse(url)
-                if not parsed.scheme or parsed.scheme == "file":
-                    depth = 0
-                else:
+                if parsed.scheme in ("git", "git+ssh", "ssh", "http", "https"):
                     depth = 1
+                else:
+                    depth = 0
                 repo = clone_from(
                     depth=depth, branch=os.fsencode(shallow_branch)
                 )
