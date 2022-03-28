@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+from collections import OrderedDict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import partialmethod
@@ -30,6 +31,9 @@ logger = logging.getLogger(__name__)
 BackendCls = Type[BaseGitBackend]
 
 
+_LOW_PRIO_BACKENDS = ("gitpython",)
+
+
 class GitBackends(Mapping):
     DEFAULT: Dict[str, BackendCls] = {
         "dulwich": DulwichBackend,
@@ -50,7 +54,9 @@ class GitBackends(Mapping):
         self, selected: Optional[Iterable[str]], *args, **kwargs
     ) -> None:
         selected = selected or list(self.DEFAULT)
-        self.backends = {key: self.DEFAULT[key] for key in selected}
+        self.backends = OrderedDict(
+            ((key, self.DEFAULT[key]) for key in selected)
+        )
 
         self.initialized: Dict[str, BaseGitBackend] = {}
 
@@ -71,6 +77,10 @@ class GitBackends(Mapping):
         for backend in self.initialized.values():
             backend._reset()  # pylint: disable=protected-access
 
+    def move_to_end(self, key: str, last: bool = True):
+        if key not in _LOW_PRIO_BACKENDS:
+            self.backends.move_to_end(key, last=last)
+
 
 class Git(Base):
     """Class for managing Git."""
@@ -87,6 +97,7 @@ class Git(Base):
         self.backends = GitBackends(backends, *args, **kwargs)
         first_ = first(self.backends.values())
         super().__init__(first_.root_dir)
+        self._last_backend: Optional[str] = None
 
     @property
     def dir(self):
@@ -255,11 +266,25 @@ class Git(Base):
     def no_commits(self):
         return not bool(self.get_ref("HEAD"))
 
+    # Prefer re-using the most recently used backend when possible. When
+    # changing backends (due to unimplemented calls), we close the previous
+    # backend to release any open git files/contexts that may cause conflicts
+    # with the new backend.
+    #
+    # See:
+    # https://github.com/iterative/dvc/issues/5641
+    # https://github.com/iterative/dvc/issues/7458
     def _backend_func(self, name, *args, **kwargs):
-        for backend in self.backends.values():
+        for key, backend in self.backends.items():
+            if self._last_backend is not None and key != self._last_backend:
+                self.backends[self._last_backend].close()
+                self._last_backend = None
             try:
                 func = getattr(backend, name)
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+                self._last_backend = key
+                self.backends.move_to_end(key, last=False)
+                return result
             except NotImplementedError:
                 pass
         raise NoGitBackendError(name)
