@@ -295,6 +295,9 @@ def test_remove_ref(tmp_dir: TmpDir, scm: Git, git: Git):
     scm.add_commit("file", message="init")
     init_rev = scm.get_rev()
 
+    # remove nonexistent ref should silently pass when old_ref is None)
+    git.remove_ref("refs/foo/bar", old_ref=None)
+
     tmp_dir.gen(os.path.join(".git", "refs", "foo", "bar"), init_rev)
     tmp_dir.gen({"file": "1"})
     scm.add_commit("file", message="commit")

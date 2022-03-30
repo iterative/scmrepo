@@ -369,8 +369,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def remove_ref(self, name: str, old_ref: Optional[str] = None):
         ref = self.repo.references.get(name)
-        if not ref:
-            raise SCMError(f"Ref '{name}' does not exist")
+        if not ref and not old_ref:
+            return
         if old_ref and old_ref != str(ref.target):
             raise SCMError(f"Failed to remove '{name}'")
         ref.delete()
