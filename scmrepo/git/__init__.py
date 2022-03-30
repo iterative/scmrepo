@@ -101,7 +101,12 @@ class Git(Base):
 
     @property
     def dir(self):
-        return first(self.backends.values()).dir
+        for backend in self.backends.values():
+            try:
+                return backend.dir
+            except NotImplementedError:
+                pass
+        raise NotImplementedError
 
     @cached_property
     def hooks_dir(self):
