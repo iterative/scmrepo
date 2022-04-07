@@ -135,30 +135,6 @@ def test_walk_with_submodules(
     assert set(files) == {".gitmodules", "submodule"}
 
 
-def test_walk_onerror(tmp_dir: TmpDir, scm: Git):
-    def onerror(exc):
-        raise exc
-
-    tmp_dir.gen("foo", "foo")
-    scm.add_commit("foo", message="init")
-
-    fs = scm.get_fs("HEAD")
-
-    # path does not exist
-    for _ in fs.walk("dir"):
-        pass
-    with pytest.raises(OSError):
-        for _ in fs.walk("dir", onerror=onerror):
-            pass
-
-    # path is not a directory
-    for _ in fs.walk("foo"):
-        pass
-    with pytest.raises(OSError):
-        for _ in fs.walk("foo", onerror=onerror):
-            pass
-
-
 @pytest.mark.skip_git_backend("pygit2")
 def test_is_tracked(tmp_dir: TmpDir, scm: Git, git: Git):
     tmp_dir.gen(
