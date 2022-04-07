@@ -1,7 +1,5 @@
 import errno
 import os
-from itertools import chain
-import posixpath
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -60,8 +58,8 @@ class GitFileSystem(AbstractFileSystem):
 
     def _get_key(self, path: str) -> Tuple[str, ...]:
         relparts = path.split(self.sep)
-        if relparts == [self.root_marker]:
-            return ()
+        if relparts and relparts[0] in (".", ""):
+            relparts = relparts[1:]
         return tuple(relparts)
 
     def _open(
@@ -108,49 +106,22 @@ class GitFileSystem(AbstractFileSystem):
     def checksum(self, path: str) -> str:
         return self.info(path)["sha"]
 
-    def walk(  # pylint: disable=arguments-differ
-        self,
-        top: str,
-        topdown: bool = True,
-        onerror: Callable[[OSError], None] = None,
-        maxdepth: int = None,
-        detail: bool = False,
-        **kwargs: Any,
-    ):
-        """Directory tree generator.
-
-        See `os.walk` for the docs. Differences:
-        - no support for symlinks
-        """
-        assert maxdepth is None  # not supported yet.
-        if not self.isdir(top):
-            if onerror:
-                if self.exists(top):
-                    exc: OSError = NotADirectoryError(
-                        errno.ENOTDIR, os.strerror(errno.ENOTDIR), top
-                    )
-                else:
-                    exc = FileNotFoundError(
-                        errno.ENOENT, os.strerror(errno.ENOENT), top
-                    )
-                onerror(exc)
-            return []
-
-        key = self._get_key(top)
-        for prefix, dirs, files in self.trie.walk(key, topdown=topdown):
-            root = self.sep.join(prefix) if prefix else ""
-
-            if detail:
-                yield (
-                    root,
-                    {d: self.info(posixpath.join(root, d)) for d in dirs},
-                    {f: self.info(posixpath.join(root, f)) for f in files},
-                )
-            else:
-                yield root, dirs, files
-
     def ls(self, path, detail=True, **kwargs):
-        for _, dirs, files in self.walk(path, detail=detail, **kwargs):
-            if detail:
-                return list(chain(dirs.values(), files.values()))
-            return dirs + files
+        info = self.info(path)
+        if info["type"] != "directory":
+            return [info] if detail else [path]
+
+        key = self._get_key(path)
+        try:
+            names = self.trie.ls(key)
+        except KeyError as exc:
+            raise FileNotFoundError from exc
+
+        paths = [
+            self.sep.join((path, name)) if path else name for name in names
+        ]
+
+        if not detail:
+            return paths
+
+        return [self.info(_path) for _path in paths]

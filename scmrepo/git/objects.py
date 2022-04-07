@@ -101,20 +101,30 @@ class GitTrie:
 
         return obj.isfile
 
+    def ls(self, key: tuple):
+        ret = []
+
+        def node_factory(_, _key, children, obj):
+            if key == _key:
+                assert obj.isdir
+                list(filter(None, children))
+            else:
+                ret.append(_key[-1])
+
+        self.trie.traverse(node_factory, prefix=key)
+
+        return ret
+
     def walk(self, top: tuple, topdown: Optional[bool] = True):
         dirs = []
         nondirs = []
 
-        def node_factory(_, path, children, obj):
-            if path == top:
-                assert obj.isdir
-                list(filter(None, children))
-            elif obj.isdir:
-                dirs.append(obj.name)
+        for name in self.ls(top):
+            info = self.info(top + (name,))
+            if info["type"] == "directory":
+                dirs.append(name)
             else:
-                nondirs.append(obj.name)
-
-        self.trie.traverse(node_factory, prefix=top)
+                nondirs.append(name)
 
         if topdown:
             yield top, dirs, nondirs

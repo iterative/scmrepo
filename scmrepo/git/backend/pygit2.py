@@ -64,7 +64,10 @@ class Pygit2Object(GitObject):
 
     @property
     def size(self) -> int:
-        return len(self.obj.read_raw())
+        try:
+            return len(self.obj.read_raw())
+        except KeyError:
+            return 0
 
     @property
     def sha(self) -> str:
