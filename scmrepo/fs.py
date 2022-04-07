@@ -1,5 +1,6 @@
 import errno
 import os
+from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -160,6 +161,6 @@ class GitFileSystem(AbstractFileSystem):
 
     def ls(self, path, detail=True, **kwargs):
         for _, dirs, files in self.walk(path, detail=detail, **kwargs):
-            merge = files.update if detail else files.extend
-            merge(dirs)
-            return files
+            if detail:
+                return list(chain(dirs.values(), files.values()))
+            return dirs + files
