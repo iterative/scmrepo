@@ -120,27 +120,27 @@ def test_ls(tmp_dir: TmpDir, scm: Git):
     scm.add_commit(files, message="add")
     fs = scm.get_fs("master")
 
-    assert fs.ls(".", detail=False) == ["foo", "тест", "data"]
-    assert fs.ls(".") == {
-        "data": {
+    assert fs.ls(".", detail=False) == ["data", "foo", "тест"]
+    assert fs.ls(".") == [
+        {
             "mode": 16384,
             "name": str(tmp_dir / "data"),
             "sha": "f5d6ac1955c85410b71bb6e35e4c57c54e2ad524",
             "size": 66,
             "type": "directory",
         },
-        "foo": {
+        {
             "mode": 33188,
             "name": str(tmp_dir / "foo"),
             "sha": "19102815663d23f8b75a47e7a01965dcdc96468c",
             "size": 3,
             "type": "file",
         },
-        "тест": {
+        {
             "mode": 33188,
             "name": str(tmp_dir / "тест"),
             "sha": "eeeba1738f4c12844163b89112070c6e57eb764e",
             "size": 16,
             "type": "file",
         },
-    }
+    ]
