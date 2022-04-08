@@ -12,6 +12,7 @@ from dulwich.contrib.test_paramiko_vendor import (
     USER,
     Server,
 )
+from mock import AsyncMock
 from pytest_mock import MockerFixture
 from pytest_test_utils.waiters import wait_until
 
@@ -89,7 +90,10 @@ def test_run_command_with_privkey(server: Server, ssh_port: int):
     assert b"test_run_command_with_privkey" in server.commands
 
 
-def test_run_command_data_transfer(server: Server, ssh_port: int):
+@pytest.mark.parametrize("use_len", [True, False])
+def test_run_command_data_transfer(
+    server: Server, ssh_port: int, use_len: bool
+):
     vendor = AsyncSSHVendor()
     con = vendor.run_command(
         "127.0.0.1",
@@ -107,8 +111,37 @@ def test_run_command_data_transfer(server: Server, ssh_port: int):
     channel.close()
 
     assert wait_until(con.can_read, timeout=1, pause=0.1)
-    assert con.read(4096) == b"stdout\n"
-    assert con.read_stderr(4096) == b"stderr\n"
+    assert con.read(n=7 if use_len else None) == b"stdout\n"
+    assert con.read_stderr(n=7 if use_len else None) == b"stderr\n"
+
+
+def test_run_command_partial_transfer(ssh_port: int, mocker: MockerFixture):
+    vendor = AsyncSSHVendor()
+    con = vendor.run_command(
+        "127.0.0.1",
+        "test_run_command_data_transfer",
+        username=USER,
+        port=ssh_port,
+        password=PASSWORD,
+    )
+
+    mock_stdout = mocker.patch.object(
+        con.proc.stdout,
+        "read",
+        side_effect=[b"s", b"tdout", b"\n"],
+        new_callable=AsyncMock,
+    )
+    assert con.read(n=7) == b"stdout\n"
+    assert mock_stdout.call_count == 3
+
+    mock_stderr = mocker.patch.object(
+        con.stderr.stderr,
+        "read",
+        side_effect=[b"s", b"tderr", b"\n"],
+        new_callable=AsyncMock,
+    )
+    assert con.read_stderr(n=7) == b"stderr\n"
+    assert mock_stderr.call_count == 3
 
 
 @pytest.mark.parametrize(

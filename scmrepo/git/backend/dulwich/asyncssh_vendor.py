@@ -1,6 +1,6 @@
 """asyncssh SSH vendor for Dulwich."""
 import asyncio
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Callable, Coroutine, List, Optional
 
 from dulwich.client import SSHVendor
 
@@ -10,6 +10,19 @@ if TYPE_CHECKING:
     from asyncssh.connection import SSHClientConnection
     from asyncssh.process import SSHClientProcess
     from asyncssh.stream import SSHReader
+
+
+async def _read_all(
+    read: Callable[[int], Coroutine], n: Optional[int] = None
+) -> bytes:
+    if n is None:
+        return await read(-1)
+    result = []
+    while n > 0:
+        data = await read(n)
+        result.append(data)
+        n -= len(data)
+    return b"".join(result)
 
 
 class _StderrWrapper:
@@ -29,7 +42,9 @@ class _StderrWrapper:
         return lines
 
     async def _read(self, n: Optional[int] = None) -> bytes:
-        return await self.stderr.read(n=n if n is not None else -1)
+        if self.stderr.at_eof():
+            return b""
+        return await _read_all(self.stderr.read, n)
 
     read = sync_wrapper(_read)
     readlines = sync_wrapper(_readlines)
@@ -51,8 +66,7 @@ class AsyncSSHWrapper(BaseAsyncObject):
     async def _read(self, n: Optional[int] = None) -> bytes:
         if self.proc.stdout.at_eof():
             return b""
-
-        return await self.proc.stdout.read(n=n if n is not None else -1)
+        return await _read_all(self.proc.stdout.read, n)
 
     read = sync_wrapper(_read)
 
