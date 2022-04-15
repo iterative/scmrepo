@@ -348,7 +348,7 @@ class Git(Base):
     iter_refs = partialmethod(_backend_func, "iter_refs")
     iter_remote_refs = partialmethod(_backend_func, "iter_remote_refs")
     get_refs_containing = partialmethod(_backend_func, "get_refs_containing")
-    push_refspec = partialmethod(_backend_func, "push_refspec")
+    push_refspecs = partialmethod(_backend_func, "push_refspecs")
     fetch_refspecs = partialmethod(_backend_func, "fetch_refspecs")
     _stash_iter = partialmethod(_backend_func, "_stash_iter")
     _stash_push = partialmethod(_backend_func, "_stash_push")

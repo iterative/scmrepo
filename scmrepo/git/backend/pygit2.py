@@ -26,7 +26,7 @@ from scmrepo.exceptions import (
 from scmrepo.utils import relpath
 
 from ..objects import GitCommit, GitObject
-from .base import BaseGitBackend
+from .base import BaseGitBackend, SyncStatus
 
 logger = logging.getLogger(__name__)
 
@@ -414,27 +414,24 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             ) and _contains(self.repo, ref, search_commit):
                 yield ref
 
-    def push_refspec(
+    def push_refspecs(
         self,
         url: str,
-        src: Optional[str],
-        dest: str,
+        refspecs: Union[str, Iterable[str]],
         force: bool = False,
-        on_diverged: Optional[Callable[[str, str], bool]] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ):
+    ) -> Mapping[str, SyncStatus]:
         raise NotImplementedError
 
     def fetch_refspecs(
         self,
         url: str,
-        refspecs: Iterable[str],
-        force: Optional[bool] = False,
-        on_diverged: Optional[Callable[[str, str], bool]] = None,
+        refspecs: Union[str, Iterable[str]],
+        force: bool = False,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ):
+    ) -> Mapping[str, SyncStatus]:
         raise NotImplementedError
 
     def _stash_iter(self, ref: str):

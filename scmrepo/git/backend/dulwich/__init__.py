@@ -3,7 +3,6 @@ import locale
 import logging
 import os
 import stat
-from enum import Enum
 from functools import partial
 from io import BytesIO, StringIO
 from typing import (
@@ -25,7 +24,7 @@ from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
 
 from ...objects import GitObject
-from ..base import BaseGitBackend
+from ..base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
     from dulwich.repo import Repo
@@ -36,13 +35,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-class SyncStatus(Enum):
-    SUCCESS = 0
-    DUPLICATED = 1
-    DIVERGED = 2
-    FAILED = 3
 
 
 class DulwichObject(GitObject):
@@ -496,14 +488,14 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def get_refs_containing(self, rev: str, pattern: Optional[str] = None):
         raise NotImplementedError
 
-    def push_refspec(
+    def push_refspecs(
         self,
         url: str,
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ) -> Mapping[str, int]:
+    ) -> Mapping[str, SyncStatus]:
         from dulwich.client import HTTPUnauthorized, get_transport_and_path
         from dulwich.errors import NotGitRepository, SendPackError
         from dulwich.objectspec import parse_reftuples
@@ -579,7 +571,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         force: Optional[bool] = False,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ) -> Mapping[str, int]:
+    ) -> Mapping[str, SyncStatus]:
         from dulwich.client import get_transport_and_path
         from dulwich.errors import NotGitRepository
         from dulwich.objectspec import parse_reftuples

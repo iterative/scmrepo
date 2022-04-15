@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -23,6 +24,13 @@ if TYPE_CHECKING:
 class NoGitBackendError(SCMError):
     def __init__(self, func):
         super().__init__(f"No valid Git backend for '{func}'")
+
+
+class SyncStatus(Enum):
+    SUCCESS = 0
+    DUPLICATED = 1
+    DIVERGED = 2
+    FAILED = 3
 
 
 class BaseGitBackend(ABC):
@@ -206,43 +214,32 @@ class BaseGitBackend(ABC):
         """Iterate over all git refs containing the specified revision."""
 
     @abstractmethod
-    def push_refspec(
+    def push_refspecs(
         self,
         url: str,
-        src: Optional[str],
-        dest: str,
+        refspecs: Union[str, Iterable[str]],
         force: bool = False,
-        on_diverged: Optional[Callable[[str, str], bool]] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ):
+    ) -> Mapping[str, SyncStatus]:
         """Push refspec to a remote Git repo.
 
         Args:
             url: Git remote name or absolute Git URL.
-            src: Local refspec. If src ends with "/" it will be treated as a
-                prefix, and all refs inside src will be pushed using dest
-                as destination refspec prefix. If src is None, dest will be
-                deleted from the remote.
-            dest: Remote refspec.
+            refspecs: Iterable containing refspecs to fetch.
+                Note that this will not match subkeys.
             force: If True, remote refs will be overwritten.
-            on_diverged: Callback function which will be called if local ref
-                and remote have diverged and force is False. If the callback
-                returns True the remote ref will be overwritten.
-                Callback will be of the form:
-                    on_diverged(local_refname, remote_sha)
         """
 
     @abstractmethod
     def fetch_refspecs(
         self,
         url: str,
-        refspecs: Iterable[str],
-        force: Optional[bool] = False,
-        on_diverged: Optional[Callable[[str, str], bool]] = None,
+        refspecs: Union[str, Iterable[str]],
+        force: bool = False,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ):
+    ) -> Mapping[str, SyncStatus]:
         """Fetch refspecs from a remote Git repo.
 
         Args:
@@ -251,11 +248,6 @@ class BaseGitBackend(ABC):
             refspecs: Iterable containing refspecs to fetch.
                 Note that this will not match subkeys.
             force: If True, local refs will be overwritten.
-            on_diverged: Callback function which will be called if local ref
-                and remote have diverged and force is False. If the callback
-                returns True the local ref will be overwritten.
-                Callback will be of the form:
-                    on_diverged(local_refname, remote_sha)
         """
 
     @abstractmethod
