@@ -3,6 +3,7 @@ import locale
 import logging
 import os
 import stat
+from enum import Enum
 from functools import partial
 from io import BytesIO, StringIO
 from typing import (
@@ -35,6 +36,13 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class SyncStatus(Enum):
+    SUCCESS = 0
+    DUPLICATED = 1
+    DIVERGED = 2
+    FAILED = 3
 
 
 class DulwichObject(GitObject):
@@ -491,22 +499,19 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def push_refspec(
         self,
         url: str,
-        src: Optional[str],
-        dest: str,
+        refspecs: Union[str, Iterable[str]],
         force: bool = False,
-        on_diverged: Optional[Callable[[str, str], bool]] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ):
+    ) -> Mapping[str, int]:
         from dulwich.client import HTTPUnauthorized, get_transport_and_path
         from dulwich.errors import NotGitRepository, SendPackError
+        from dulwich.objectspec import parse_reftuples
         from dulwich.porcelain import (
             DivergedBranches,
             check_diverged,
             get_remote_repo,
         )
-
-        dest_refs, values = self._push_dest_refs(src, dest)
 
         try:
             _remote, location = get_remote_repo(self.repo, url)
@@ -516,26 +521,40 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 f"'{url}' is not a valid Git remote or URL"
             ) from exc
 
+        change_result = {}
+        selected_refs = []
+
         def update_refs(refs):
             from dulwich.objects import ZERO_SHA
 
+            selected_refs.extend(
+                parse_reftuples(self.repo.refs, refs, refspecs, force=force)
+            )
             new_refs = {}
-            for ref, value in zip(dest_refs, values):
-                if ref in refs and value != ZERO_SHA:
-                    local_sha = self.repo.refs[ref]
-                    remote_sha = refs[ref]
+            for (lh, rh, _) in selected_refs:
+                refname = os.fsdecode(rh)
+                if rh in refs and lh is not None:
+                    if refs[rh] == self.repo.refs[lh]:
+                        change_result[refname] = SyncStatus.DUPLICATED
+                        continue
                     try:
-                        check_diverged(self.repo, remote_sha, local_sha)
+                        check_diverged(self.repo, refs[rh], self.repo.refs[lh])
                     except DivergedBranches:
                         if not force:
-                            overwrite = False
-                            if on_diverged:
-                                overwrite = on_diverged(
-                                    os.fsdecode(ref), os.fsdecode(remote_sha)
-                                )
-                            if not overwrite:
-                                continue
-                new_refs[ref] = value
+                            change_result[refname] = SyncStatus.DIVERGED
+                            continue
+                    except Exception:
+                        change_result[refname] = SyncStatus.FAILED
+                        continue
+
+                if lh is None:
+                    value = ZERO_SHA
+                else:
+                    value = self.repo.refs[lh]
+
+                new_refs[rh] = value
+                change_result[refname] = SyncStatus.SUCCESS
+
             return new_refs
 
         try:
@@ -548,38 +567,21 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 ),
             )
         except (NotGitRepository, SendPackError) as exc:
-            raise SCMError("Git failed to push '{src}' to '{url}'") from exc
+            raise SCMError(f"Git failed to push ref to '{url}'") from exc
         except HTTPUnauthorized:
             raise AuthError(url)
-
-    def _push_dest_refs(
-        self, src: Optional[str], dest: str
-    ) -> Tuple[Iterable[bytes], Iterable[bytes]]:
-        from dulwich.objects import ZERO_SHA
-
-        if src is not None and src.endswith("/"):
-            src_b = os.fsencode(src)
-            keys = self.repo.refs.subkeys(src_b)
-            values = [self.repo.refs[b"".join([src_b, key])] for key in keys]
-            dest_refs = [b"".join([os.fsencode(dest), key]) for key in keys]
-        else:
-            if src is None:
-                values = [ZERO_SHA]
-            else:
-                values = [self.repo.refs[os.fsencode(src)]]
-            dest_refs = [os.fsencode(dest)]
-        return dest_refs, values
+        return change_result
 
     def fetch_refspecs(
         self,
         url: str,
-        refspecs: Iterable[str],
+        refspecs: Union[str, Iterable[str]],
         force: Optional[bool] = False,
-        on_diverged: Optional[Callable[[str, str], bool]] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ):
+    ) -> Mapping[str, int]:
         from dulwich.client import get_transport_and_path
+        from dulwich.errors import NotGitRepository
         from dulwich.objectspec import parse_reftuples
         from dulwich.porcelain import (
             DivergedBranches,
@@ -594,7 +596,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 parse_reftuples(
                     remote_refs,
                     self.repo.refs,
-                    [os.fsencode(refspec) for refspec in refspecs],
+                    refspecs,
                     force=force,
                 )
             )
@@ -612,28 +614,40 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 f"'{url}' is not a valid Git remote or URL"
             ) from exc
 
-        fetch_result = client.fetch(
-            path,
-            self.repo,
-            progress=DulwichProgressReporter(progress) if progress else None,
-            determine_wants=determine_wants,
-        )
+        try:
+            fetch_result = client.fetch(
+                path,
+                self.repo,
+                progress=DulwichProgressReporter(progress)
+                if progress
+                else None,
+                determine_wants=determine_wants,
+            )
+        except NotGitRepository as exc:
+            raise SCMError(f"Git failed to fetch ref from '{url}'") from exc
+
+        result = {}
+
         for (lh, rh, _) in fetch_refs:
-            try:
-                if rh in self.repo.refs:
+            refname = os.fsdecode(rh)
+            if rh in self.repo.refs:
+                if self.repo.refs[rh] == fetch_result.refs[lh]:
+                    result[refname] = SyncStatus.DUPLICATED
+                    continue
+                try:
                     check_diverged(
                         self.repo, self.repo.refs[rh], fetch_result.refs[lh]
                     )
-            except DivergedBranches:
-                if not force:
-                    overwrite = False
-                    if on_diverged:
-                        overwrite = on_diverged(
-                            os.fsdecode(rh), os.fsdecode(fetch_result.refs[lh])
-                        )
-                    if not overwrite:
+                except DivergedBranches:
+                    if not force:
+                        result[refname] = SyncStatus.DIVERGED
                         continue
+                except Exception:
+                    result[refname] = SyncStatus.FAILED
+                    continue
             self.repo.refs[rh] = fetch_result.refs[lh]
+            result[refname] = SyncStatus.SUCCESS
+        return result
 
     def _stash_iter(self, ref: str):
         stash = self._get_stash(ref)
