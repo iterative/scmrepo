@@ -327,7 +327,7 @@ def test_refs_containing(tmp_dir: TmpDir, scm: Git, git: Git):
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
 @pytest.mark.parametrize("use_url", [True, False])
-def test_push_refspec(
+def test_push_refspecs(
     tmp_dir: TmpDir,
     scm: Git,
     git: Git,
@@ -356,10 +356,10 @@ def test_push_refspec(
     scm.gitpython.repo.create_remote("origin", url)
 
     with pytest.raises(SCMError):
-        git.push_refspec("bad-remote", "refs/foo/bar:refs/foo/bar")
+        git.push_refspecs("bad-remote", "refs/foo/bar:refs/foo/bar")
 
     remote = url if use_url else "origin"
-    assert git.push_refspec(remote, "refs/foo/bar:refs/foo/bar") == {
+    assert git.push_refspecs(remote, "refs/foo/bar:refs/foo/bar") == {
         "refs/foo/bar": SyncStatus.SUCCESS
     }
     assert bar_rev == remote_scm.get_ref("refs/foo/bar")
@@ -368,7 +368,7 @@ def test_push_refspec(
     assert bar_rev == remote_scm.get_rev()
     assert (remote_git_dir / "file").read_text() == "0"
 
-    assert git.push_refspec(
+    assert git.push_refspecs(
         remote, ["refs/foo/bar:refs/foo/bar", "refs/foo/baz:refs/foo/baz"]
     ) == {
         "refs/foo/bar": SyncStatus.DUPLICATED,
@@ -376,12 +376,12 @@ def test_push_refspec(
     }
     assert baz_rev == remote_scm.get_ref("refs/foo/baz")
 
-    assert git.push_refspec(remote, ["refs/foo/bar:refs/foo/baz"]) == {
+    assert git.push_refspecs(remote, ["refs/foo/bar:refs/foo/baz"]) == {
         "refs/foo/baz": SyncStatus.DIVERGED
     }
     assert baz_rev == remote_scm.get_ref("refs/foo/baz")
 
-    assert git.push_refspec(remote, ":refs/foo/baz") == {
+    assert git.push_refspecs(remote, ":refs/foo/baz") == {
         "refs/foo/baz": SyncStatus.SUCCESS
     }
     assert remote_scm.get_ref("refs/foo/baz") is None
@@ -905,10 +905,9 @@ async def test_git_ssh(
     scm.add_commit("foo", message="init")
     rev = scm.get_rev()
 
-    git.push_refspec(
+    git.push_refspecs(
         url,
-        "refs/heads/master",
-        "refs/heads/master",
+        "refs/heads/master:refs/heads/master",
         force=True,
         key_filename=key_filename,
     )

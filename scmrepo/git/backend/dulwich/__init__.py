@@ -3,7 +3,6 @@ import locale
 import logging
 import os
 import stat
-from enum import Enum
 from functools import partial
 from io import BytesIO, StringIO
 from typing import (
@@ -25,7 +24,7 @@ from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
 
 from ...objects import GitObject
-from ..base import BaseGitBackend
+from ..base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
     from dulwich.repo import Repo
@@ -36,13 +35,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-class SyncStatus(Enum):
-    SUCCESS = 0
-    DUPLICATED = 1
-    DIVERGED = 2
-    FAILED = 3
 
 
 class DulwichObject(GitObject):
@@ -496,14 +488,15 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def get_refs_containing(self, rev: str, pattern: Optional[str] = None):
         raise NotImplementedError
 
-    def push_refspec(
+    def push_refspecs(
         self,
         url: str,
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
+        on_diverged: Optional[Callable[[str, str], bool]] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ) -> Mapping[str, int]:
+    ) -> Mapping[str, SyncStatus]:
         from dulwich.client import HTTPUnauthorized, get_transport_and_path
         from dulwich.errors import NotGitRepository, SendPackError
         from dulwich.objectspec import parse_reftuples
@@ -541,11 +534,16 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                         check_diverged(self.repo, refs[rh], self.repo.refs[lh])
                     except DivergedBranches:
                         if not force:
-                            change_result[refname] = SyncStatus.DIVERGED
-                            continue
-                    except Exception:
-                        change_result[refname] = SyncStatus.FAILED
-                        continue
+                            overwrite = (
+                                on_diverged(
+                                    os.fsdecode(lh), os.fsdecode(refs[rh])
+                                )
+                                if on_diverged
+                                else False
+                            )
+                            if not overwrite:
+                                change_result[refname] = SyncStatus.DIVERGED
+                                continue
 
                 if lh is None:
                     value = ZERO_SHA
@@ -567,7 +565,8 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 ),
             )
         except (NotGitRepository, SendPackError) as exc:
-            raise SCMError(f"Git failed to push ref to '{url}'") from exc
+            src = [lh for (lh, _, _) in selected_refs]
+            raise SCMError(f"Git failed to push '{src}' to '{url}'") from exc
         except HTTPUnauthorized:
             raise AuthError(url)
         return change_result
@@ -577,9 +576,10 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         url: str,
         refspecs: Union[str, Iterable[str]],
         force: Optional[bool] = False,
+        on_diverged: Optional[Callable[[str, str], bool]] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
-    ) -> Mapping[str, int]:
+    ) -> Mapping[str, SyncStatus]:
         from dulwich.client import get_transport_and_path
         from dulwich.errors import NotGitRepository
         from dulwich.objectspec import parse_reftuples
@@ -640,11 +640,18 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                     )
                 except DivergedBranches:
                     if not force:
-                        result[refname] = SyncStatus.DIVERGED
-                        continue
-                except Exception:
-                    result[refname] = SyncStatus.FAILED
-                    continue
+                        overwrite = (
+                            on_diverged(
+                                os.fsdecode(rh),
+                                os.fsdecode(fetch_result.refs[lh]),
+                            )
+                            if on_diverged
+                            else False
+                        )
+                        if not overwrite:
+                            result[refname] = SyncStatus.DIVERGED
+                            continue
+
             self.repo.refs[rh] = fetch_result.refs[lh]
             result[refname] = SyncStatus.SUCCESS
         return result
