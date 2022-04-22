@@ -1,5 +1,6 @@
 import errno
 import os
+import posixpath
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -32,6 +33,7 @@ def bytesio_len(obj: "BytesIO") -> Optional[int]:
 class GitFileSystem(AbstractFileSystem):
     # pylint: disable=abstract-method
     cachable = False
+    root_marker = "/"
 
     def __init__(
         self,
@@ -57,6 +59,8 @@ class GitFileSystem(AbstractFileSystem):
         self.rev = self.trie.rev
 
     def _get_key(self, path: str) -> Tuple[str, ...]:
+        if path == self.root_marker:
+            return ()
         relparts = path.split(self.sep)
         if relparts and relparts[0] in (".", ""):
             relparts = relparts[1:]
@@ -118,7 +122,7 @@ class GitFileSystem(AbstractFileSystem):
             raise FileNotFoundError from exc
 
         paths = [
-            self.sep.join((path, name)) if path else name for name in names
+            posixpath.join(path, name) if path else name for name in names
         ]
 
         if not detail:
