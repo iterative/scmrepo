@@ -29,6 +29,8 @@ def test_exists(tmp_dir: TmpDir, scm: Git):
 
     fs = scm.get_fs("master")
 
+    assert fs.exists("/")
+    assert fs.exists(".")
     assert not fs.exists("foo")
     assert not fs.exists("тест")
     assert not fs.exists("data")
@@ -37,6 +39,8 @@ def test_exists(tmp_dir: TmpDir, scm: Git):
     scm.add_commit(files, message="add")
 
     fs = scm.get_fs("master")
+    assert fs.exists("/")
+    assert fs.exists(".")
     assert fs.exists("foo")
     assert fs.exists("тест")
     assert fs.exists("data")
@@ -50,6 +54,8 @@ def test_isdir(tmp_dir: TmpDir, scm: Git):
 
     fs = scm.get_fs("master")
 
+    assert fs.isdir("/")
+    assert fs.isdir(".")
     assert fs.isdir("data")
     assert not fs.isdir("foo")
     assert not fs.isdir("non-existing-file")
@@ -60,6 +66,8 @@ def test_isfile(tmp_dir: TmpDir, scm: Git):
     scm.add_commit(["foo", "data"], message="add")
 
     fs = scm.get_fs("master")
+    assert not fs.isfile("/")
+    assert not fs.isfile(".")
     assert fs.isfile("foo")
     assert not fs.isfile("data")
     assert not fs.isfile("not-existing-file")
@@ -82,12 +90,12 @@ def test_walk(tmp_dir: TmpDir, scm: Git):
             for root, dirs, nondirs in walk_results
         ]
 
-    assert convert_to_sets(fs.walk("")) == convert_to_sets(
+    assert convert_to_sets(fs.walk("/")) == convert_to_sets(
         [
-            ("", ["data"], []),
-            ("data", ["subdir"], []),
+            ("/", ["data"], []),
+            ("/data", ["subdir"], []),
             (
-                "data/subdir",
+                "/data/subdir",
                 [],
                 ["sub"],
             ),
@@ -116,25 +124,25 @@ def test_ls(tmp_dir: TmpDir, scm: Git):
     scm.add_commit(files, message="add")
     fs = scm.get_fs("master")
 
-    assert fs.ls("", detail=False) == ["data", "foo", "тест"]
-    assert fs.ls("") == [
+    assert fs.ls("/", detail=False) == ["/data", "/foo", "/тест"]
+    assert fs.ls("/") == [
         {
             "mode": 16384,
-            "name": "data",
+            "name": "/data",
             "sha": "f5d6ac1955c85410b71bb6e35e4c57c54e2ad524",
             "size": 66,
             "type": "directory",
         },
         {
             "mode": 33188,
-            "name": "foo",
+            "name": "/foo",
             "sha": "19102815663d23f8b75a47e7a01965dcdc96468c",
             "size": 3,
             "type": "file",
         },
         {
             "mode": 33188,
-            "name": "тест",
+            "name": "/тест",
             "sha": "eeeba1738f4c12844163b89112070c6e57eb764e",
             "size": 16,
             "type": "file",
