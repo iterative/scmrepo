@@ -327,20 +327,27 @@ def test_refs_containing(tmp_dir: TmpDir, scm: Git, git: Git):
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
 @pytest.mark.parametrize("use_url", [True, False])
-def test_push_refspec(
+def test_push_refspecs(
     tmp_dir: TmpDir,
     scm: Git,
     git: Git,
     remote_git_dir: TmpDir,
     use_url: str,
 ):
+    from scmrepo.git.backend.dulwich import SyncStatus
+
     tmp_dir.gen({"file": "0"})
     scm.add_commit("file", message="init")
     init_rev = scm.get_rev()
+    scm.add_commit("file", message="bar")
+    bar_rev = scm.get_rev()
+    scm.checkout(init_rev)
+    scm.add_commit("file", message="baz")
+    baz_rev = scm.get_rev()
     tmp_dir.gen(
         {
-            os.path.join(".git", "refs", "foo", "bar"): init_rev,
-            os.path.join(".git", "refs", "foo", "baz"): init_rev,
+            os.path.join(".git", "refs", "foo", "bar"): bar_rev,
+            os.path.join(".git", "refs", "foo", "baz"): baz_rev,
         }
     )
 
@@ -349,53 +356,89 @@ def test_push_refspec(
     scm.gitpython.repo.create_remote("origin", url)
 
     with pytest.raises(SCMError):
-        git.push_refspec("bad-remote", "refs/foo/bar", "refs/foo/bar")
+        git.push_refspecs("bad-remote", "refs/foo/bar:refs/foo/bar")
 
     remote = url if use_url else "origin"
-    git.push_refspec(remote, "refs/foo/bar", "refs/foo/bar")
-    assert init_rev == remote_scm.get_ref("refs/foo/bar")
+    assert git.push_refspecs(remote, "refs/foo/bar:refs/foo/bar") == {
+        "refs/foo/bar": SyncStatus.SUCCESS
+    }
+    assert bar_rev == remote_scm.get_ref("refs/foo/bar")
 
     remote_scm.checkout("refs/foo/bar")
-    assert init_rev == remote_scm.get_rev()
+    assert bar_rev == remote_scm.get_rev()
     assert (remote_git_dir / "file").read_text() == "0"
 
-    git.push_refspec(remote, "refs/foo/", "refs/foo/")
-    assert init_rev == remote_scm.get_ref("refs/foo/baz")
+    assert git.push_refspecs(
+        remote, ["refs/foo/bar:refs/foo/bar", "refs/foo/baz:refs/foo/baz"]
+    ) == {
+        "refs/foo/bar": SyncStatus.UP_TO_DATE,
+        "refs/foo/baz": SyncStatus.SUCCESS,
+    }
+    assert baz_rev == remote_scm.get_ref("refs/foo/baz")
 
-    git.push_refspec(remote, None, "refs/foo/baz")
+    assert git.push_refspecs(remote, ["refs/foo/bar:refs/foo/baz"]) == {
+        "refs/foo/baz": SyncStatus.DIVERGED
+    }
+    assert baz_rev == remote_scm.get_ref("refs/foo/baz")
+
+    assert git.push_refspecs(remote, ":refs/foo/baz") == {
+        "refs/foo/baz": SyncStatus.SUCCESS
+    }
     assert remote_scm.get_ref("refs/foo/baz") is None
 
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
+@pytest.mark.parametrize("use_url", [True, False])
 def test_fetch_refspecs(
+    tmp_dir: TmpDir,
     scm: Git,
     git: Git,
     remote_git_dir: TmpDir,
+    use_url: bool,
 ):
-    url = f"file://{remote_git_dir.resolve().as_posix()}"
 
+    from scmrepo.git.backend.dulwich import SyncStatus
+
+    url = f"file://{remote_git_dir.resolve().as_posix()}"
+    scm.gitpython.repo.create_remote("origin", url)
     remote_scm = Git(remote_git_dir)
     remote_git_dir.gen("file", "0")
+
     remote_scm.add_commit("file", message="init")
-
     init_rev = remote_scm.get_rev()
-
+    remote_scm.add_commit("file", message="bar")
+    bar_rev = remote_scm.get_rev()
+    remote_scm.checkout(init_rev)
+    remote_scm.add_commit("file", message="baz")
+    baz_rev = remote_scm.get_rev()
     remote_git_dir.gen(
         {
-            os.path.join(".git", "refs", "foo", "bar"): init_rev,
-            os.path.join(".git", "refs", "foo", "baz"): init_rev,
+            os.path.join(".git", "refs", "foo", "bar"): bar_rev,
+            os.path.join(".git", "refs", "foo", "baz"): baz_rev,
         }
     )
 
-    git.fetch_refspecs(
-        url, ["refs/foo/bar:refs/foo/bar", "refs/foo/baz:refs/foo/baz"]
-    )
-    assert init_rev == scm.get_ref("refs/foo/bar")
-    assert init_rev == scm.get_ref("refs/foo/baz")
+    with pytest.raises(SCMError):
+        git.fetch_refspecs("bad-remote", "refs/foo/bar:refs/foo/bar")
 
-    remote_scm.checkout("refs/foo/bar")
-    assert init_rev == remote_scm.get_rev()
-    assert (remote_git_dir / "file").read_text() == "0"
+    remote = url if use_url else "origin"
+    assert git.fetch_refspecs(remote, "refs/foo/bar:refs/foo/bar") == {
+        "refs/foo/bar": SyncStatus.SUCCESS
+    }
+    assert bar_rev == scm.get_ref("refs/foo/bar")
+
+    assert git.fetch_refspecs(
+        remote, ["refs/foo/bar:refs/foo/bar", "refs/foo/baz:refs/foo/baz"]
+    ) == {
+        "refs/foo/bar": SyncStatus.UP_TO_DATE,
+        "refs/foo/baz": SyncStatus.SUCCESS,
+    }
+    assert baz_rev == scm.get_ref("refs/foo/baz")
+
+    assert git.fetch_refspecs(remote, ["refs/foo/bar:refs/foo/baz"]) == {
+        "refs/foo/baz": SyncStatus.DIVERGED
+    }
+    assert baz_rev == scm.get_ref("refs/foo/baz")
 
 
 @pytest.mark.skip_git_backend("dulwich", "pygit2")
@@ -862,10 +905,9 @@ async def test_git_ssh(
     scm.add_commit("foo", message="init")
     rev = scm.get_rev()
 
-    git.push_refspec(
+    git.push_refspecs(
         url,
-        "refs/heads/master",
-        "refs/heads/master",
+        "refs/heads/master:refs/heads/master",
         force=True,
         key_filename=key_filename,
     )
