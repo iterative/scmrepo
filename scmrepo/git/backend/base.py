@@ -28,7 +28,7 @@ class NoGitBackendError(SCMError):
 
 class SyncStatus(Enum):
     SUCCESS = 0
-    DUPLICATED = 1
+    UP_TO_DATE = 1
     DIVERGED = 2
 
 
@@ -226,7 +226,7 @@ class BaseGitBackend(ABC):
 
         Args:
             url: Git remote name or absolute Git URL.
-            refspecs: Iterable containing refspecs to fetch.
+            refspecs: Iterable containing refspecs to push.
                 Note that this will not match subkeys.
             force: If True, remote refs will be overwritten.
             on_diverged: Callback function which will be called if local ref
