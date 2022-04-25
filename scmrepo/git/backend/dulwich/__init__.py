@@ -528,7 +528,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 refname = os.fsdecode(rh)
                 if rh in refs and lh is not None:
                     if refs[rh] == self.repo.refs[lh]:
-                        change_result[refname] = SyncStatus.DUPLICATED
+                        change_result[refname] = SyncStatus.UP_TO_DATE
                         continue
                     try:
                         check_diverged(self.repo, refs[rh], self.repo.refs[lh])
@@ -632,7 +632,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             refname = os.fsdecode(rh)
             if rh in self.repo.refs:
                 if self.repo.refs[rh] == fetch_result.refs[lh]:
-                    result[refname] = SyncStatus.DUPLICATED
+                    result[refname] = SyncStatus.UP_TO_DATE
                     continue
                 try:
                     check_diverged(

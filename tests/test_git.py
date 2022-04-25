@@ -371,7 +371,7 @@ def test_push_refspecs(
     assert git.push_refspecs(
         remote, ["refs/foo/bar:refs/foo/bar", "refs/foo/baz:refs/foo/baz"]
     ) == {
-        "refs/foo/bar": SyncStatus.DUPLICATED,
+        "refs/foo/bar": SyncStatus.UP_TO_DATE,
         "refs/foo/baz": SyncStatus.SUCCESS,
     }
     assert baz_rev == remote_scm.get_ref("refs/foo/baz")
@@ -430,7 +430,7 @@ def test_fetch_refspecs(
     assert git.fetch_refspecs(
         remote, ["refs/foo/bar:refs/foo/bar", "refs/foo/baz:refs/foo/baz"]
     ) == {
-        "refs/foo/bar": SyncStatus.DUPLICATED,
+        "refs/foo/bar": SyncStatus.UP_TO_DATE,
         "refs/foo/baz": SyncStatus.SUCCESS,
     }
     assert baz_rev == scm.get_ref("refs/foo/baz")
