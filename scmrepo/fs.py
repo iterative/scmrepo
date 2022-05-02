@@ -90,7 +90,7 @@ class GitFileSystem(AbstractFileSystem):
             obj.size = bytesio_len(obj)
             return obj
         except KeyError as exc:
-            msg = os.strerror(errno.ENOENT) + f"in branch '{self.rev}'"
+            msg = os.strerror(errno.ENOENT) + f" in branch '{self.rev}'"
             raise FileNotFoundError(errno.ENOENT, msg, path) from exc
         except IsADirectoryError as exc:
             raise IsADirectoryError(

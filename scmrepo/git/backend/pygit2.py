@@ -646,7 +646,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                         return str(obj.id)
 
                 if ff_pref & GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY:
-                    raise SCMError("Cannot fast-forward HEAD to '{rev}'")
+                    raise SCMError(f"Cannot fast-forward HEAD to '{rev}'")
 
                 if commit:
                     if not msg:
