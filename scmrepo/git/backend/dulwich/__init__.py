@@ -19,7 +19,13 @@ from typing import (
 
 from funcy import cached_property
 
-from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, SCMError
+from scmrepo.exceptions import (
+    AuthError,
+    CloneError,
+    InvalidRemote,
+    RevError,
+    SCMError,
+)
 from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
 
@@ -721,8 +727,11 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def diff(self, rev_a: str, rev_b: str, binary=False) -> str:
         from dulwich.patch import write_tree_diff
 
-        commit_a = self.repo[os.fsencode(rev_a)]
-        commit_b = self.repo[os.fsencode(rev_b)]
+        try:
+            commit_a = self.repo[os.fsencode(rev_a)]
+            commit_b = self.repo[os.fsencode(rev_b)]
+        except KeyError as exc:
+            raise RevError("Invalid revision") from exc
 
         buf = BytesIO()
         write_tree_diff(
