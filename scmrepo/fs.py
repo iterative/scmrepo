@@ -133,8 +133,8 @@ class Path:
             self.abspath(path), start=self.abspath(start)
         )
 
-    def relparts(self, path, base):
-        return self.parts(self.relpath(path, base))
+    def relparts(self, path, start=None):
+        return self.parts(self.relpath(path, start=start))
 
     def as_posix(self, path):
         return path.replace(self.flavour.sep, posixpath.sep)
