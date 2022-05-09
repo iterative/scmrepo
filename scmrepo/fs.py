@@ -128,8 +128,10 @@ class Path:
 
     def relpath(self, path, start=None):
         if start is None:
-            start = self.getcwd()
-        return self.flavour.relpath(path, start=start)
+            start = "."
+        return self.flavour.relpath(
+            self.abspath(path), start=self.abspath(start)
+        )
 
     def relparts(self, path, base):
         return self.parts(self.relpath(path, base))
