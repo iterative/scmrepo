@@ -9,7 +9,12 @@ from git import Repo as GitPythonRepo
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
 
-from scmrepo.exceptions import MergeConflictError, RevError, SCMError
+from scmrepo.exceptions import (
+    InvalidRemote,
+    MergeConflictError,
+    RevError,
+    SCMError,
+)
 from scmrepo.git import Git
 
 # pylint: disable=redefined-outer-name,unused-argument,protected-access
@@ -415,6 +420,44 @@ def test_fetch_refspecs(
         "refs/foo/baz": SyncStatus.DIVERGED
     }
     assert baz_rev == scm.get_ref("refs/foo/baz")
+
+
+@pytest.mark.skip_git_backend("pygit2", "gitpython")
+@pytest.mark.parametrize("use_url", [True, False])
+def test_iter_remote_refs(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+    remote_git_dir: TmpDir,
+    tmp_dir_factory: TempDirFactory,
+    use_url: bool,
+):
+    url = f"file://{remote_git_dir.resolve().as_posix()}"
+
+    scm.gitpython.repo.create_remote("origin", url)
+    remote_scm = Git(remote_git_dir)
+    remote_git_dir.gen("file", "0")
+    remote_scm.add_commit("file", message="init")
+    remote_scm.branch("new-branch")
+    remote_scm.add_commit("file", message="bar")
+    remote_scm.add_commit("file", message="baz")
+    remote_scm.tag("a-tag")
+
+    with pytest.raises(InvalidRemote):
+        set(git.iter_remote_refs("bad-remote"))
+
+    with pytest.raises(InvalidRemote):
+        tmp_directory = tmp_dir_factory.mktemp("not_a_git_repo")
+        remote = f"file://{tmp_directory.as_posix()}"
+        set(git.iter_remote_refs(remote))
+
+    remote = url if use_url else "origin"
+    assert {
+        "refs/heads/master",
+        "HEAD",
+        "refs/heads/new-branch",
+        "refs/tags/a-tag",
+    } == set(git.iter_remote_refs(remote))
 
 
 @pytest.mark.skip_git_backend("dulwich", "pygit2")
