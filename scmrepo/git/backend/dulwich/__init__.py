@@ -166,13 +166,6 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.porcelain import clone as git_clone
 
         parsed = urlparse(url)
-        if os.name == "nt":
-            # NOTE: Dulwich client code doesn't handle mixed path seps when
-            # passed a file:// URL (i.e. file://C:\foo\bar) but we can just
-            # strip the prefix since Dulwich uses the same clone behavior
-            # for both paths and file:// URLs (as opposed to C-git)
-            if parsed.scheme == "file":
-                url = url[7:]
         try:
             clone_from = partial(
                 git_clone,
