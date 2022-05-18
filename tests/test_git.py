@@ -988,3 +988,56 @@ def test_fetch(
 
     target.fetch()
     assert target.get_ref("refs/remotes/origin/master") == rev
+
+
+@pytest.mark.skip_git_backend("pygit2", "gitpython")
+@pytest.mark.parametrize("untracked_files", ["all", "no"])
+@pytest.mark.parametrize("ignored", [False, True])
+def test_status(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+    tmp_dir_factory: TempDirFactory,
+    untracked_files: str,
+    ignored: bool,
+):
+    tmp_dir.gen(
+        {
+            "foo": "foo",
+            "bar": "bar",
+            ".gitignore": "ignored",
+            "ignored": "ignored",
+        }
+    )
+    scm.add_commit(["foo", "bar", ".gitignore"], message="init")
+
+    staged, unstaged, untracked = git.status(ignored, untracked_files)
+
+    assert not staged
+    assert not unstaged
+    if ignored and untracked_files != "no":
+        assert untracked == ["ignored"]
+    else:
+        assert not untracked
+
+    with (tmp_dir / "foo").open("a") as fobj:
+        fobj.write("modified")
+
+    with (tmp_dir / "bar").open("a") as fobj:
+        fobj.write("modified")
+
+    tmp_dir.gen({"untracked_dir": {"subfolder": {"subfile": "subfile"}}})
+    expected_untracked = []
+    if ignored and untracked_files != "no":
+        expected_untracked.append("ignored")
+    if untracked_files != "no":
+        expected_untracked.append(
+            os.path.join("untracked_dir", "subfolder", "subfile")
+        )
+
+    git.add("foo")
+    staged, unstaged, untracked = git.status(ignored, untracked_files)
+
+    assert staged["modify"] == ["foo"]
+    assert unstaged == ["bar"]
+    assert untracked == expected_untracked

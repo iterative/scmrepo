@@ -594,7 +594,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         raise NotImplementedError
 
     def status(
-        self, ignored: bool = False
+        self, ignored: bool = False, untracked_files: str = "all"
     ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         raise NotImplementedError
 

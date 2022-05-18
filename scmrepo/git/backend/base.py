@@ -330,7 +330,7 @@ class BaseGitBackend(ABC):
 
     @abstractmethod
     def status(
-        self, ignored: bool = False
+        self, ignored: bool = False, untracked_files: str = "all"
     ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         """Return tuple of (staged_files, unstaged_files, untracked_files).
 
@@ -339,6 +339,15 @@ class BaseGitBackend(ABC):
 
         If ignored is True, gitignored files will be included in
         untracked_paths.
+
+        untracked_files can be one of the following:
+          - "no" return no untracked files
+          - "normal" (git cli default) return untracked files and directories
+          - "all" (default) return all untracked files in untracked directories
+
+        Using "no" or "normal" will be faster than "all" when large untracked
+        directories are present in the workspace, as collecting all untracked
+        files can take some time.
         """
 
     def _reset(self) -> None:
