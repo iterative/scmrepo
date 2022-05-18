@@ -581,7 +581,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         self,
         url: str,
         refspecs: Union[str, Iterable[str]],
-        force: Optional[bool] = False,
+        force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
@@ -597,12 +597,17 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         fetch_refs = []
 
-        def determine_wants(remote_refs):
+        def determine_wants(
+            remote_refs: Dict[bytes, bytes],
+            depth: Optional[int] = None,  # pylint: disable=unused-argument
+        ) -> List[bytes]:
             fetch_refs.extend(
                 parse_reftuples(
                     remote_refs,
                     self.repo.refs,
-                    refspecs,
+                    os.fsencode(refspecs)
+                    if isinstance(refspecs, str)
+                    else [os.fsencode(refspec) for refspec in refspecs],
                     force=force,
                 )
             )
