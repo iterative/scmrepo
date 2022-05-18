@@ -2,7 +2,7 @@ name: Tests
 on: [push, pull_request]
 jobs:
   tests:
-    timeout-minutes: 10
+    timeout-minutes: 15
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
