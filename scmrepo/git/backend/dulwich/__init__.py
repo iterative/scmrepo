@@ -750,12 +750,12 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         raise NotImplementedError
 
     def status(
-        self, ignored: bool = False
+        self, ignored: bool = False, untracked_files: str = "all"
     ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         from dulwich.porcelain import status as git_status
 
         staged, unstaged, untracked = git_status(
-            self.root_dir, ignored=ignored
+            self.root_dir, ignored=ignored, untracked_files=untracked_files
         )
         return (
             {

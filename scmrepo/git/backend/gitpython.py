@@ -615,7 +615,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.index.checkout(paths=paths_list, force=force)
 
     def status(
-        self, ignored: bool = False
+        self, ignored: bool = False, untracked_files: str = "all"
     ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         raise NotImplementedError
 
