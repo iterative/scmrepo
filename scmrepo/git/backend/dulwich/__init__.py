@@ -7,6 +7,7 @@ from functools import partial
 from io import BytesIO, StringIO
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Dict,
     Iterable,
@@ -344,8 +345,10 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return False
 
     def is_dirty(self, untracked_files: bool = False) -> bool:
-        staged, unstaged, untracked = self.status()
-        return bool(staged or unstaged or (untracked_files and untracked))
+        kwargs: Dict[str, Any] = (
+            {} if untracked_files else {"untracked_files": "no"}
+        )
+        return any(self.status(**kwargs))
 
     def active_branch(self) -> str:
         raise NotImplementedError
