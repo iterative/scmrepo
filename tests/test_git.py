@@ -1041,3 +1041,70 @@ def test_status(
     assert staged["modify"] == ["foo"]
     assert unstaged == ["bar"]
     assert untracked == expected_untracked
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_is_dirty_empty(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+):
+    assert not git.is_dirty()
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_is_dirty_added(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+):
+    tmp_dir.gen("foo", "foo")
+    scm.add("foo")
+
+    assert git.is_dirty()
+    scm.commit("commit")
+    assert not git.is_dirty()
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_is_dirty_modified(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+):
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="add foo")
+
+    tmp_dir.gen("foo", "modified")
+    assert git.is_dirty()
+    scm.add_commit("foo", message="modified")
+    assert not git.is_dirty()
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_is_dirty_deleted(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+):
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="add foo")
+
+    assert not git.is_dirty()
+    os.unlink(tmp_dir / "foo")
+    assert git.is_dirty()
+    scm.add("foo")
+    assert git.is_dirty()
+    scm.commit("deleted")
+    assert not git.is_dirty()
+
+
+@pytest.mark.skip_git_backend("pygit2")
+def test_is_dirty_untracked(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+):
+    tmp_dir.gen("untracked", "untracked")
+    assert git.is_dirty(untracked_files=True)
+    assert not git.is_dirty(untracked_files=False)
