@@ -621,7 +621,10 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         with self.release_odb_handles():
             self.repo.index.read(False)
             obj, _ref = self.repo.resolve_refish(rev)
-            analysis, ff_pref = self.repo.merge_analysis(obj.id)
+            try:
+                analysis, ff_pref = self.repo.merge_analysis(obj.id)
+            except GitError as exc:
+                raise SCMError("Merge analysis failed") from exc
 
             if analysis == GIT_MERGE_ANALYSIS_NONE:
                 raise SCMError(f"'{rev}' cannot be merged into HEAD")
@@ -652,19 +655,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     raise SCMError(f"Cannot fast-forward HEAD to '{rev}'")
 
                 if commit:
-                    if not msg:
-                        raise SCMError("Merge commit message is required")
-                    user = self.default_signature
-                    tree = self.repo.index.write_tree()
-                    merge_commit = self.repo.create_commit(
-                        "HEAD",
-                        user,
-                        user,
-                        msg,
-                        tree,
-                        [self.repo.head.target, obj.id],
-                    )
-                    return str(merge_commit)
+                    return self._merge_commit(msg, obj)
 
                 # --squash merge:
                 # HEAD is not moved and merge changes stay in index
@@ -685,6 +676,21 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 message=f"merge {rev}: Fast-forward",
             )
         return str(obj.id)
+
+    def _merge_commit(self, msg: Optional[str], obj) -> str:
+        if not msg:
+            raise SCMError("Merge commit message is required")
+        user = self.default_signature
+        tree = self.repo.index.write_tree()
+        merge_commit = self.repo.create_commit(
+            "HEAD",
+            user,
+            user,
+            msg,
+            tree,
+            [self.repo.head.target, obj.id],
+        )
+        return str(merge_commit)
 
     def validate_git_remote(self, url: str, **kwargs):
         raise NotImplementedError
