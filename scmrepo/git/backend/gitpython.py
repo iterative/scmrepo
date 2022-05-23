@@ -293,7 +293,10 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return self.repo.is_dirty(untracked_files=untracked_files)
 
     def active_branch(self):
-        return self.repo.active_branch.name
+        try:
+            return self.repo.active_branch.name
+        except TypeError as exc:
+            raise SCMError("No active branch") from exc
 
     def list_branches(self):
         return [h.name for h in self.repo.heads]
