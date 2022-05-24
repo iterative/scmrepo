@@ -24,7 +24,7 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - run: pip install -U pip --user
+    - run: python -m pip install -U pip --user
     - run: pip install -U nox wheel
     - run: nox -s lint
     - run: nox -s tests-${{ matrix.python-version }} -- --slow --cov
