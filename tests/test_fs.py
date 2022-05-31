@@ -1,16 +1,34 @@
+import os
+
 import pytest
 from pytest_test_utils import TmpDir
 
 from scmrepo.git import Git
 
 
-def test_open(tmp_dir: TmpDir, scm: Git):
+@pytest.fixture(name="make_fs")
+def fixture_make_fs(scm: Git, git: Git):
+    def _make_fs(rev=None):
+        from scmrepo.fs import GitFileSystem
+        from scmrepo.git.objects import GitTrie
+
+        # NOTE: not all git backends have `resolve_rev` implemented,
+        # so we are using whichever works.
+        resolved = scm.resolve_rev(rev or "HEAD")
+        tree = git.get_tree_obj(rev=resolved)
+        trie = GitTrie(tree, resolved)
+        return GitFileSystem(trie=trie)
+
+    return _make_fs
+
+
+def test_open(tmp_dir: TmpDir, scm: Git, make_fs):
     files = tmp_dir.gen(
         {"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}}
     )
     scm.add_commit(files, message="add")
 
-    fs = scm.get_fs("master")
+    fs = make_fs()
     with fs.open("foo", mode="r", encoding="utf-8") as fobj:
         assert fobj.read() == "foo"
     with fs.open("тест", mode="r", encoding="utf-8") as fobj:
@@ -21,13 +39,13 @@ def test_open(tmp_dir: TmpDir, scm: Git):
         fs.open("data")
 
 
-def test_exists(tmp_dir: TmpDir, scm: Git):
+def test_exists(tmp_dir: TmpDir, scm: Git, make_fs):
     scm.commit("init")
     files = tmp_dir.gen(
         {"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}}
     )
 
-    fs = scm.get_fs("master")
+    fs = make_fs()
 
     assert fs.exists("/")
     assert fs.exists(".")
@@ -38,7 +56,7 @@ def test_exists(tmp_dir: TmpDir, scm: Git):
 
     scm.add_commit(files, message="add")
 
-    fs = scm.get_fs("master")
+    fs = make_fs()
     assert fs.exists("/")
     assert fs.exists(".")
     assert fs.exists("foo")
@@ -48,11 +66,11 @@ def test_exists(tmp_dir: TmpDir, scm: Git):
     assert not fs.exists("non-existing-file")
 
 
-def test_isdir(tmp_dir: TmpDir, scm: Git):
+def test_isdir(tmp_dir: TmpDir, scm: Git, make_fs):
     tmp_dir.gen({"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}})
     scm.add_commit(["foo", "data"], message="add")
 
-    fs = scm.get_fs("master")
+    fs = make_fs()
 
     assert fs.isdir("/")
     assert fs.isdir(".")
@@ -61,11 +79,11 @@ def test_isdir(tmp_dir: TmpDir, scm: Git):
     assert not fs.isdir("non-existing-file")
 
 
-def test_isfile(tmp_dir: TmpDir, scm: Git):
+def test_isfile(tmp_dir: TmpDir, scm: Git, make_fs):
     tmp_dir.gen({"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}})
     scm.add_commit(["foo", "data"], message="add")
 
-    fs = scm.get_fs("master")
+    fs = make_fs()
     assert not fs.isfile("/")
     assert not fs.isfile(".")
     assert fs.isfile("foo")
@@ -73,7 +91,7 @@ def test_isfile(tmp_dir: TmpDir, scm: Git):
     assert not fs.isfile("not-existing-file")
 
 
-def test_walk(tmp_dir: TmpDir, scm: Git):
+def test_walk(tmp_dir: TmpDir, scm: Git, make_fs):
     tmp_dir.gen(
         {
             "foo": "foo",
@@ -82,7 +100,7 @@ def test_walk(tmp_dir: TmpDir, scm: Git):
         }
     )
     scm.add_commit("data/subdir", message="add")
-    fs = scm.get_fs("master")
+    fs = make_fs()
 
     def convert_to_sets(walk_results):
         return [
@@ -113,7 +131,32 @@ def test_walk(tmp_dir: TmpDir, scm: Git):
     )
 
 
-def test_ls(tmp_dir: TmpDir, scm: Git):
+def test_walk_with_submodules(
+    scm: Git,
+    remote_git_dir: TmpDir,
+    make_fs,
+):
+    remote_git = Git(remote_git_dir)
+    remote_git_dir.gen({"foo": "foo", "bar": "bar", "dir": {"data": "data"}})
+    remote_git.add_commit(["foo", "bar", "dir"], message="add dir and files")
+    scm.gitpython.repo.create_submodule(
+        "submodule", "submodule", url=os.fspath(remote_git_dir)
+    )
+    scm.commit("added submodule")
+
+    files = []
+    dirs = []
+    fs = make_fs()
+    for _, dnames, fnames in fs.walk(""):
+        dirs.extend(dnames)
+        files.extend(fnames)
+
+    # currently we don't walk through submodules
+    assert not dirs
+    assert set(files) == {".gitmodules", "submodule"}
+
+
+def test_ls(tmp_dir: TmpDir, scm: Git, make_fs):
     files = tmp_dir.gen(
         {
             "foo": "foo",
@@ -122,7 +165,7 @@ def test_ls(tmp_dir: TmpDir, scm: Git):
         }
     )
     scm.add_commit(files, message="add")
-    fs = scm.get_fs("master")
+    fs = make_fs()
 
     assert fs.ls("/", detail=False) == ["/data", "/foo", "/тест"]
     assert fs.ls("/") == [

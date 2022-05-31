@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Any, Dict, Iterator, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 import pytest
 from asyncssh import SFTPClient
@@ -17,35 +17,9 @@ from scmrepo.exceptions import (
 )
 from scmrepo.git import Git
 
+from .conftest import backends
+
 # pylint: disable=redefined-outer-name,unused-argument,protected-access
-
-backends = ["gitpython", "dulwich", "pygit2"]
-
-
-@pytest.fixture(params=backends)
-def git_backend(request) -> str:
-    marker = request.node.get_closest_marker("skip_git_backend")
-    to_skip = marker.args if marker else []
-
-    backend = request.param
-    if backend in to_skip:
-        pytest.skip()
-    return backend
-
-
-@pytest.fixture
-def git(tmp_dir: TmpDir, git_backend: str) -> Iterator[Git]:
-    git_ = Git(tmp_dir, backends=[git_backend])
-    yield git_
-    git_.close()
-
-
-@pytest.fixture
-def remote_git_dir(tmp_dir_factory: TempDirFactory):
-    git_dir = tmp_dir_factory.mktemp("git-remote")
-    remote_git = Git.init(git_dir)
-    remote_git.close()
-    return git_dir
 
 
 @pytest.fixture
@@ -113,31 +87,6 @@ def test_commit_in_root_repo_with_submodule(
 )
 def test_belongs_to_scm(scm: Git, git: Git, path: str, expected: str):
     assert git.belongs_to_scm(path) == expected
-
-
-def test_walk_with_submodules(
-    tmp_dir: Git,
-    scm: Git,
-    remote_git_dir: TmpDir,
-):
-    remote_git = Git(remote_git_dir)
-    remote_git_dir.gen({"foo": "foo", "bar": "bar", "dir": {"data": "data"}})
-    remote_git.add_commit(["foo", "bar", "dir"], message="add dir and files")
-    scm.gitpython.repo.create_submodule(
-        "submodule", "submodule", url=os.fspath(remote_git_dir)
-    )
-    scm.commit("added submodule")
-
-    files = []
-    dirs = []
-    fs = scm.get_fs("HEAD")
-    for _, dnames, fnames in fs.walk(""):
-        dirs.extend(dnames)
-        files.extend(fnames)
-
-    # currently we don't walk through submodules
-    assert not dirs
-    assert set(files) == {".gitmodules", "submodule"}
 
 
 @pytest.mark.skip_git_backend("pygit2")
