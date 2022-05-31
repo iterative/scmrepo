@@ -78,8 +78,8 @@ class DulwichObject(GitObject):
                 self.repo, entry.path.decode(), entry.mode, entry.sha
             )
 
-    @property
-    def size(self) -> int:
+    @cached_property
+    def size(self) -> int:  # pylint: disable=invalid-overridden-method
         return len(self.repo[self.sha].as_raw_string())
 
     @property
