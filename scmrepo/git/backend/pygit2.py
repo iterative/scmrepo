@@ -64,6 +64,9 @@ class Pygit2Object(GitObject):
 
     @cached_property
     def size(self) -> int:  # pylint: disable=invalid-overridden-method
+        # NOTE: obj.size is currently only available for blobs
+        if self.obj.type_str == "blob":
+            return self.obj.size
         try:
             return len(self.obj.read_raw())
         except KeyError:
