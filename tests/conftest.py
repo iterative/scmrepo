@@ -74,6 +74,35 @@ def scm(tmp_dir: TmpDir) -> Iterator[Git]:
     git_.close()
 
 
+backends = ["gitpython", "dulwich", "pygit2"]
+
+
+@pytest.fixture(params=backends)
+def git_backend(request) -> str:
+    marker = request.node.get_closest_marker("skip_git_backend")
+    to_skip = marker.args if marker else []
+
+    backend = request.param
+    if backend in to_skip:
+        pytest.skip()
+    return backend
+
+
+@pytest.fixture
+def git(tmp_dir: TmpDir, git_backend: str) -> Iterator[Git]:
+    git_ = Git(tmp_dir, backends=[git_backend])
+    yield git_
+    git_.close()
+
+
+@pytest.fixture
+def remote_git_dir(tmp_dir_factory: TempDirFactory):
+    git_dir = tmp_dir_factory.mktemp("git-remote")
+    remote_git = Git.init(git_dir)
+    remote_git.close()
+    return git_dir
+
+
 @pytest.fixture(scope="session")
 def docker(request: pytest.FixtureRequest):
     for cmd in [("docker", "ps"), ("docker-compose", "version")]:

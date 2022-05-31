@@ -363,6 +363,8 @@ class Git(Base):
     validate_git_remote = partialmethod(_backend_func, "validate_git_remote")
     check_ref_format = partialmethod(_backend_func, "check_ref_format")
 
+    get_tree_obj = partialmethod(_backend_func, "get_tree_obj")
+
     def branch_revs(
         self, branch: str, end_rev: Optional[str] = None
     ) -> Iterable[str]:
