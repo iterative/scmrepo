@@ -57,7 +57,7 @@ class DulwichObject(GitObject):
         # NOTE: we didn't load the object before as Dulwich will also try to
         # load the contents of it into memory, which will slow down Trie
         # building considerably.
-        obj = self.repo[self.sha]
+        obj = self.repo[self._sha]
         data = obj.as_raw_string()
         if mode == "rb":
             return BytesIO(data)
@@ -72,7 +72,7 @@ class DulwichObject(GitObject):
         return self._mode
 
     def scandir(self) -> Iterable["DulwichObject"]:
-        tree = self.repo[self.sha]
+        tree = self.repo[self._sha]
         for entry in tree.iteritems():  # noqa: B301
             yield DulwichObject(
                 self.repo, entry.path.decode(), entry.mode, entry.sha
@@ -80,11 +80,14 @@ class DulwichObject(GitObject):
 
     @cached_property
     def size(self) -> int:  # pylint: disable=invalid-overridden-method
-        return len(self.repo[self.sha].as_raw_string())
+        try:
+            return self.repo[self._sha].raw_length()
+        except KeyError:
+            return 0
 
     @property
     def sha(self) -> str:
-        return self._sha
+        return self._sha.decode("ascii")
 
 
 class DulwichProgressReporter(GitProgressReporter):
