@@ -1,7 +1,7 @@
 import stat
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, cast
 
 from pygtrie import Trie
 
@@ -136,13 +136,23 @@ class GitTrie:
             yield top, dirs, nondirs
 
     def info(self, key: tuple) -> dict:
+        from scmrepo.utils import LazyDict
+
         obj = self.trie[key]
-        return {
-            "size": obj.size,
-            "type": "directory" if stat.S_ISDIR(obj.mode) else "file",
-            "sha": obj.sha,
-            "mode": obj.mode,
-        }
+
+        def size():
+            return obj.size
+
+        ret = LazyDict(
+            {
+                "size": size,
+                "type": "directory" if stat.S_ISDIR(obj.mode) else "file",
+                "sha": obj.sha,
+                "mode": obj.mode,
+            }
+        )
+
+        return cast(dict, ret)
 
 
 @dataclass

@@ -1,4 +1,29 @@
 import os
+from collections.abc import MutableMapping
+
+
+class LazyDict(MutableMapping):
+    def __init__(self, values):
+        self._values = values
+
+    def __getitem__(self, item):
+        value = self._values[item]
+        if callable(value):
+            value = value()
+            self._values[item] = value
+        return value
+
+    def __setitem__(self, key, value):
+        self._values[key] = value
+
+    def __delitem__(self, key):
+        del self._values[key]
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
 
 
 def relpath(path, start=os.curdir):
