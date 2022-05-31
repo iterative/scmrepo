@@ -220,10 +220,12 @@ class GitFileSystem(AbstractFileSystem):
     def info(self, path: str, **kwargs: Any) -> Dict[str, Any]:
         key = self._get_key(path)
         try:
-            return {
-                **self.trie.info(key),
-                "name": path,
-            }
+            # NOTE: to avoid wasting time computing object size, trie.info
+            # will return a LazyDict instance, that will compute compute size
+            # only when it is accessed.
+            ret = self.trie.info(key)
+            ret["name"] = path
+            return ret
         except KeyError:
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), path
