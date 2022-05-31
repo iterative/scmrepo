@@ -62,8 +62,8 @@ class Pygit2Object(GitObject):
             return stat.S_IFDIR
         return self.obj.filemode
 
-    @property
-    def size(self) -> int:
+    @cached_property
+    def size(self) -> int:  # pylint: disable=invalid-overridden-method
         try:
             return len(self.obj.read_raw())
         except KeyError:
