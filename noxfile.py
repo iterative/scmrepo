@@ -9,7 +9,7 @@ nox.options.sessions = "lint", "tests"
 locations = "scmrepo", "tests"
 
 
-@nox.session(python=["3.7", "3.8", "3.9", "3.10"])
+@nox.session(python=["3.7", "3.8", "3.9", "3.10", "pypy3.8", "pypy3.9"])
 def tests(session: nox.Session) -> None:
     session.install("-e", ".[dev]")
     session.run("pytest", *session.posargs)
