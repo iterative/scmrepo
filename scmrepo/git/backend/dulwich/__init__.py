@@ -99,7 +99,7 @@ class DulwichProgressReporter(GitProgressReporter):
     """
 
     def write(self, msg: Union[str, bytes]) -> int:
-        self.__call__(msg)
+        self(msg)
         return len(msg)
 
 
