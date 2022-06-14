@@ -67,7 +67,7 @@ extension-pkg-whitelist = ["pygit2"]
 
 [tool.pylint.message_control]
 disable = [
-    "format", "refactoring", "design", "no-self-use", "invalid-name", "duplicate-code",
+    "format", "refactoring", "design", "invalid-name", "duplicate-code",
     "missing-function-docstring", "missing-module-docstring", "missing-class-docstring",
     "raise-missing-from", "import-outside-toplevel", "cyclic-import", "fixme",
 ]
