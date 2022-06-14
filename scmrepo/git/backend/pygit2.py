@@ -94,7 +94,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         # NOTE: discover_repository will return path/.git/
         path = pygit2.discover_repository(  # pylint:disable=no-member
-            root_dir, True, ceiling_dirs
+            os.fspath(root_dir), True, ceiling_dirs
         )
         if not path:
             raise SCMError(f"{root_dir} is not a git repository")
