@@ -64,11 +64,11 @@ class Base:
     def tag(self, tag):
         """Makes SCM create a tag with a specified name."""
 
-    def untracked_files(self):  # pylint: disable=no-self-use
+    def untracked_files(self):
         """Returns a list of untracked files."""
         return []
 
-    def is_tracked(self, path):  # pylint: disable=no-self-use, unused-argument
+    def is_tracked(self, path):  # pylint: disable=unused-argument
         """Returns whether or not a specified path is tracked."""
         return False
 
@@ -76,19 +76,19 @@ class Base:
         """Return whether the SCM contains uncommitted changes."""
         return False
 
-    def active_branch(self):  # pylint: disable=no-self-use
+    def active_branch(self):
         """Returns current branch in the repo."""
         return ""
 
-    def list_branches(self):  # pylint: disable=no-self-use
+    def list_branches(self):
         """Returns a list of available branches in the repo."""
         return []
 
-    def list_tags(self):  # pylint: disable=no-self-use
+    def list_tags(self):
         """Returns a list of available tags in the repo."""
         return []
 
-    def list_all_commits(self):  # pylint: disable=no-self-use
+    def list_all_commits(self):
         """Returns a list of commits in the repo."""
         return []
 
