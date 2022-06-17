@@ -465,16 +465,25 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.stash_drop()
         return str(oid), False
 
-    def _stash_apply(self, rev: str):
-        from pygit2 import GitError
+    def _stash_apply(
+        self,
+        rev: str,
+        reinstate_index: bool = False,
+        skip_conflicts: bool = False,
+        **kwargs,
+    ):
+        from pygit2 import GIT_CHECKOUT_ALLOW_CONFLICTS, GitError
 
         from scmrepo.git import Stash
 
         def _apply(index):
             try:
                 self.repo.index.read(False)
+                strategy = self._get_checkout_strategy()
+                if skip_conflicts:
+                    strategy |= GIT_CHECKOUT_ALLOW_CONFLICTS
                 self.repo.stash_apply(
-                    index, strategy=self._get_checkout_strategy()
+                    index, strategy=strategy, reinstate_index=reinstate_index
                 )
             except GitError as exc:
                 raise MergeConflictError(

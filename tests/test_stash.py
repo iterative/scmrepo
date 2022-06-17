@@ -125,3 +125,26 @@ def test_git_stash_clear(tmp_dir: TmpDir, scm: Git, ref: Optional[str]):
     # NOTE: some backends will completely remove reflog file on clear, some
     # will only truncate it, either case means an empty stash
     assert not reflog_file.exists() or not reflog_file.cat()
+
+
+@pytest.mark.skip_git_backend("dulwich")
+def test_git_stash_apply_index(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+):
+    tmp_dir.gen("file", "0")
+    scm.add_commit("file", message="init")
+    tmp_dir.gen("file", "1")
+    scm.add("file")
+    scm.stash.push()
+    rev = scm.resolve_rev(r"stash@{0}")
+
+    stash = Stash(git)
+    stash.apply(rev, reinstate_index=True)
+
+    assert (tmp_dir / "file").read_text() == "1"
+    staged, unstaged, untracked = scm.status()
+    assert dict(staged) == {"modify": ["file"]}
+    assert not dict(unstaged)
+    assert not dict(untracked)
