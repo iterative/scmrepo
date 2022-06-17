@@ -695,7 +695,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             ) from exc
         return os.fsdecode(rev), True
 
-    def _stash_apply(self, rev: str):
+    def _stash_apply(
+        self,
+        rev: str,
+        reinstate_index: bool = False,
+        skip_conflicts: bool = False,
+        **kwargs,
+    ):
         raise NotImplementedError
 
     def _stash_drop(self, ref: str, index: int):

@@ -281,7 +281,13 @@ class BaseGitBackend(ABC):
         """
 
     @abstractmethod
-    def _stash_apply(self, rev: str):
+    def _stash_apply(
+        self,
+        rev: str,
+        reinstate_index: bool = False,
+        skip_conflicts: bool = False,
+        **kwargs,
+    ):
         """Apply the specified stash revision."""
 
     @abstractmethod

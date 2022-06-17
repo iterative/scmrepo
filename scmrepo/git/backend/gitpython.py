@@ -528,11 +528,23 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             self.git.stash("drop")
         return commit.hexsha, False
 
-    def _stash_apply(self, rev: str):
+    def _stash_apply(
+        self,
+        rev: str,
+        reinstate_index: bool = False,
+        skip_conflicts: bool = False,
+        **kwargs,
+    ):
         from git.exc import GitCommandError
 
+        if skip_conflicts:
+            raise NotImplementedError
         try:
-            self.git.stash("apply", rev)
+            args = ["apply"]
+            if reinstate_index:
+                args.append("--index")
+            args.append(rev)
+            self.git.stash(args)
         except GitCommandError as exc:
             out = str(exc)
             if "CONFLICT" in out or "already exists" in out:

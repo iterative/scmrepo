@@ -44,20 +44,40 @@ class Stash:
             self.scm.reset(hard=True)
         return rev
 
-    def pop(self):
+    def pop(self, **kwargs):
+        """Pop the last stash commit.
+
+        Supports the same keyword arguments as apply().
+        """
         logger.debug("Popping from stash '%s'", self.ref)
         ref = f"{self.ref}@{{0}}"
         rev = self.scm.resolve_rev(ref)
         try:
-            self.apply(rev)
+            self.apply(rev, **kwargs)
         except Exception as exc:
             raise SCMError("Could not apply stash commit") from exc
         self.drop()
         return rev
 
-    def apply(self, rev):
+    def apply(
+        self,
+        rev: str,
+        reinstate_index: bool = False,
+        skip_conflicts: bool = False,
+    ):
+        """Apply a stash commit.
+
+        Arguments:
+            rev: Stash commit to apply.
+            reinstate_index: If True, stashed index changes will be reapplied.
+            skip_conflicts: If True, conflicting changes will be skipped and
+                will not be applied from the stash. By default, apply will
+                fail if any conflicts are found.
+        """
         logger.debug("Applying stash commit '%s'", rev)
-        self.scm._stash_apply(rev)  # pylint: disable=protected-access
+        self.scm._stash_apply(  # pylint: disable=protected-access
+            rev, reinstate_index=reinstate_index, skip_conflicts=skip_conflicts
+        )
 
     def drop(self, index: int = 0):
         if index < 0 or index >= len(self):
