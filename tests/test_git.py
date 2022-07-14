@@ -939,17 +939,23 @@ def test_fetch(
     assert target.get_ref("refs/remotes/origin/master") == rev
 
 
-@pytest.mark.skip_git_backend("pygit2", "gitpython")
-@pytest.mark.parametrize("untracked_files", ["all", "no"])
+@pytest.mark.skip_git_backend("gitpython")
+@pytest.mark.parametrize("untracked_files", ["all", "no", "normal"])
 @pytest.mark.parametrize("ignored", [False, True])
 def test_status(
     tmp_dir: TmpDir,
     scm: Git,
     git: Git,
+    git_backend,
     tmp_dir_factory: TempDirFactory,
     untracked_files: str,
     ignored: bool,
 ):
+    if untracked_files == "normal" and git_backend == "dulwich":
+        pytest.skip(
+            "untracked_files=normal is not implemented for dulwich",
+        )
+
     tmp_dir.gen(
         {
             "foo": "foo",
@@ -979,12 +985,12 @@ def test_status(
     expected_untracked = []
     if ignored and untracked_files != "no":
         expected_untracked.append("ignored")
-    if untracked_files != "no":
-        expected_untracked.append(
-            os.path.join("untracked_dir/subfolder/subfile")
-        )
+    if untracked_files == "all":
+        expected_untracked.append("untracked_dir/subfolder/subfile")
+    elif untracked_files == "normal":
+        expected_untracked.append("untracked_dir/")
 
-    git.add("foo")
+    scm.add("foo")
     staged, unstaged, untracked = git.status(ignored, untracked_files)
 
     assert staged["modify"] == ["foo"]

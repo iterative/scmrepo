@@ -602,12 +602,60 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     index.add(entry.path)
                 index.write()
 
-    def iter_remote_refs(self, url: str, base: Optional[str] = None, **kwargs):
-        raise NotImplementedError
-
     def status(
         self, ignored: bool = False, untracked_files: str = "all"
     ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
+        from pygit2 import (
+            GIT_STATUS_IGNORED,
+            GIT_STATUS_INDEX_DELETED,
+            GIT_STATUS_INDEX_MODIFIED,
+            GIT_STATUS_INDEX_NEW,
+            GIT_STATUS_WT_DELETED,
+            GIT_STATUS_WT_MODIFIED,
+            GIT_STATUS_WT_NEW,
+            GIT_STATUS_WT_RENAMED,
+            GIT_STATUS_WT_TYPECHANGE,
+            GIT_STATUS_WT_UNREADABLE,
+        )
+
+        staged: Mapping[str, List[str]] = {
+            "add": [],
+            "delete": [],
+            "modify": [],
+        }
+        unstaged: List[str] = []
+        untracked: List[str] = []
+
+        states = {
+            GIT_STATUS_WT_NEW: untracked,
+            GIT_STATUS_WT_MODIFIED: unstaged,
+            GIT_STATUS_WT_TYPECHANGE: staged["modify"],
+            GIT_STATUS_WT_DELETED: staged["modify"],
+            GIT_STATUS_WT_RENAMED: staged["modify"],
+            GIT_STATUS_INDEX_NEW: staged["add"],
+            GIT_STATUS_INDEX_MODIFIED: staged["modify"],
+            GIT_STATUS_INDEX_DELETED: staged["delete"],
+            GIT_STATUS_WT_UNREADABLE: untracked,
+        }
+
+        if untracked_files != "no" and ignored:
+            states[GIT_STATUS_IGNORED] = untracked
+
+        for file, state in self.repo.status(
+            untracked_files=untracked_files, ignored=ignored
+        ).items():
+            for git_state in states:
+                flag = state & git_state
+                if flag:
+                    states[flag].append(file)
+
+        return (
+            {status: paths for status, paths in staged.items() if paths},
+            unstaged,
+            untracked,
+        )
+
+    def iter_remote_refs(self, url: str, base: Optional[str] = None, **kwargs):
         raise NotImplementedError
 
     def merge(
