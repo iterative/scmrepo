@@ -981,7 +981,7 @@ def test_status(
         expected_untracked.append("ignored")
     if untracked_files != "no":
         expected_untracked.append(
-            os.path.join("untracked_dir", "subfolder", "subfile")
+            os.path.join("untracked_dir/subfolder/subfile")
         )
 
     git.add("foo")
