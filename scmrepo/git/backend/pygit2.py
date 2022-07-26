@@ -34,11 +34,6 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from scmrepo.progress import GitProgressEvent
 
-# NOTE: constant from libgit2 git2/checkout.h
-# This can be removed after next pygit2 release:
-# see https://github.com/libgit2/pygit2/pull/1087
-GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES = 1 << 18
-
 
 class Pygit2Object(GitObject):
     def __init__(self, obj):
@@ -138,7 +133,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     @staticmethod
     def _get_checkout_strategy(strategy: Optional[int] = None):
-        from pygit2 import GIT_CHECKOUT_RECREATE_MISSING, GIT_CHECKOUT_SAFE
+        from pygit2 import (
+            GIT_CHECKOUT_RECREATE_MISSING,
+            GIT_CHECKOUT_SAFE,
+            GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES,
+        )
 
         if strategy is None:
             strategy = GIT_CHECKOUT_SAFE | GIT_CHECKOUT_RECREATE_MISSING
