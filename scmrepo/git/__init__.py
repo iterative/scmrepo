@@ -6,7 +6,7 @@ import re
 from collections import OrderedDict
 from collections.abc import Mapping
 from contextlib import contextmanager
-from functools import partialmethod
+from functools import partial
 from typing import Dict, Iterable, Optional, Tuple, Type, Union
 
 from funcy import cached_property, first
@@ -32,6 +32,27 @@ BackendCls = Type[BaseGitBackend]
 
 
 _LOW_PRIO_BACKENDS = ("gitpython",)
+
+
+class from_backend:
+    def __init__(self, *prio) -> None:
+        self.prio = prio
+        self.name = None
+        self.func = None
+
+    def __set_name__(self, _, name):
+        self.name = name
+
+    def __get__(self, obj, cls):
+        assert self.name
+        if self.func:
+            return self.func
+        if obj is None:
+            return partial(cls._backend_func_cls, self.name, self.prio)
+        return partial(obj._backend_func, self.name, self.prio)
+
+    def __set__(self, _, func) -> None:
+        self.func = func
 
 
 class GitBackends(Mapping):
@@ -90,6 +111,7 @@ class Git(Base):
     LOCAL_BRANCH_PREFIX = "refs/heads/"
     RE_HEXSHA = re.compile(r"^[0-9A-Fa-f]{4,40}$")
     BAD_REF_CHARS_RE = re.compile("[\177\\s~^:?*\\[]")
+    default_backends = GitBackends.DEFAULT
 
     def __init__(
         self, *args, backends: Optional[Iterable[str]] = None, **kwargs
@@ -138,16 +160,11 @@ class Git(Base):
         rev: Optional[str] = None,
         **kwargs,
     ):
-        for _, backend in GitBackends.DEFAULT.items():
-            try:
-                backend.clone(url, to_path, **kwargs)
-                repo = cls(to_path)
-                if rev:
-                    repo.checkout(rev)
-                return repo
-            except NotImplementedError:
-                pass
-        raise NoGitBackendError("clone")
+        cls._backend_func_cls("clone", (), url, to_path, **kwargs)
+        repo = cls(to_path)
+        if rev:
+            repo.checkout(rev)
+        return repo
 
     @classmethod
     def is_sha(cls, rev):
@@ -279,16 +296,31 @@ class Git(Base):
     # See:
     # https://github.com/iterative/dvc/issues/5641
     # https://github.com/iterative/dvc/issues/7458
-    def _backend_func(self, name, *args, **kwargs):
-        for key, backend in self.backends.items():
+    def _backend_func(self, name, prio, *args, **kwargs):
+        backends = prio or self.backends.keys()
+        for key in backends:
             if self._last_backend is not None and key != self._last_backend:
                 self.backends[self._last_backend].close()
                 self._last_backend = None
             try:
+                backend = self.backends[key]
                 func = getattr(backend, name)
                 result = func(*args, **kwargs)
                 self._last_backend = key
                 self.backends.move_to_end(key, last=False)
+                return result
+            except NotImplementedError:
+                pass
+        raise NoGitBackendError(name)
+
+    @classmethod
+    def _backend_func_cls(cls, name, prio, *args, **kwargs):
+        backends = prio or cls.default_backends.keys()
+        for key in backends:
+            try:
+                backend = cls.default_backends[key]
+                func = getattr(backend, name)
+                result = func(*args, **kwargs)
                 return result
             except NotImplementedError:
                 pass
@@ -303,16 +335,9 @@ class Git(Base):
     def init(
         cls, path: str, bare: bool = False, _backend: str = None
     ) -> "Git":
-        for name, backend in GitBackends.DEFAULT.items():
-            if _backend and name != _backend:
-                continue
-            try:
-                backend.init(path, bare=bare)
-                # TODO: reuse created object instead of initializing a new one.
-                return cls(path)
-            except NotImplementedError:
-                pass
-        raise NoGitBackendError("init")
+        backends = (_backend,) if _backend else ()
+        cls._backend_func_cls("init", backends, path, bare=bare)
+        return cls(path)
 
     def add_commit(
         self,
@@ -322,48 +347,46 @@ class Git(Base):
         self.add(paths)
         self.commit(msg=message)
 
-    is_ignored = partialmethod(_backend_func, "is_ignored")
-    add = partialmethod(_backend_func, "add")
-    commit = partialmethod(_backend_func, "commit")
-    checkout = partialmethod(_backend_func, "checkout")
-    fetch = partialmethod(_backend_func, "fetch")
-    pull = partialmethod(_backend_func, "pull")
-    push = partialmethod(_backend_func, "push")
-    branch = partialmethod(_backend_func, "branch")
-    tag = partialmethod(_backend_func, "tag")
-    untracked_files = partialmethod(_backend_func, "untracked_files")
-    is_tracked = partialmethod(_backend_func, "is_tracked")
-    is_dirty = partialmethod(_backend_func, "is_dirty")
-    active_branch = partialmethod(_backend_func, "active_branch")
-    list_branches = partialmethod(_backend_func, "list_branches")
-    list_tags = partialmethod(_backend_func, "list_tags")
-    list_all_commits = partialmethod(_backend_func, "list_all_commits")
-    get_rev = partialmethod(_backend_func, "get_rev")
-    resolve_rev = partialmethod(_backend_func, "resolve_rev")
-    resolve_commit = partialmethod(_backend_func, "resolve_commit")
-
-    set_ref = partialmethod(_backend_func, "set_ref")
-    get_ref = partialmethod(_backend_func, "get_ref")
-    remove_ref = partialmethod(_backend_func, "remove_ref")
-    iter_refs = partialmethod(_backend_func, "iter_refs")
-    iter_remote_refs = partialmethod(_backend_func, "iter_remote_refs")
-    get_refs_containing = partialmethod(_backend_func, "get_refs_containing")
-    push_refspecs = partialmethod(_backend_func, "push_refspecs")
-    fetch_refspecs = partialmethod(_backend_func, "fetch_refspecs")
-    _stash_iter = partialmethod(_backend_func, "_stash_iter")
-    _stash_push = partialmethod(_backend_func, "_stash_push")
-    _stash_apply = partialmethod(_backend_func, "_stash_apply")
-    _stash_drop = partialmethod(_backend_func, "_stash_drop")
-    _describe = partialmethod(_backend_func, "_describe")
-    diff = partialmethod(_backend_func, "diff")
-    reset = partialmethod(_backend_func, "reset")
-    checkout_index = partialmethod(_backend_func, "checkout_index")
-    status = partialmethod(_backend_func, "status")
-    merge = partialmethod(_backend_func, "merge")
-    validate_git_remote = partialmethod(_backend_func, "validate_git_remote")
-    check_ref_format = partialmethod(_backend_func, "check_ref_format")
-
-    get_tree_obj = partialmethod(_backend_func, "get_tree_obj")
+    is_ignored = from_backend()
+    add = from_backend()
+    commit = from_backend()
+    checkout = from_backend()
+    fetch = from_backend()
+    pull = from_backend()
+    push = from_backend()
+    branch = from_backend()
+    tag = from_backend()
+    untracked_files = from_backend()
+    is_tracked = from_backend()
+    is_dirty = from_backend()
+    active_branch = from_backend()
+    list_branches = from_backend()
+    list_tags = from_backend()
+    list_all_commits = from_backend()
+    get_rev = from_backend()
+    resolve_rev = from_backend()
+    resolve_commit = from_backend()
+    set_ref = from_backend()
+    get_ref = from_backend()
+    remove_ref = from_backend()
+    iter_refs = from_backend()
+    iter_remote_refs = from_backend()
+    get_refs_containing = from_backend()
+    push_refspecs = from_backend()
+    fetch_refspecs = from_backend()
+    _stash_iter = from_backend()
+    _stash_push = from_backend()
+    _stash_apply = from_backend()
+    _stash_drop = from_backend()
+    _describe = from_backend()
+    diff = from_backend()
+    reset = from_backend()
+    checkout_index = from_backend()
+    status = from_backend()
+    merge = from_backend()
+    validate_git_remote = from_backend()
+    check_ref_format = from_backend()
+    get_tree_obj = from_backend()
 
     def branch_revs(
         self, branch: str, end_rev: Optional[str] = None
