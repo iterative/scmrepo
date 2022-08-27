@@ -55,7 +55,7 @@ class GitBackends(Mapping):
     ) -> None:
         selected = selected or list(self.DEFAULT)
         self.backends = OrderedDict(
-            ((key, self.DEFAULT[key]) for key in selected)
+            (key, self.DEFAULT[key]) for key in selected
         )
 
         self.initialized: Dict[str, BaseGitBackend] = {}
