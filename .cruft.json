@@ -1,0 +1,22 @@
+{
+  "template": "https://github.com/iterative/py-template",
+  "commit": "84a385c99003c39632dfe985bf0ca4ed08235f36",
+  "context": {
+    "cookiecutter": {
+      "project_name": "scmrepo",
+      "package_name": "scmrepo",
+      "friendly_name": "scmrepo",
+      "author": "Iterative",
+      "email": "support@dvc.org",
+      "github_user": "iterative",
+      "version": "0.0.0",
+      "copyright_year": "2022",
+      "license": "Apache-2.0",
+      "docs": "False",
+      "short_description": "scmrepo",
+      "development_status": "Development Status :: 4 - Beta",
+      "_template": "https://github.com/iterative/py-template"
+    }
+  },
+  "directory": null
+}

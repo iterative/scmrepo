@@ -1,36 +1,48 @@
+default_language_version:
+  python: python3
 repos:
-  - hooks:
-      - id: black
-        language_version: python3
-    repo: https://github.com/psf/black
+  - repo: https://github.com/psf/black
     rev: 22.6.0
+    hooks:
+      - id: black
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0
     hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
+      - id: debug-statements
       - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: sort-simple-yaml
       - id: trailing-whitespace
-  - hooks:
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.1
+    hooks:
       - id: codespell
         args:
           - --ignore-words-list=cachable
-    repo: https://github.com/codespell-project/codespell
-    rev: v2.2.1
-  - hooks:
-      - id: isort
-        language_version: python3
-    repo: https://github.com/timothycrosley/isort
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.37.3
+    hooks:
+      - id: pyupgrade
+  - repo: https://github.com/PyCQA/isort
     rev: 5.10.1
-  - hooks:
+    hooks:
+      - id: isort
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 5.0.4
+    hooks:
       - id: flake8
-        language_version: python3
         additional_dependencies:
-          - flake8-bugbear
-          - flake8-comprehensions
-          - flake8-debugger
-          - flake8-string-format
-          - flake8-bandit
-          - bandit<1.7.3
-    repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
+          - flake8-broken-line==0.5.0
+          - flake8-bugbear==22.8.23
+          - flake8-comprehensions==3.10.0
+          - flake8-debugger==4.1.2
+          - flake8-string-format==0.3.0

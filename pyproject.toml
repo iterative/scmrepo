@@ -34,6 +34,25 @@ markers = [
     "slow: mark test as slow to run",
 ]
 
+[tool.coverage.run]
+branch = true
+source = ["scmrepo", "tests"]
+
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if typing.TYPE_CHECKING:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "raise AssertionError",
+    "@overload",
+]
+
 [tool.mypy]
 # Error output
 show_column_numbers = true
@@ -46,12 +65,11 @@ check_untyped_defs = false
 warn_no_return = true
 warn_redundant_casts = true
 warn_unreachable = true
-files = ["scmrepo", "tests"]
+files = ["src", "tests"]
 
 [[tool.mypy.overrides]]
 module = [
     "pygtrie",
-    "packagename2",
     "funcy",
     "git",
     "fsspec.*",
