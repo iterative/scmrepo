@@ -109,9 +109,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     from dulwich import client
 
     from .asyncssh_vendor import AsyncSSHVendor
+    from .client import GitCredentialsHTTPClient
 
     # monkeypatch dulwich client's default SSH vendor to use asyncssh
     client.get_ssh_vendor = AsyncSSHVendor  # type: ignore[assignment]
+    # monkeypatch dulwich client's default HTTPClient to add support for
+    # git credential helpers. See https://github.com/jelmer/dulwich/pull/976
+    client.HttpGitClient = GitCredentialsHTTPClient  # type: ignore[assignment]
 
     # Dulwich progress will return messages equivalent to git CLI,
     # our pbars should just display the messages as formatted by dulwich
