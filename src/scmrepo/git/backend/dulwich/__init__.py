@@ -773,10 +773,6 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         staged, unstaged, untracked = git_status(
             self.root_dir, ignored=ignored, untracked_files=untracked_files
         )
-        if os.name == "nt":
-            # TODO: remove when https://github.com/jelmer/dulwich/pull/995 is
-            #       merged and released
-            untracked = [path.replace("\\", "/") for path in untracked]
 
         return (
             {
