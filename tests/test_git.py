@@ -164,7 +164,7 @@ def test_branch_revs(tmp_dir: TmpDir, scm: Git, git: Git):
         scm.add_commit("file", message=f"{i}")
         return scm.get_rev()
 
-    base, *others = [_gen(i) for i in range(5)]
+    base, *others = (_gen(i) for i in range(5))
     branch_revs = list(git.branch_revs("master", base))[::-1]
     assert branch_revs == others
 
