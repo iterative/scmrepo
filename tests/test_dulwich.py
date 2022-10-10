@@ -2,6 +2,7 @@ import socket
 import threading
 from io import StringIO
 from typing import Any, Dict, Iterator
+from unittest.mock import AsyncMock
 
 import asyncssh
 import paramiko
@@ -12,7 +13,6 @@ from dulwich.contrib.test_paramiko_vendor import (
     USER,
     Server,
 )
-from mock import AsyncMock
 from pytest_mock import MockerFixture
 from pytest_test_utils.waiters import wait_until
 
@@ -39,7 +39,7 @@ def ssh_conn(request: pytest.FixtureRequest) -> Iterator[Dict[str, Any]]:
     def _run_server():
         try:
             conn, _ = sock.accept()
-        except socket.error:
+        except OSError:
             return False
         server.transport = transport = paramiko.Transport(conn)
         request.addfinalizer(transport.close)
