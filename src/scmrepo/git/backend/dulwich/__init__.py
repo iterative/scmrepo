@@ -18,7 +18,7 @@ from typing import (
     Union,
 )
 
-from funcy import cached_property
+from funcy import cached_property, reraise
 
 from scmrepo.exceptions import (
     AuthError,
@@ -284,17 +284,18 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def commit(self, msg: str, no_verify: bool = False):
         from dulwich.errors import CommitError
-        from dulwich.porcelain import commit
+        from dulwich.porcelain import Error, TimezoneFormatError, commit
         from dulwich.repo import InvalidUserIdentity
 
-        try:
-            commit(self.root_dir, message=msg, no_verify=no_verify)
-        except CommitError as exc:
-            raise SCMError("Git commit failed") from exc
-        except InvalidUserIdentity as exc:
-            raise SCMError(
-                "Git username and email must be configured"
-            ) from exc
+        with reraise((Error, CommitError), SCMError("Git commit failed")):
+            try:
+                commit(self.root_dir, message=msg, no_verify=no_verify)
+            except InvalidUserIdentity as exc:
+                raise SCMError(
+                    "Git username and email must be configured"
+                ) from exc
+            except TimezoneFormatError as exc:
+                raise SCMError("Invalid Git timestamp") from exc
 
     def checkout(
         self,
@@ -311,16 +312,17 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         force: bool = False,
         unshallow: bool = False,
     ):
-        from dulwich.porcelain import fetch
+        from dulwich.porcelain import Error, fetch
         from dulwich.protocol import DEPTH_INFINITE
 
-        remote_b = os.fsencode(remote) if remote else b"origin"
-        fetch(
-            self.repo,
-            remote_location=remote_b,
-            force=force,
-            depth=DEPTH_INFINITE if unshallow else None,
-        )
+        with reraise(Error, SCMError("Git fetch failed")):
+            remote_b = os.fsencode(remote) if remote else b"origin"
+            fetch(
+                self.repo,
+                remote_location=remote_b,
+                force=force,
+                depth=DEPTH_INFINITE if unshallow else None,
+            )
 
     def pull(self, **kwargs):
         raise NotImplementedError
@@ -768,11 +770,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def status(
         self, ignored: bool = False, untracked_files: str = "all"
     ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
+        from dulwich.porcelain import Error
         from dulwich.porcelain import status as git_status
 
-        staged, unstaged, untracked = git_status(
-            self.root_dir, ignored=ignored, untracked_files=untracked_files
-        )
+        with reraise(Error, SCMError("Git status failed")):
+            staged, unstaged, untracked = git_status(
+                self.root_dir, ignored=ignored, untracked_files=untracked_files
+            )
 
         return (
             {
