@@ -705,21 +705,28 @@ def test_describe(tmp_dir: TmpDir, scm: Git, git: Git):
     scm.add_commit("foo", message="bar")
     rev_bar = scm.get_rev()
 
-    assert git.describe(rev_foo, "refs/heads") is None
+    assert git.describe([rev_foo], "refs/heads") == {rev_foo: None}
 
     scm.checkout("branch", create_new=True)
-    assert git.describe(rev_bar, "refs/heads") == "refs/heads/branch"
+    assert git.describe([rev_bar], "refs/heads") == {
+        rev_bar: "refs/heads/branch"
+    }
 
     tmp_dir.gen({"foo": "foobar"})
     scm.add_commit("foo", message="foobar")
     rev_foobar = scm.get_rev()
 
     scm.checkout("master")
-    assert git.describe(rev_bar, "refs/heads") == "refs/heads/master"
-    assert git.describe(rev_foobar, "refs/heads") == "refs/heads/branch"
+    assert git.describe([rev_bar, rev_foobar], "refs/heads") == {
+        rev_bar: "refs/heads/master",
+        rev_foobar: "refs/heads/branch",
+    }
 
     scm.tag("tag")
-    assert git.describe(rev_bar) == "refs/tags/tag"
+    assert git.describe([rev_bar, "nonexist"]) == {
+        rev_bar: "refs/tags/tag",
+        "nonexist": None,
+    }
 
 
 def test_ignore(tmp_dir: TmpDir, scm: Git, git: Git):

@@ -724,21 +724,26 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def _describe(
         self,
-        rev: str,
+        revs: Iterable[str],
         base: Optional[str] = None,
         match: Optional[str] = None,
         exclude: Optional[str] = None,
-    ) -> Optional[str]:
+    ) -> Mapping[str, Optional[str]]:
         if not base:
             base = "refs/tags"
+        rev_mapping: Dict[str, Optional[str]] = {}
+        results: Dict[str, Optional[str]] = {}
         for ref in self.iter_refs(base=base):
             if (match and not fnmatch.fnmatch(ref, match)) or (
                 exclude and fnmatch.fnmatch(ref, exclude)
             ):
                 continue
-            if self.get_ref(ref, follow=False) == rev:
-                return ref
-        return None
+            revision = self.get_ref(ref, follow=False)
+            if revision and revision not in rev_mapping:
+                rev_mapping[revision] = ref
+        for rev in revs:
+            results[rev] = rev_mapping.get(rev, None)
+        return results
 
     def diff(self, rev_a: str, rev_b: str, binary=False) -> str:
         from dulwich.patch import write_tree_diff

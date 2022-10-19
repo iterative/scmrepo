@@ -442,15 +442,23 @@ class Git(Base):
 
     def describe(
         self,
-        rev: str,
+        revs: Iterable[str],
         base: Optional[str] = None,
         match: Optional[str] = None,
         exclude: Optional[str] = None,
-    ) -> Optional[str]:
-        if (
-            base == "refs/heads"
-            and self.get_rev() == rev
-            and self.get_ref("HEAD", follow=False).startswith(base)
-        ):
-            return self.get_ref("HEAD", follow=False)
-        return self._describe(rev, base, match, exclude)
+    ) -> Dict[str, Optional[str]]:
+        results: Dict[str, Optional[str]] = {}
+        remained_revs = set()
+        if base == "refs/heads":
+            current_rev = self.get_rev()
+            head_ref = self.get_ref("HEAD", follow=False)
+            for rev in revs:
+                if current_rev == rev and head_ref.startswith(base):
+                    results[rev] = self.get_ref("HEAD", follow=False)
+                else:
+                    remained_revs.add(rev)
+        else:
+            remained_revs = set(revs)
+        if remained_revs:
+            results.update(self._describe(remained_revs, base, match, exclude))
+        return results

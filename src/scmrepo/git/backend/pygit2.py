@@ -515,11 +515,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def _describe(
         self,
-        rev: str,
+        revs: Iterable[str],
         base: Optional[str] = None,
         match: Optional[str] = None,
         exclude: Optional[str] = None,
-    ) -> Optional[str]:
+    ) -> Mapping[str, Optional[str]]:
         raise NotImplementedError
 
     def diff(self, rev_a: str, rev_b: str, binary=False) -> str:

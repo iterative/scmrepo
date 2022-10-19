@@ -297,12 +297,12 @@ class BaseGitBackend(ABC):
     @abstractmethod
     def _describe(
         self,
-        rev: str,
+        revs: Iterable[str],
         base: Optional[str] = None,
         match: Optional[str] = None,
         exclude: Optional[str] = None,
-    ) -> Optional[str]:
-        """Return the first ref which points to rev.
+    ) -> Mapping[str, Optional[str]]:
+        """Return the first ref which points to each revs.
 
         Roughly equivalent to `git describe --all --exact-match`.
 
