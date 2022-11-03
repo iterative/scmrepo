@@ -291,11 +291,35 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             try:
                 commit(self.root_dir, message=msg, no_verify=no_verify)
             except InvalidUserIdentity as exc:
-                raise SCMError(
-                    "Git username and email must be configured"
-                ) from exc
+                identity = self._get_codespaces_identity()
+                if identity is not None:
+                    commit(
+                        self.root_dir,
+                        message=msg,
+                        no_verify=no_verify,
+                        committer=identity,
+                        author=identity,
+                    )
+                else:
+                    raise SCMError(
+                        "Git username and email must be configured"
+                    ) from exc
             except TimezoneFormatError as exc:
                 raise SCMError("Invalid Git timestamp") from exc
+
+    def _get_codespaces_identity(self) -> Optional[bytes]:
+        from dulwich.config import ConfigFile, StackedConfig
+        from dulwich.repo import get_user_identity
+
+        if "CODESPACES" not in os.environ:
+            return None
+        try:
+            config = StackedConfig(
+                [ConfigFile.from_path("/usr/local/etc/gitconfig")]
+            )
+            return get_user_identity(config)
+        except Exception:  # pylint: disable=broad-except
+            return None
 
     def checkout(
         self,
