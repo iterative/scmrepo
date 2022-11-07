@@ -29,7 +29,7 @@ Currently Dulwich supports only the `get` operation
 import os
 import shlex
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse
@@ -142,7 +142,7 @@ class CredentialHelper:
         if not shutil.which(executable) and shutil.which("git"):
             # If the helper cannot be found in PATH, it might be
             # a C git helper in GIT_EXEC_PATH
-            git_exec_path = subprocess.check_output(
+            git_exec_path = subprocess.check_output(  # nosec B603
                 ("git", "--exec-path"),
                 universal_newlines=True,
             ).strip()
@@ -181,7 +181,7 @@ class CredentialHelper:
         helper_input.append("")
 
         try:
-            res = subprocess.run(  # type: ignore # breaks on 3.6
+            res = subprocess.run(  # type: ignore # nosec B603 # breaks on 3.6
                 cmd,
                 check=True,
                 stdout=subprocess.PIPE,

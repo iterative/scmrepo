@@ -46,3 +46,9 @@ repos:
           - flake8-comprehensions==3.10.0
           - flake8-debugger==4.1.2
           - flake8-string-format==0.3.0
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.4
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["toml"]

@@ -147,7 +147,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             email = first(config.get_multivar("user.email"))
             if name and email:
                 return Signature(name, email)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # nosec B110, pylint: disable=broad-except
             pass
         return None
 
