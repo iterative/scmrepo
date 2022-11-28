@@ -144,7 +144,7 @@ class CredentialHelper:
             # a C git helper in GIT_EXEC_PATH
             git_exec_path = subprocess.check_output(  # nosec B603
                 ("git", "--exec-path"),
-                universal_newlines=True,
+                text=True,
             ).strip()
             if shutil.which(executable, path=git_exec_path):
                 executable = os.path.join(git_exec_path, executable)
@@ -184,8 +184,7 @@ class CredentialHelper:
             res = subprocess.run(  # type: ignore # nosec B603 # breaks on 3.6
                 cmd,
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 input=os.linesep.join(helper_input).encode("ascii"),
                 **self._run_kwargs,
             )
