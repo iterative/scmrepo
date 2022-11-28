@@ -646,15 +646,16 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 if remote_refs[lh] not in self.repo.object_store
             ]
 
-        try:
+        with reraise(
+            Exception, SCMError(f"'{url}' is not a valid Git remote or URL")
+        ):
             _remote, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
-        except Exception as exc:
-            raise SCMError(
-                f"'{url}' is not a valid Git remote or URL"
-            ) from exc
 
-        try:
+        with reraise(
+            (NotGitRepository, KeyError),
+            SCMError(f"Git failed to fetch ref from '{url}'"),
+        ):
             fetch_result = client.fetch(
                 path,
                 self.repo,
@@ -663,37 +664,37 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 else None,
                 determine_wants=determine_wants,
             )
-        except NotGitRepository as exc:
-            raise SCMError(f"Git failed to fetch ref from '{url}'") from exc
 
-        result = {}
+            result = {}
 
-        for (lh, rh, _) in fetch_refs:
-            refname = os.fsdecode(rh)
-            if rh in self.repo.refs:
-                if self.repo.refs[rh] == fetch_result.refs[lh]:
-                    result[refname] = SyncStatus.UP_TO_DATE
-                    continue
-                try:
-                    check_diverged(
-                        self.repo, self.repo.refs[rh], fetch_result.refs[lh]
-                    )
-                except DivergedBranches:
-                    if not force:
-                        overwrite = (
-                            on_diverged(
-                                os.fsdecode(rh),
-                                os.fsdecode(fetch_result.refs[lh]),
-                            )
-                            if on_diverged
-                            else False
+            for (lh, rh, _) in fetch_refs:
+                refname = os.fsdecode(rh)
+                if rh in self.repo.refs:
+                    if self.repo.refs[rh] == fetch_result.refs[lh]:
+                        result[refname] = SyncStatus.UP_TO_DATE
+                        continue
+                    try:
+                        check_diverged(
+                            self.repo,
+                            self.repo.refs[rh],
+                            fetch_result.refs[lh],
                         )
-                        if not overwrite:
-                            result[refname] = SyncStatus.DIVERGED
-                            continue
+                    except DivergedBranches:
+                        if not force:
+                            overwrite = (
+                                on_diverged(
+                                    os.fsdecode(rh),
+                                    os.fsdecode(fetch_result.refs[lh]),
+                                )
+                                if on_diverged
+                                else False
+                            )
+                            if not overwrite:
+                                result[refname] = SyncStatus.DIVERGED
+                                continue
 
-            self.repo.refs[rh] = fetch_result.refs[lh]
-            result[refname] = SyncStatus.SUCCESS
+                self.repo.refs[rh] = fetch_result.refs[lh]
+                result[refname] = SyncStatus.SUCCESS
         return result
 
     def _stash_iter(self, ref: str):
