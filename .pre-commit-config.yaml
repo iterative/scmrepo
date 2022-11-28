@@ -14,6 +14,7 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-json
       - id: check-merge-conflict
+        args: ['--assume-in-merge']
       - id: check-toml
       - id: check-yaml
       - id: debug-statements
@@ -28,9 +29,10 @@ repos:
       - id: codespell
         additional_dependencies: ["tomli"]
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.0.0
+    rev: v3.2.2
     hooks:
       - id: pyupgrade
+        args: [--py38-plus]
   - repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
@@ -40,9 +42,9 @@ repos:
     hooks:
       - id: flake8
         additional_dependencies:
-          - flake8-broken-line==0.5.0
-          - flake8-bugbear==22.8.23
-          - flake8-comprehensions==3.10.0
+          - flake8-broken-line==0.6.0
+          - flake8-bugbear==22.10.27
+          - flake8-comprehensions==3.10.1
           - flake8-debugger==4.1.2
           - flake8-string-format==0.3.0
   - repo: https://github.com/pycqa/bandit
