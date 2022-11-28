@@ -39,7 +39,7 @@ class BaseGitBackend(ABC):
     def __init__(self, root_dir=os.curdir, search_parent_directories=True):
         pass
 
-    def close(self):
+    def close(self):  # noqa: B027
         pass
 
     @abstractmethod
@@ -356,7 +356,7 @@ class BaseGitBackend(ABC):
         files can take some time.
         """
 
-    def _reset(self) -> None:
+    def _reset(self) -> None:  # noqa: B027
         pass
 
     @abstractmethod
