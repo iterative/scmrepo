@@ -15,6 +15,7 @@ repos:
       - id: check-json
       - id: check-merge-conflict
         args: ['--assume-in-merge']
+        exclude: "README.rst"
       - id: check-toml
       - id: check-yaml
       - id: debug-statements
