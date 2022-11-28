@@ -5,7 +5,9 @@ from typing import Any, Dict, Optional, Type
 import pytest
 from asyncssh import SFTPClient
 from asyncssh.connection import SSHClientConnection
+from dulwich.client import LocalGitClient
 from git import Repo as GitPythonRepo
+from pytest_mock import MockerFixture
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
 
@@ -325,6 +327,7 @@ def test_fetch_refspecs(
     git: Git,
     remote_git_dir: TmpDir,
     use_url: bool,
+    mocker: MockerFixture,
 ):
 
     from scmrepo.git.backend.dulwich import SyncStatus
@@ -369,6 +372,10 @@ def test_fetch_refspecs(
         "refs/foo/baz": SyncStatus.DIVERGED
     }
     assert baz_rev == scm.get_ref("refs/foo/baz")
+
+    with pytest.raises(SCMError):
+        mocker.patch.object(LocalGitClient, "fetch", side_effect=KeyError)
+        git.fetch_refspecs(remote, "refs/foo/bar:refs/foo/bar")
 
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
