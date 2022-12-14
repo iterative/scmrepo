@@ -773,3 +773,6 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def validate_git_remote(self, url: str, **kwargs):
         raise NotImplementedError
+
+    def check_ref_format(self, refname: str):
+        raise NotImplementedError
