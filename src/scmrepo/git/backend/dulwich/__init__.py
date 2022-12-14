@@ -858,7 +858,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         ):
             raise InvalidRemote(url)
 
-    def check_ref_format(self, refname: str):
+    def check_ref_format(self, refname: str) -> bool:
         from dulwich.refs import check_ref_format
 
         return check_ref_format(refname.encode())

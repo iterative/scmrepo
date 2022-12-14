@@ -389,3 +389,7 @@ class BaseGitBackend(ABC):
     @abstractmethod
     def validate_git_remote(self, url: str, **kwargs):
         """Verify that url is a valid git URL or remote name."""
+
+    @abstractmethod
+    def check_ref_format(self, refname: str) -> bool:
+        """Check if a reference name is well formed."""
