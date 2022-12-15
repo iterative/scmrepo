@@ -27,7 +27,7 @@ class InvalidRemote(SCMError):
 class AuthError(SCMError):
     def __init__(self, url: str) -> None:
         self.url = url
-        super().__init__(f"HTTP Git authentication is not supported: '{url}'")
+        super().__init__(f"Authentication failed for: '{url}'")
 
 
 class CloneError(SCMError):
