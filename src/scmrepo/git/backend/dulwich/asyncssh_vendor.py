@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Callable, Coroutine, List, Optional
 from dulwich.client import SSHVendor
 
 from scmrepo.asyn import BaseAsyncObject, sync_wrapper
+from scmrepo.exceptions import AuthError
 
 if TYPE_CHECKING:
     from asyncssh.connection import SSHClientConnection
@@ -160,17 +161,20 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
             MSG_USERAUTH_PK_OK
         ] = _process_public_key_ok_gh
 
-        conn = await asyncssh.connect(
-            host,
-            port=port if port is not None else (),
-            username=username if username is not None else (),
-            password=password if password is not None else (),
-            client_keys=[key_filename] if key_filename else (),
-            ignore_encrypted=not key_filename,
-            known_hosts=None,
-            encoding=None,
-        )
-        proc = await conn.create_process(command, encoding=None)
+        try:
+            conn = await asyncssh.connect(
+                host,
+                port=port if port is not None else (),
+                username=username if username is not None else (),
+                password=password if password is not None else (),
+                client_keys=[key_filename] if key_filename else (),
+                ignore_encrypted=not key_filename,
+                known_hosts=None,
+                encoding=None,
+            )
+            proc = await conn.create_process(command, encoding=None)
+        except asyncssh.misc.PermissionDenied as exc:
+            raise AuthError(f"{username}@{host}:{port or 22}") from exc
         return AsyncSSHWrapper(conn, proc)
 
     run_command = sync_wrapper(_run_command)
