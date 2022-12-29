@@ -34,6 +34,7 @@ from ...objects import GitObject
 from ..base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
+    from dulwich.client import SSHVendor
     from dulwich.repo import Repo
 
     from scmrepo.progress import GitProgressEvent
@@ -103,16 +104,29 @@ class DulwichProgressReporter(GitProgressReporter):
         return len(msg)
 
 
+def _get_ssh_vendor() -> "SSHVendor":
+    from dulwich.client import SubprocessSSHVendor
+
+    from .asyncssh_vendor import AsyncSSHVendor
+
+    ssh_command = os.environ.get("GIT_SSH_COMMAND", os.environ.get("GIT_SSH"))
+    if ssh_command:
+        logger.debug(
+            "dulwich: Using environment GIT_SSH_COMMAND '%s'", ssh_command
+        )
+        return SubprocessSSHVendor()
+    return AsyncSSHVendor()
+
+
 class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     """Dulwich Git backend."""
 
     from dulwich import client
 
-    from .asyncssh_vendor import AsyncSSHVendor
     from .client import GitCredentialsHTTPClient
 
     # monkeypatch dulwich client's default SSH vendor to use asyncssh
-    client.get_ssh_vendor = AsyncSSHVendor  # type: ignore[assignment]
+    client.get_ssh_vendor = _get_ssh_vendor  # type: ignore[assignment]
     # monkeypatch dulwich client's default HTTPClient to add support for
     # git credential helpers. See https://github.com/jelmer/dulwich/pull/976
     client.HttpGitClient = GitCredentialsHTTPClient  # type: ignore[assignment]
