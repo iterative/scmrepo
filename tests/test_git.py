@@ -1,12 +1,14 @@
 import os
 import shutil
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 import pytest
 from asyncssh import SFTPClient
 from asyncssh.connection import SSHClientConnection
 from dulwich.client import LocalGitClient
 from git import Repo as GitPythonRepo
+from pygit2 import GitError
+from pygit2.remote import Remote  # type: ignore
 from pytest_mock import MockerFixture
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
@@ -306,7 +308,7 @@ def test_push_refspecs(
     assert remote_scm.get_ref("refs/foo/baz") is None
 
 
-@pytest.mark.skip_git_backend("pygit2", "gitpython")
+@pytest.mark.skip_git_backend("gitpython")
 @pytest.mark.parametrize("use_url", [True, False])
 def test_fetch_refspecs(
     tmp_dir: TmpDir,
@@ -362,7 +364,10 @@ def test_fetch_refspecs(
 
     with pytest.raises(SCMError):
         mocker.patch.object(LocalGitClient, "fetch", side_effect=KeyError)
+        mocker.patch.object(Remote, "fetch", side_effect=GitError)
         git.fetch_refspecs(remote, "refs/foo/bar:refs/foo/bar")
+
+    assert len(scm.pygit2.repo.remotes) == 1
 
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
@@ -1046,3 +1051,22 @@ def test_is_dirty_untracked(
     tmp_dir.gen("untracked", "untracked")
     assert git.is_dirty(untracked_files=True)
     assert not git.is_dirty(untracked_files=False)
+
+
+@pytest.mark.parametrize(
+    "backends", [["gitpython", "dulwich"], ["dulwich", "gitpython"]]
+)
+def test_backend_func(
+    tmp_dir: TmpDir,
+    scm: Git,
+    backends: List[str],
+    mocker: MockerFixture,
+):
+    from functools import partial
+
+    scm.add = partial(scm._backend_func, "add", backends=backends)
+    tmp_dir.gen({"foo": "foo"})
+    backend = getattr(scm, backends[0])
+    mock = mocker.spy(backend, "add")
+    scm.add(["foo"])
+    mock.assert_called_once_with(["foo"])
