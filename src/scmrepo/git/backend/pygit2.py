@@ -7,6 +7,8 @@ from io import BytesIO, StringIO
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Dict,
+    Generator,
     Iterable,
     List,
     Mapping,
@@ -15,7 +17,8 @@ from typing import (
     Union,
 )
 
-from funcy import cached_property
+from funcy import cached_property, reraise
+from shortuuid import uuid
 
 from scmrepo.exceptions import CloneError, MergeConflictError, RevError, SCMError
 from scmrepo.utils import relpath
@@ -27,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
+    from pygit2.remote import Remote  # type: ignore
+
     from scmrepo.progress import GitProgressEvent
 
 
@@ -412,6 +417,52 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     ) -> Mapping[str, SyncStatus]:
         raise NotImplementedError
 
+    def _merge_remote_branch(
+        self,
+        rh: str,
+        lh: str,
+        force: bool = False,
+        on_diverged: Optional[Callable[[str, str], bool]] = None,
+    ) -> SyncStatus:
+        import pygit2
+
+        rh_rev = self.resolve_rev(rh)
+
+        if force:
+            self.set_ref(lh, rh_rev)
+            return SyncStatus.SUCCESS
+
+        try:
+            merge_result, _ = self.repo.merge_analysis(rh_rev, lh)
+        except KeyError:
+            self.set_ref(lh, rh_rev)
+            return SyncStatus.SUCCESS
+
+        if merge_result & pygit2.GIT_MERGE_ANALYSIS_UP_TO_DATE:
+            return SyncStatus.UP_TO_DATE
+        if merge_result & pygit2.GIT_MERGE_ANALYSIS_FASTFORWARD:
+            self.set_ref(lh, rh_rev)
+            return SyncStatus.SUCCESS
+        if merge_result & pygit2.GIT_MERGE_ANALYSIS_NORMAL:
+            if on_diverged and on_diverged(lh, rh_rev):
+                return SyncStatus.SUCCESS
+            return SyncStatus.DIVERGED
+        logger.debug("Unexpected merge result: %s", pygit2.GIT_MERGE_ANALYSIS_NORMAL)
+        raise SCMError("Unknown merge analysis result")
+
+    @contextmanager
+    def get_remote(self, url: str) -> Generator["Remote", None, None]:
+        try:
+            yield self.repo.remotes[url]
+        except ValueError:
+            try:
+                remote_name = uuid()
+                yield self.repo.remotes.create(remote_name, url)
+            finally:
+                self.repo.remotes.delete(remote_name)
+        except KeyError:
+            raise SCMError(f"'{url}' is not a valid Git remote or URL")
+
     def fetch_refspecs(
         self,
         url: str,
@@ -421,7 +472,58 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
-        raise NotImplementedError
+        from pygit2 import GitError
+
+        if isinstance(refspecs, str):
+            refspecs = [refspecs]
+
+        with self.get_remote(url) as remote:
+            if os.name == "nt" and remote.url.startswith("ssh://"):
+                raise NotImplementedError
+
+            if os.name == "nt" and remote.url.startswith("file://"):
+                url = remote.url[len("file://") :]
+                self.repo.remotes.set_url(remote.name, url)
+                remote = self.repo.remotes[remote.name]
+
+            fetch_refspecs: List[str] = []
+            for refspec in refspecs:
+                if ":" in refspec:
+                    lh, rh = refspec.split(":")
+                else:
+                    lh = rh = refspec
+                if not rh.startswith("refs/"):
+                    rh = f"refs/heads/{rh}"
+                if not lh.startswith("refs/"):
+                    lh = f"refs/heads/{lh}"
+                rh = rh[len("refs/") :]
+                refspec = f"+{lh}:refs/remotes/{remote.name}/{rh}"
+                fetch_refspecs.append(refspec)
+
+            logger.debug("fetch_refspecs: %s", fetch_refspecs)
+            with reraise(
+                GitError,
+                SCMError(f"Git failed to fetch ref from '{url}'"),
+            ):
+                remote.fetch(refspecs=fetch_refspecs)
+
+            result: Dict[str, "SyncStatus"] = {}
+            for refspec in fetch_refspecs:
+                _, rh = refspec.split(":")
+                if not rh.endswith("*"):
+                    refname = rh.split("/", 3)[-1]
+                    refname = f"refs/{refname}"
+                    result[refname] = self._merge_remote_branch(
+                        rh, refname, force, on_diverged
+                    )
+                    continue
+                rh = rh.rstrip("*").rstrip("/") + "/"
+                for branch in self.iter_refs(base=rh):
+                    refname = f"refs/{branch[len(rh):]}"
+                    result[refname] = self._merge_remote_branch(
+                        branch, refname, force, on_diverged
+                    )
+        return result
 
     def _stash_iter(self, ref: str):
         raise NotImplementedError

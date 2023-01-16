@@ -41,6 +41,8 @@ class GitBackends(Mapping):
         """Lazily initialize backends and cache it afterwards"""
         initialized = self.initialized.get(key)
         if not initialized:
+            if key not in self.backends and key in self.DEFAULT:
+                raise NotImplementedError
             backend = self.backends[key]
             initialized = backend(*self.args, **self.kwargs)
             self.initialized[key] = initialized
@@ -266,11 +268,13 @@ class Git(Base):
     # https://github.com/iterative/dvc/issues/5641
     # https://github.com/iterative/dvc/issues/7458
     def _backend_func(self, name, *args, **kwargs):
-        for key, backend in self.backends.items():
+        backends: Iterable[str] = kwargs.pop("backends", self.backends)
+        for key in backends:
             if self._last_backend is not None and key != self._last_backend:
                 self.backends[self._last_backend].close()
                 self._last_backend = None
             try:
+                backend = self.backends[key]
                 func = getattr(backend, name)
                 result = func(*args, **kwargs)
                 self._last_backend = key
@@ -333,7 +337,9 @@ class Git(Base):
     iter_remote_refs = partialmethod(_backend_func, "iter_remote_refs")
     get_refs_containing = partialmethod(_backend_func, "get_refs_containing")
     push_refspecs = partialmethod(_backend_func, "push_refspecs")
-    fetch_refspecs = partialmethod(_backend_func, "fetch_refspecs")
+    fetch_refspecs = partialmethod(
+        _backend_func, "fetch_refspecs", backends=["pygit2", "dulwich"]
+    )
     _stash_iter = partialmethod(_backend_func, "_stash_iter")
     _stash_push = partialmethod(_backend_func, "_stash_push")
     _stash_apply = partialmethod(_backend_func, "_stash_apply")
