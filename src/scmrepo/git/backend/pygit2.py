@@ -15,7 +15,7 @@ from typing import (
     Union,
 )
 
-from funcy import cached_property, first
+from funcy import cached_property
 
 from scmrepo.exceptions import CloneError, MergeConflictError, RevError, SCMError
 from scmrepo.utils import relpath
@@ -27,8 +27,6 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from pygit2 import Signature
-
     from scmrepo.progress import GitProgressEvent
 
 
@@ -120,29 +118,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         return commit, ref
 
     @property
-    def default_signature(self) -> "Signature":
+    def default_signature(self):
         try:
             return self.repo.default_signature
         except KeyError as exc:
-            signature = self._get_codespaces_signature()
-            if signature is not None:
-                return signature
             raise SCMError("Git username and email must be configured") from exc
-
-    def _get_codespaces_signature(self) -> Optional["Signature"]:
-        from pygit2 import Config, Signature
-
-        if "CODESPACES" not in os.environ:
-            return None
-        try:
-            config = Config("/usr/local/etc/gitconfig")
-            name = first(config.get_multivar("user.name"))
-            email = first(config.get_multivar("user.email"))
-            if name and email:
-                return Signature(name, email)
-        except Exception:  # nosec B110, pylint: disable=broad-except
-            pass
-        return None
 
     @staticmethod
     def _get_checkout_strategy(strategy: Optional[int] = None):
