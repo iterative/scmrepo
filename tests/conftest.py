@@ -35,9 +35,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True)
-def isolate(
-    tmp_dir_factory: TempDirFactory, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def isolate(tmp_dir_factory: TempDirFactory, monkeypatch: pytest.MonkeyPatch) -> None:
     path = tmp_dir_factory.mktemp("mock")
     home_dir = path / "home"
     home_dir.mkdir()

@@ -7,9 +7,7 @@ from dulwich.config import StackedConfig
 from .credentials import CredentialNotFoundError, get_credentials_from_helper
 
 
-class GitCredentialsHTTPClient(
-    Urllib3HttpGitClient
-):  # pylint: disable=abstract-method
+class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstract-method
     def __init__(
         self,
         base_url,

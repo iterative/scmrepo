@@ -83,9 +83,7 @@ class Stash:
         if index < 0 or index >= len(self):
             raise SCMError(f"Invalid stash ref '{self.ref}@{{{index}}}'")
         logger.debug("Dropping '%s@{%d}'", self.ref, index)
-        self.scm._stash_drop(  # pylint: disable=protected-access
-            self.ref, index
-        )
+        self.scm._stash_drop(self.ref, index)  # pylint: disable=protected-access
 
     def clear(self):
         logger.debug("Clear stash '%s'", self.ref)

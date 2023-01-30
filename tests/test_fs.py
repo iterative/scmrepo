@@ -23,9 +23,7 @@ def fixture_make_fs(scm: Git, git: Git):
 
 
 def test_open(tmp_dir: TmpDir, scm: Git, make_fs):
-    files = tmp_dir.gen(
-        {"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}}
-    )
+    files = tmp_dir.gen({"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}})
     scm.add_commit(files, message="add")
 
     fs = make_fs()
@@ -41,9 +39,7 @@ def test_open(tmp_dir: TmpDir, scm: Git, make_fs):
 
 def test_exists(tmp_dir: TmpDir, scm: Git, make_fs):
     scm.commit("init")
-    files = tmp_dir.gen(
-        {"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}}
-    )
+    files = tmp_dir.gen({"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}})
 
     fs = make_fs()
 
@@ -103,10 +99,7 @@ def test_walk(tmp_dir: TmpDir, scm: Git, make_fs):
     fs = make_fs()
 
     def convert_to_sets(walk_results):
-        return [
-            (root, set(dirs), set(nondirs))
-            for root, dirs, nondirs in walk_results
-        ]
+        return [(root, set(dirs), set(nondirs)) for root, dirs, nondirs in walk_results]
 
     assert convert_to_sets(fs.walk("/")) == convert_to_sets(
         [

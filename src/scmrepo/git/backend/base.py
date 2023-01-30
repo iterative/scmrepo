@@ -1,15 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Callable, Iterable, Mapping, Optional, Tuple, Union
 
 from scmrepo.exceptions import SCMError
 

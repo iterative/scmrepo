@@ -13,11 +13,7 @@ from funcy import cached_property, first
 from pathspec.patterns import GitWildMatchPattern
 
 from scmrepo.base import Base
-from scmrepo.exceptions import (
-    FileNotInRepoError,
-    GitHookAlreadyExists,
-    RevError,
-)
+from scmrepo.exceptions import FileNotInRepoError, GitHookAlreadyExists, RevError
 from scmrepo.utils import relpath
 
 from .backend.base import BaseGitBackend, NoGitBackendError
@@ -50,13 +46,9 @@ class GitBackends(Mapping):
             self.initialized[key] = initialized
         return initialized
 
-    def __init__(
-        self, selected: Optional[Iterable[str]], *args, **kwargs
-    ) -> None:
+    def __init__(self, selected: Optional[Iterable[str]], *args, **kwargs) -> None:
         selected = selected or list(self.DEFAULT)
-        self.backends = OrderedDict(
-            (key, self.DEFAULT[key]) for key in selected
-        )
+        self.backends = OrderedDict((key, self.DEFAULT[key]) for key in selected)
 
         self.initialized: Dict[str, BaseGitBackend] = {}
 
@@ -91,9 +83,7 @@ class Git(Base):
     RE_HEXSHA = re.compile(r"^[0-9A-Fa-f]{4,40}$")
     BAD_REF_CHARS_RE = re.compile("[\177\\s~^:?*\\[]")
 
-    def __init__(
-        self, *args, backends: Optional[Iterable[str]] = None, **kwargs
-    ):
+    def __init__(self, *args, backends: Optional[Iterable[str]] = None, **kwargs):
         self.backends = GitBackends(backends, *args, **kwargs)
         first_ = first(self.backends.values())
         super().__init__(first_.root_dir)
@@ -234,9 +224,7 @@ class Git(Base):
         if (self.hooks_dir / name).exists():
             raise GitHookAlreadyExists(name)
 
-    def install_hook(
-        self, name: str, script: str, interpreter: str = "sh"
-    ) -> None:
+    def install_hook(self, name: str, script: str, interpreter: str = "sh") -> None:
         import shutil
 
         self.hooks_dir.mkdir(exist_ok=True)
@@ -246,9 +234,7 @@ class Git(Base):
         hook.write_text(f"{directive}\n{script}\n", encoding="utf-8")
         hook.chmod(0o777)
 
-    def install_merge_driver(
-        self, name: str, description: str, driver: str
-    ) -> None:
+    def install_merge_driver(self, name: str, description: str, driver: str) -> None:
         self.gitpython.repo.git.config(f"merge.{name}.name", description)
         self.gitpython.repo.git.config(f"merge.{name}.driver", driver)
 
@@ -300,9 +286,7 @@ class Git(Base):
         return GitFileSystem(scm=self, rev=rev)
 
     @classmethod
-    def init(
-        cls, path: str, bare: bool = False, _backend: str = None
-    ) -> "Git":
+    def init(cls, path: str, bare: bool = False, _backend: str = None) -> "Git":
         for name, backend in GitBackends.DEFAULT.items():
             if _backend and name != _backend:
                 continue
@@ -365,9 +349,7 @@ class Git(Base):
 
     get_tree_obj = partialmethod(_backend_func, "get_tree_obj")
 
-    def branch_revs(
-        self, branch: str, end_rev: Optional[str] = None
-    ) -> Iterable[str]:
+    def branch_revs(self, branch: str, end_rev: Optional[str] = None) -> Iterable[str]:
         """Iterate over revisions in a given branch (from newest to oldest).
 
         If end_rev is set, iterator will stop when the specified revision is

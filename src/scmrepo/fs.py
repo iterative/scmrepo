@@ -1,15 +1,7 @@
 import errno
 import os
 import posixpath
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    BinaryIO,
-    Callable,
-    Dict,
-    Optional,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, Optional, Tuple
 
 from fsspec.spec import AbstractFileSystem
 
@@ -89,8 +81,7 @@ class Path:
     def parents(self, path):
         parts = self.parts(path)
         return tuple(
-            self.join(*parts[:length])
-            for length in range(len(parts) - 1, 0, -1)
+            self.join(*parts[:length]) for length in range(len(parts) - 1, 0, -1)
         )
 
     def name(self, path):
@@ -129,9 +120,7 @@ class Path:
     def relpath(self, path, start=None):
         if start is None:
             start = "."
-        return self.flavour.relpath(
-            self.abspath(path), start=self.abspath(start)
-        )
+        return self.flavour.relpath(self.abspath(path), start=self.abspath(start))
 
     def relparts(self, path, start=None):
         return self.parts(self.relpath(path, start=start))
@@ -227,9 +216,7 @@ class GitFileSystem(AbstractFileSystem):
             ret["name"] = path
             return ret
         except KeyError:
-            raise FileNotFoundError(
-                errno.ENOENT, os.strerror(errno.ENOENT), path
-            )
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
     def exists(self, path: str, **kwargs: Any) -> bool:
         key = self._get_key(path)
@@ -249,9 +236,7 @@ class GitFileSystem(AbstractFileSystem):
         except KeyError as exc:
             raise FileNotFoundError from exc
 
-        paths = [
-            posixpath.join(path, name) if path else name for name in names
-        ]
+        paths = [posixpath.join(path, name) if path else name for name in names]
 
         if not detail:
             return paths

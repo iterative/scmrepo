@@ -17,12 +17,7 @@ from typing import (
 
 from funcy import cached_property, first
 
-from scmrepo.exceptions import (
-    CloneError,
-    MergeConflictError,
-    RevError,
-    SCMError,
-)
+from scmrepo.exceptions import CloneError, MergeConflictError, RevError, SCMError
 from scmrepo.utils import relpath
 
 from ..objects import GitCommit, GitObject
@@ -132,9 +127,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             signature = self._get_codespaces_signature()
             if signature is not None:
                 return signature
-            raise SCMError(
-                "Git username and email must be configured"
-            ) from exc
+            raise SCMError("Git username and email must be configured") from exc
 
     def _get_codespaces_signature(self) -> Optional["Signature"]:
         from pygit2 import Config, Signature
@@ -217,9 +210,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     ):
         from pygit2 import GIT_CHECKOUT_FORCE, GitError
 
-        strategy = self._get_checkout_strategy(
-            GIT_CHECKOUT_FORCE if force else None
-        )
+        strategy = self._get_checkout_strategy(GIT_CHECKOUT_FORCE if force else None)
 
         with self.release_odb_handles():
             if create_new:
@@ -359,21 +350,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         if message:
             self._refdb.ensure_log(name)
         if symbolic:
-            self.repo.create_reference_symbolic(
-                name, new_ref, True, message=message
-            )
+            self.repo.create_reference_symbolic(name, new_ref, True, message=message)
         else:
-            self.repo.create_reference_direct(
-                name, new_ref, True, message=message
-            )
+            self.repo.create_reference_direct(name, new_ref, True, message=message)
 
     def get_ref(self, name, follow: bool = True) -> Optional[str]:
-        from pygit2 import (
-            GIT_OBJ_COMMIT,
-            GIT_REF_SYMBOLIC,
-            InvalidSpecError,
-            Tag,
-        )
+        from pygit2 import GIT_OBJ_COMMIT, GIT_REF_SYMBOLIC, InvalidSpecError, Tag
 
         try:
             ref = self.repo.references.get(name)
@@ -602,9 +584,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             path_list = None
 
         with self.release_odb_handles():
-            self.repo.checkout_index(
-                index=index, paths=path_list, strategy=strategy
-            )
+            self.repo.checkout_index(index=index, paths=path_list, strategy=strategy)
 
             if index.conflicts and (ours or theirs):
                 for ancestor, ours_entry, theirs_entry in index.conflicts:
@@ -720,9 +700,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 raise MergeConflictError("Merge contained conflicts")
 
             try:
-                if not (
-                    squash or ff_pref & GIT_MERGE_PREFERENCE_NO_FASTFORWARD
-                ):
+                if not (squash or ff_pref & GIT_MERGE_PREFERENCE_NO_FASTFORWARD):
                     if analysis & GIT_MERGE_ANALYSIS_FASTFORWARD:
                         return self._merge_ff(rev, obj)
 
