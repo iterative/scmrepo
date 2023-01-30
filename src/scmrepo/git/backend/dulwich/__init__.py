@@ -20,13 +20,7 @@ from typing import (
 
 from funcy import cached_property, reraise
 
-from scmrepo.exceptions import (
-    AuthError,
-    CloneError,
-    InvalidRemote,
-    RevError,
-    SCMError,
-)
+from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, RevError, SCMError
 from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
 
@@ -75,9 +69,7 @@ class DulwichObject(GitObject):
     def scandir(self) -> Iterable["DulwichObject"]:
         tree = self.repo[self._sha]
         for entry in tree.iteritems():  # noqa: B301
-            yield DulwichObject(
-                self.repo, entry.path.decode(), entry.mode, entry.sha
-            )
+            yield DulwichObject(self.repo, entry.path.decode(), entry.mode, entry.sha)
 
     @cached_property
     def size(self) -> int:  # pylint: disable=invalid-overridden-method
@@ -111,9 +103,7 @@ def _get_ssh_vendor() -> "SSHVendor":
 
     ssh_command = os.environ.get("GIT_SSH_COMMAND", os.environ.get("GIT_SSH"))
     if ssh_command:
-        logger.debug(
-            "dulwich: Using environment GIT_SSH_COMMAND '%s'", ssh_command
-        )
+        logger.debug("dulwich: Using environment GIT_SSH_COMMAND '%s'", ssh_command)
         return SubprocessSSHVendor()
     return AsyncSSHVendor()
 
@@ -194,9 +184,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 url,
                 target=to_path,
                 errstream=(
-                    DulwichProgressReporter(progress)
-                    if progress
-                    else NoneStream()
+                    DulwichProgressReporter(progress) if progress else NoneStream()
                 ),
             )
             if shallow_branch:
@@ -207,9 +195,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                     depth = 1
                 else:
                     depth = 0
-                repo = clone_from(
-                    depth=depth, branch=os.fsencode(shallow_branch)
-                )
+                repo = clone_from(depth=depth, branch=os.fsencode(shallow_branch))
             else:
                 repo = clone_from()
             cls._set_default_tracking_branch(repo)
@@ -269,9 +255,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                         break
             if os.path.isdir(path):
                 files.extend(
-                    os.fsencode(
-                        relpath(os.path.join(root, fpath), self.root_dir)
-                    )
+                    os.fsencode(relpath(os.path.join(root, fpath), self.root_dir))
                     for root, _, fs in os.walk(path)
                     for fpath in fs
                 )
@@ -285,11 +269,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 # NOTE: we need git/unix separator to compare against index
                 # paths but repo.stage() expects to be called with OS paths
                 self.repo.stage(
-                    [
-                        fname
-                        for fname in files
-                        if fname.replace(b"\\", b"/") in index
-                    ]
+                    [fname for fname in files if fname.replace(b"\\", b"/") in index]
                 )
             else:
                 self.repo.stage([fname for fname in files if fname in index])
@@ -315,9 +295,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                         author=identity,
                     )
                 else:
-                    raise SCMError(
-                        "Git username and email must be configured"
-                    ) from exc
+                    raise SCMError("Git username and email must be configured") from exc
             except TimezoneFormatError as exc:
                 raise SCMError("Invalid Git timestamp") from exc
 
@@ -328,9 +306,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         if "CODESPACES" not in os.environ:
             return None
         try:
-            config = StackedConfig(
-                [ConfigFile.from_path("/usr/local/etc/gitconfig")]
-            )
+            config = StackedConfig([ConfigFile.from_path("/usr/local/etc/gitconfig")])
             return get_user_identity(config)
         except Exception:  # pylint: disable=broad-except
             return None
@@ -392,9 +368,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return False
 
     def is_dirty(self, untracked_files: bool = False) -> bool:
-        kwargs: Dict[str, Any] = (
-            {} if untracked_files else {"untracked_files": "no"}
-        )
+        kwargs: Dict[str, Any] = {} if untracked_files else {"untracked_files": "no"}
         return any(self.status(**kwargs))
 
     def active_branch(self) -> str:
@@ -462,9 +436,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         old_ref_b = os.fsencode(old_ref) if old_ref else None
         message_b = message.encode("utf-8") if message else None
         if symbolic:
-            return self.repo.refs.set_symbolic_ref(
-                name_b, new_ref_b, message=message_b
-            )
+            return self.repo.refs.set_symbolic_ref(name_b, new_ref_b, message=message_b)
         if not self.repo.refs.set_if_equals(
             name_b, old_ref_b, new_ref_b, message=message_b
         ):
@@ -549,19 +521,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.client import HTTPUnauthorized, get_transport_and_path
         from dulwich.errors import NotGitRepository, SendPackError
         from dulwich.objectspec import parse_reftuples
-        from dulwich.porcelain import (
-            DivergedBranches,
-            check_diverged,
-            get_remote_repo,
-        )
+        from dulwich.porcelain import DivergedBranches, check_diverged, get_remote_repo
 
         try:
             _remote, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
         except Exception as exc:
-            raise SCMError(
-                f"'{url}' is not a valid Git remote or URL"
-            ) from exc
+            raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
         change_result = {}
         selected_refs = []
@@ -584,9 +550,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                     except DivergedBranches:
                         if not force:
                             overwrite = (
-                                on_diverged(
-                                    os.fsdecode(lh), os.fsdecode(refs[rh])
-                                )
+                                on_diverged(os.fsdecode(lh), os.fsdecode(refs[rh]))
                                 if on_diverged
                                 else False
                             )
@@ -609,9 +573,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 path,
                 update_refs,
                 self.repo.object_store.generate_pack_data,
-                progress=(
-                    DulwichProgressReporter(progress) if progress else None
-                ),
+                progress=(DulwichProgressReporter(progress) if progress else None),
             )
         except (NotGitRepository, SendPackError) as exc:
             src = [lh for (lh, _, _) in selected_refs]
@@ -632,11 +594,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.client import get_transport_and_path
         from dulwich.errors import NotGitRepository
         from dulwich.objectspec import parse_reftuples
-        from dulwich.porcelain import (
-            DivergedBranches,
-            check_diverged,
-            get_remote_repo,
-        )
+        from dulwich.porcelain import DivergedBranches, check_diverged, get_remote_repo
 
         fetch_refs = []
 
@@ -660,9 +618,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 if remote_refs[lh] not in self.repo.object_store
             ]
 
-        with reraise(
-            Exception, SCMError(f"'{url}' is not a valid Git remote or URL")
-        ):
+        with reraise(Exception, SCMError(f"'{url}' is not a valid Git remote or URL")):
             _remote, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
 
@@ -673,9 +629,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             fetch_result = client.fetch(
                 path,
                 self.repo,
-                progress=DulwichProgressReporter(progress)
-                if progress
-                else None,
+                progress=DulwichProgressReporter(progress) if progress else None,
                 determine_wants=determine_wants,
             )
 
@@ -735,9 +689,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             rev = stash.push(message=message_b)
         except InvalidUserIdentity as exc:
-            raise SCMError(
-                "Git username and email must be configured"
-            ) from exc
+            raise SCMError("Git username and email must be configured") from exc
         return os.fsdecode(rev), True
 
     def _stash_apply(
@@ -794,9 +746,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             raise RevError("Invalid revision") from exc
 
         buf = BytesIO()
-        write_tree_diff(
-            buf, self.repo.object_store, commit_a.tree, commit_b.tree
-        )
+        write_tree_diff(buf, self.repo.object_store, commit_a.tree, commit_b.tree)
         return buf.getvalue().decode("utf-8")
 
     def reset(self, hard: bool = False, paths: Iterable[str] = None):

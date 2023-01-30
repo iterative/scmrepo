@@ -7,12 +7,7 @@ from unittest.mock import AsyncMock
 import asyncssh
 import paramiko
 import pytest
-from dulwich.contrib.test_paramiko_vendor import (
-    CLIENT_KEY,
-    PASSWORD,
-    USER,
-    Server,
-)
+from dulwich.contrib.test_paramiko_vendor import CLIENT_KEY, PASSWORD, USER, Server
 from pytest_mock import MockerFixture
 from pytest_test_utils.waiters import wait_until
 
@@ -91,9 +86,7 @@ def test_run_command_with_privkey(server: Server, ssh_port: int):
 
 
 @pytest.mark.parametrize("use_len", [True, False])
-def test_run_command_data_transfer(
-    server: Server, ssh_port: int, use_len: bool
-):
+def test_run_command_data_transfer(server: Server, ssh_port: int, use_len: bool):
     vendor = AsyncSSHVendor()
     con = vendor.run_command(
         "127.0.0.1",
@@ -144,15 +137,11 @@ def test_run_command_partial_transfer(ssh_port: int, mocker: MockerFixture):
     assert mock_stderr.call_count == 3
 
 
-@pytest.mark.parametrize(
-    "algorithm", [b"ssh-rsa", b"rsa-sha2-256", b"rsa-sha2-512"]
-)
+@pytest.mark.parametrize("algorithm", [b"ssh-rsa", b"rsa-sha2-256", b"rsa-sha2-512"])
 def test_dulwich_github_compat(mocker: MockerFixture, algorithm: bytes):
     from asyncssh.misc import ProtocolError
 
-    from scmrepo.git.backend.dulwich.asyncssh_vendor import (
-        _process_public_key_ok_gh,
-    )
+    from scmrepo.git.backend.dulwich.asyncssh_vendor import _process_public_key_ok_gh
 
     key_data = b"foo"
     auth = mocker.Mock(

@@ -176,9 +176,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 to_path,
                 env=env,  # needed before we can fix it in __init__
                 no_single_branch=True,
-                progress=GitProgressReporter.wrap_fn(progress)
-                if progress
-                else None,
+                progress=GitProgressReporter.wrap_fn(progress) if progress else None,
             )
             if shallow_branch is None:
                 tmp_repo = clone_from()
@@ -348,8 +346,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         # Try all the remotes and if it resolves unambiguously then take it
         if not self.is_sha(rev):
             shas = {
-                _resolve_rev(f"{remote.name}/{rev}")
-                for remote in self.repo.remotes
+                _resolve_rev(f"{remote.name}/{rev}") for remote in self.repo.remotes
             } - {None}
             if len(shas) > 1:
                 raise RevError(f"ambiguous Git revision '{rev}'")
@@ -562,9 +559,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             self.git.stash("drop", index)
             return
 
-        self.git.reflog(
-            "delete", "--updateref", "--rewrite", f"{ref}@{{{index}}}"
-        )
+        self.git.reflog("delete", "--updateref", "--rewrite", f"{ref}@{{{index}}}")
         try:
             self.git.reflog("exists", ref)
         except GitCommandError:

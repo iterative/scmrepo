@@ -13,9 +13,7 @@ def test_noscm(tmp_dir: TmpDir):
     scm.add("test")
 
 
-def test_noscm_raises_exc_on_unimplemented_apis(
-    tmp_dir: TmpDir, matcher: Matcher
-):
+def test_noscm_raises_exc_on_unimplemented_apis(tmp_dir: TmpDir, matcher: Matcher):
     class Unimplemented(Exception):
         pass
 

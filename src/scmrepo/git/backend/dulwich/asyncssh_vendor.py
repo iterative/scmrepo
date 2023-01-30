@@ -13,9 +13,7 @@ if TYPE_CHECKING:
     from asyncssh.stream import SSHReader
 
 
-async def _read_all(
-    read: Callable[[int], Coroutine], n: Optional[int] = None
-) -> bytes:
+async def _read_all(read: Callable[[int], Coroutine], n: Optional[int] = None) -> bytes:
     if n is None:
         return await read(-1)
     result = []
@@ -27,9 +25,7 @@ async def _read_all(
 
 
 class _StderrWrapper:
-    def __init__(
-        self, stderr: "SSHReader", loop: asyncio.AbstractEventLoop
-    ) -> None:
+    def __init__(self, stderr: "SSHReader", loop: asyncio.AbstractEventLoop) -> None:
         self.stderr = stderr
         self.loop = loop
 
@@ -52,9 +48,7 @@ class _StderrWrapper:
 
 
 class AsyncSSHWrapper(BaseAsyncObject):
-    def __init__(
-        self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs
-    ):
+    def __init__(self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs):
         super().__init__(**kwargs)
         self.conn: "SSHClientConnection" = conn
         self.proc: "SSHClientProcess" = proc

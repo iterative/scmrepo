@@ -24,9 +24,7 @@ def test_pygit_resolve_refish(tmp_dir: TmpDir, scm: Git, use_sha: str):
         refish = tag
 
     assert refish != head
-    commit, ref = backend._resolve_refish(  # pylint: disable=protected-access
-        refish
-    )
+    commit, ref = backend._resolve_refish(refish)  # pylint: disable=protected-access
     assert isinstance(commit, pygit2.Commit)
     assert str(commit.id) == head
     if not use_sha:

@@ -45,9 +45,7 @@ def match_urls(url: ParseResult, url_prefix: ParseResult) -> bool:
         and url.hostname == url_prefix.hostname
         and url.port == url_prefix.port
     )
-    user_match = (
-        url.username == url_prefix.username if url_prefix.username else True
-    )
+    user_match = url.username == url_prefix.username if url_prefix.username else True
     path_match = url.path.rstrip("/").startswith(url_prefix.path.rstrip())
     return base_match and user_match and path_match
 
@@ -66,10 +64,7 @@ def match_partial_url(valid_url: ParseResult, partial_url: str) -> bool:
             (parsed.hostname and valid_url.hostname != parsed.hostname),
             (parsed.username and valid_url.username != parsed.username),
             (parsed.port and valid_url.port != parsed.port),
-            (
-                parsed.path
-                and parsed.path.rstrip("/") != valid_url.path.rstrip("/")
-            ),
+            (parsed.path and parsed.path.rstrip("/") != valid_url.path.rstrip("/")),
         ),
     ):
         return False
@@ -208,9 +203,7 @@ class CredentialHelper:
                 b"password" in credentials,
             )
         ):
-            raise CredentialNotFoundError(
-                "Could not get credentials from helper"
-            )
+            raise CredentialNotFoundError("Could not get credentials from helper")
 
         return credentials[b"username"], credentials[b"password"]
 

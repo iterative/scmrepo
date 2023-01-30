@@ -11,12 +11,7 @@ from pytest_mock import MockerFixture
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
 
-from scmrepo.exceptions import (
-    InvalidRemote,
-    MergeConflictError,
-    RevError,
-    SCMError,
-)
+from scmrepo.exceptions import InvalidRemote, MergeConflictError, RevError, SCMError
 from scmrepo.git import Git
 
 from .conftest import backends
@@ -181,18 +176,12 @@ def test_set_ref(tmp_dir: TmpDir, scm: Git, git: Git):
     commit_rev = scm.get_rev()
 
     git.set_ref("refs/foo/bar", init_rev)
-    assert (
-        init_rev
-        == (tmp_dir / ".git" / "refs" / "foo" / "bar").read_text().strip()
-    )
+    assert init_rev == (tmp_dir / ".git" / "refs" / "foo" / "bar").read_text().strip()
 
     with pytest.raises(SCMError):
         git.set_ref("refs/foo/bar", commit_rev, old_ref=commit_rev)
     git.set_ref("refs/foo/bar", commit_rev, old_ref=init_rev)
-    assert (
-        commit_rev
-        == (tmp_dir / ".git" / "refs" / "foo" / "bar").read_text().strip()
-    )
+    assert commit_rev == (tmp_dir / ".git" / "refs" / "foo" / "bar").read_text().strip()
 
     git.set_ref("refs/foo/baz", "refs/heads/master", symbolic=True)
     assert (
@@ -207,9 +196,7 @@ def test_get_ref(tmp_dir: TmpDir, scm: Git, git: Git):
     tmp_dir.gen(
         {
             os.path.join(".git", "refs", "foo", "bar"): init_rev,
-            os.path.join(
-                ".git", "refs", "foo", "baz"
-            ): "ref: refs/heads/master",
+            os.path.join(".git", "refs", "foo", "baz"): "ref: refs/heads/master",
         }
     )
     scm.tag(["-a", "annotated", "-m", "Annotated Tag"])
@@ -417,9 +404,7 @@ def test_iter_remote_refs(
 
 
 @pytest.mark.skip_git_backend("dulwich", "pygit2")
-def test_list_all_commits(
-    tmp_dir: TmpDir, scm: Git, git: Git, matcher: Type[Matcher]
-):
+def test_list_all_commits(tmp_dir: TmpDir, scm: Git, git: Git, matcher: Type[Matcher]):
     def _gen(s):
         tmp_dir.gen(s, s)
         scm.add_commit(s, message=s)
@@ -458,9 +443,7 @@ def test_ignore_remove_empty(tmp_dir: TmpDir, scm: Git, git: Git):
 
 
 @pytest.mark.skip_git_backend("pygit2")
-@pytest.mark.skipif(
-    os.name == "nt", reason="Git hooks not supported on Windows"
-)
+@pytest.mark.skipif(os.name == "nt", reason="Git hooks not supported on Windows")
 @pytest.mark.parametrize("hook", ["pre-commit", "commit-msg"])
 def test_commit_no_verify(tmp_dir: TmpDir, scm: Git, git: Git, hook: str):
     import stat
@@ -496,9 +479,7 @@ def test_merge(tmp_dir: TmpDir, scm: Git, git: Git, squash: bool):
         git.merge(branch, commit=not squash, squash=squash, msg="merge")
 
     scm.gitpython.git.reset(init_rev, hard=True)
-    merge_rev = git.merge(
-        branch, commit=not squash, squash=squash, msg="merge"
-    )
+    merge_rev = git.merge(branch, commit=not squash, squash=squash, msg="merge")
     assert (tmp_dir / "foo").read_text() == "bar"
     if squash:
         assert merge_rev is None
@@ -526,9 +507,7 @@ def test_checkout_index(tmp_dir: TmpDir, scm: Git, git: Git):
 
 
 @pytest.mark.skip_git_backend("dulwich")
-@pytest.mark.parametrize(
-    "strategy, expected", [("ours", "baz"), ("theirs", "bar")]
-)
+@pytest.mark.parametrize("strategy, expected", [("ours", "baz"), ("theirs", "bar")])
 def test_checkout_index_conflicts(
     tmp_dir: TmpDir, scm: Git, git: Git, strategy: str, expected: str
 ):
@@ -579,9 +558,7 @@ def test_resolve_rev(
             os.path.join(".git", "refs", "foo"): rev,
             os.path.join(".git", "refs", "remotes", "origin", "bar"): rev,
             os.path.join(".git", "refs", "remotes", "origin", "baz"): rev,
-            os.path.join(
-                ".git", "refs", "remotes", "upstream", "baz"
-            ): init_rev,
+            os.path.join(".git", "refs", "remotes", "upstream", "baz"): init_rev,
         }
     )
 
@@ -715,9 +692,7 @@ def test_describe(tmp_dir: TmpDir, scm: Git, git: Git):
     assert git.describe([rev_foo], "refs/heads") == {rev_foo: None}
 
     scm.checkout("branch", create_new=True)
-    assert git.describe([rev_bar], "refs/heads") == {
-        rev_bar: "refs/heads/branch"
-    }
+    assert git.describe([rev_bar], "refs/heads") == {rev_bar: "refs/heads/branch"}
 
     tmp_dir.gen({"foo": "foobar"})
     scm.add_commit("foo", message="foobar")
@@ -859,9 +834,7 @@ def test_git_detach_head(tmp_dir: TmpDir, scm: Git, git: Git):
     with git.detach_head() as rev:
         assert init_rev == rev
         assert init_rev == (tmp_dir / ".git" / "HEAD").read_text().strip()
-    assert (
-        tmp_dir / ".git" / "HEAD"
-    ).read_text().strip() == "ref: refs/heads/master"
+    assert (tmp_dir / ".git" / "HEAD").read_text().strip() == "ref: refs/heads/master"
 
 
 @pytest.mark.skip_git_backend("pygit2", "gitpython")
@@ -927,18 +900,14 @@ def test_clone(
     rev = scm.get_rev()
 
     target_dir = tmp_dir_factory.mktemp("git-clone")
-    git.clone(
-        f"{scheme}{tmp_dir}", str(target_dir), shallow_branch=shallow_branch
-    )
+    git.clone(f"{scheme}{tmp_dir}", str(target_dir), shallow_branch=shallow_branch)
     target = Git(str(target_dir))
     assert target.get_rev() == rev
     assert (target_dir / "foo").read_text() == "foo"
 
 
 @pytest.mark.skip_git_backend("pygit2")
-def test_fetch(
-    tmp_dir: TmpDir, scm: Git, git: Git, tmp_dir_factory: TempDirFactory
-):
+def test_fetch(tmp_dir: TmpDir, scm: Git, git: Git, tmp_dir_factory: TempDirFactory):
     tmp_dir.gen("foo", "foo")
     scm.add_commit("foo", message="init")
 
