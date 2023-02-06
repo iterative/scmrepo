@@ -1,14 +1,18 @@
 import socket
 import threading
 from io import StringIO
-from typing import Any, Dict, Iterator
+from pathlib import Path
+from typing import Any, Dict, Iterator, List
 from unittest.mock import AsyncMock
+from urllib.parse import urlparse
 
 import asyncssh
 import paramiko
 import pytest
+from dulwich.config import ConfigDict, StackedConfig
 from dulwich.contrib.test_paramiko_vendor import CLIENT_KEY, PASSWORD, USER, Server
 from pytest_mock import MockerFixture
+from pytest_test_utils import TmpDir
 from pytest_test_utils.waiters import wait_until
 
 from scmrepo.git.backend.dulwich.asyncssh_vendor import AsyncSSHVendor
@@ -157,3 +161,44 @@ def test_dulwich_github_compat(mocker: MockerFixture, algorithm: bytes):
     strings = iter((b"ssh-rsa", key_data))
     packet.get_string = lambda: next(strings)
     _process_public_key_ok_gh(auth, None, None, packet)
+
+
+def _check_get_credentials_from_helper(credentials_path: str, urls: List[str]):
+    from scmrepo.git.backend.dulwich.credentials import get_credentials_from_helper
+
+    parsed_urls = map(urlparse, urls)
+    path = Path(credentials_path)
+    if credentials_path.startswith("~"):
+        path = Path(credentials_path).expanduser()
+    path.write_bytes(b"\n".join(url.encode("utf-8") for url in urls))
+    for parsed_url in parsed_urls:
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        conf = ConfigDict()
+        value = f"store --file {credentials_path}".encode()
+        conf.set((b"credential",), "helper", value)
+        conf_files = [conf]
+        config = StackedConfig(conf_files)
+        credentials = get_credentials_from_helper(base_url, config)
+        expected = (
+            parsed_url.username.encode("utf-8"),
+            parsed_url.password.encode("utf-8"),
+        )
+        assert credentials == expected
+
+
+def test_get_credentials_from_helper(tmp_dir: TmpDir):
+    _check_get_credentials_from_helper(
+        "~/.git-credential-store-test",
+        ["https://defnyddiwr:cyfrinair@creds-needed.by-this-host.org"],
+    )
+    _check_get_credentials_from_helper(
+        "~/.git-credential-store-test",
+        [
+            "https://defnyddiwr:cyfrinair@creds-needed.by-this-host.org",
+            "https://foo:bar@baz.co.uk",
+        ],
+    )
+    _check_get_credentials_from_helper(
+        f"{tmp_dir}/.git-credentials",
+        ["https://defnyddiwr:cyfrinair@creds-needed.by-this-host.org"],
+    )
