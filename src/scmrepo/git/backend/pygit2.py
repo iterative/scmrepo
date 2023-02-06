@@ -453,15 +453,23 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     @contextmanager
     def get_remote(self, url: str) -> Generator["Remote", None, None]:
         try:
-            yield self.repo.remotes[url]
+            remote = self.repo.remotes[url]
+            url = remote.url
         except ValueError:
-            try:
-                remote_name = uuid()
-                yield self.repo.remotes.create(remote_name, url)
-            finally:
-                self.repo.remotes.delete(remote_name)
+            pass
         except KeyError:
             raise SCMError(f"'{url}' is not a valid Git remote or URL")
+
+        if os.name == "nt" and url.startswith("ssh://"):
+            raise NotImplementedError
+        if os.name == "nt" and url.startswith("file://"):
+            url = url[len("file://") :]
+
+        try:
+            remote_name = uuid()
+            yield self.repo.remotes.create(remote_name, url)
+        finally:
+            self.repo.remotes.delete(remote_name)
 
     def fetch_refspecs(
         self,
@@ -478,14 +486,6 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             refspecs = [refspecs]
 
         with self.get_remote(url) as remote:
-            if os.name == "nt" and remote.url.startswith("ssh://"):
-                raise NotImplementedError
-
-            if os.name == "nt" and remote.url.startswith("file://"):
-                url = remote.url[len("file://") :]
-                self.repo.remotes.set_url(remote.name, url)
-                remote = self.repo.remotes[remote.name]
-
             fetch_refspecs: List[str] = []
             for refspec in refspecs:
                 if ":" in refspec:
