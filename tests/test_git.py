@@ -318,7 +318,6 @@ def test_fetch_refspecs(
     use_url: bool,
     mocker: MockerFixture,
 ):
-
     from scmrepo.git.backend.dulwich import SyncStatus
 
     url = f"file://{remote_git_dir.resolve().as_posix()}"

@@ -517,7 +517,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 parse_reftuples(self.repo.refs, refs, refspecs, force=force)
             )
             new_refs = {}
-            for (lh, rh, _) in selected_refs:
+            for lh, rh, _ in selected_refs:
                 refname = os.fsdecode(rh)
                 if rh in refs and lh is not None:
                     if refs[rh] == self.repo.refs[lh]:
@@ -613,7 +613,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
             result = {}
 
-            for (lh, rh, _) in fetch_refs:
+            for lh, rh, _ in fetch_refs:
                 refname = os.fsdecode(rh)
                 if rh in self.repo.refs:
                     if self.repo.refs[rh] == fetch_result.refs[lh]:
