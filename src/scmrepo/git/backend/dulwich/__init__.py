@@ -379,6 +379,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def resolve_commit(self, rev: str) -> "GitCommit":
         raise NotImplementedError
 
+    def remove(self, paths: Union[str, Iterable[str]], **kwargs):
+        from dulwich.porcelain import remove
+
+        if isinstance(paths, str):
+            paths = [paths]
+        remove(self.repo, paths=paths, **kwargs)
+
     def _get_stash(self, ref: str):
         from dulwich.stash import Stash as DulwichStash
 

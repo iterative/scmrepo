@@ -329,6 +329,8 @@ class Git(Base):
     get_rev = partialmethod(_backend_func, "get_rev")
     resolve_rev = partialmethod(_backend_func, "resolve_rev")
     resolve_commit = partialmethod(_backend_func, "resolve_commit")
+    remove = partialmethod(_backend_func, "remove")
+    rm = remove
 
     set_ref = partialmethod(_backend_func, "set_ref")
     get_ref = partialmethod(_backend_func, "get_ref")

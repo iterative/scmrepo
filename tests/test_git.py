@@ -6,6 +6,7 @@ import pytest
 from asyncssh import SFTPClient
 from asyncssh.connection import SSHClientConnection
 from dulwich.client import LocalGitClient
+from funcy import first
 from git import Repo as GitPythonRepo
 from pygit2 import GitError
 from pygit2.remote import Remote  # type: ignore
@@ -1070,3 +1071,31 @@ def test_backend_func(
     mock = mocker.spy(backend, "add")
     scm.add(["foo"])
     mock.assert_called_once_with(["foo"])
+
+
+def test_remove_files(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"foo": "foo", "goo": "goo"})
+    scm.add(["foo", "goo"])
+    scm.commit("add files")
+    git.remove(["foo", "goo"])
+    staged, *_ = scm.status()
+    assert staged["delete"] == ["foo", "goo"]
+    assert not (tmp_dir / "foo").exists()
+    assert not (tmp_dir / "goo").exists()
+
+
+@pytest.mark.skip_git_backend("dulwich")
+def test_remove_dir(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"dir": {"foo": "foo", "goo": "goo"}})
+    scm.add(["dir"])
+    scm.commit("add dir")
+
+    backend = first(git.backends)
+    kwargs = {}
+    if backend == "gitpython":
+        kwargs = {"r": True}
+
+    git.remove("dir", **kwargs)
+    staged, *_ = scm.status()
+    assert staged["delete"] == ["dir/foo", "dir/goo"]
+    assert not (tmp_dir / "dir").exists()

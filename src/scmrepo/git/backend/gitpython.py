@@ -374,6 +374,12 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             [str(parent) for parent in commit.parents],
         )
 
+    def remove(self, paths: Union[str, Iterable[str]], **kwargs):
+        if isinstance(paths, str):
+            paths = [paths]
+        for path in paths:
+            self.git.rm(path, **kwargs)
+
     def set_ref(
         self,
         name: str,

@@ -4,6 +4,7 @@ import os
 import stat
 from contextlib import contextmanager
 from io import BytesIO, StringIO
+from shutil import rmtree
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -311,6 +312,18 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             commit.message,
             [str(parent) for parent in commit.parent_ids],
         )
+
+    def remove(self, paths: Union[str, Iterable[str]], **kwargs):
+        if isinstance(paths, str):
+            paths = [paths]
+        self.repo.index.remove_all(paths)
+        self.repo.index.write()
+        for path in paths:
+            # TODO: Handle pathspecs
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                rmtree(path, ignore_errors=True)
 
     def _get_stash(self, ref: str):
         raise NotImplementedError
