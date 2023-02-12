@@ -179,11 +179,11 @@ def _check_get_credentials_from_helper(credentials_path: str, urls: List[str]):
         conf_files = [conf]
         config = StackedConfig(conf_files)
         credentials = get_credentials_from_helper(base_url, config)
-        expected = (
-            parsed_url.username.encode("utf-8"),
-            parsed_url.password.encode("utf-8"),
+        (username, password) = tuple(
+            credential.decode("utf-8") for credential in credentials
         )
-        assert credentials == expected
+        assert username == parsed_url.username
+        assert password == parsed_url.password
 
 
 def test_get_credentials_from_helper(tmp_dir: TmpDir):
