@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 import asyncssh
 import paramiko
 import pytest
-from dulwich.config import ConfigDict, StackedConfig
+from dulwich.config import ConfigFile, StackedConfig
 from dulwich.contrib.test_paramiko_vendor import CLIENT_KEY, PASSWORD, USER, Server
 from pytest_mock import MockerFixture
 from pytest_test_utils import TmpDir
@@ -173,7 +173,7 @@ def _check_get_credentials_from_helper(credentials_path: str, urls: List[str]):
     path.write_bytes(b"\n".join(url.encode("utf-8") for url in urls))
     for parsed_url in parsed_urls:
         base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-        conf = ConfigDict()
+        conf = ConfigFile()
         value = f"store --file {credentials_path}".encode()
         conf.set((b"credential",), "helper", value)
         conf_files = [conf]
