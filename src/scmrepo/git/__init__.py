@@ -410,7 +410,7 @@ class Git(Base):
             self.reset()
 
     @contextmanager
-    def stash_workspace(self, **kwargs):
+    def stash_workspace(self, reinstate_index=False, **kwargs):
         """Stash and restore any workspace changes.
 
         Yields revision of the stash commit. Yields None if there were no
@@ -423,7 +423,7 @@ class Git(Base):
         finally:
             if rev:
                 logger.debug("Restoring stashed workspace")
-                self.stash.pop()
+                self.stash.pop(reinstate_index=reinstate_index)
 
     def _reset(self) -> None:
         self.backends.reset_all()
