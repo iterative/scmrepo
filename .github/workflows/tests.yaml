@@ -44,7 +44,7 @@ jobs:
 
     - name: Lint code and check dependencies
       continue-on-error: ${{ matrix.nox_pyv == '3.11' }}
-      run: nox -s lint safety
+      run: nox -s lint safety --verbose
 
     - name: Run tests
       run: nox -s tests-${{ matrix.nox_pyv || matrix.pyv }} -- --slow --cov-report=xml
