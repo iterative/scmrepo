@@ -159,8 +159,7 @@ class CredentialHelper:
         raise NotImplementedError
 
 
-def get_credentials_from_helper(base_url: str, config) -> Tuple[bytes, bytes]:
-    """Retrieves credentials for the given url from git credential helpers"""
+def get_matching_helper_commands(base_url: str, config):
     if isinstance(config, StackedConfig):
         backends = config.backends
     else:
@@ -175,19 +174,22 @@ def get_credentials_from_helper(base_url: str, config) -> Tuple[bytes, bytes]:
             except KeyError:
                 # no helper configured
                 continue
+            yield command.decode(conf.encoding or sys.getdefaultencoding())
 
-            helper = CredentialHelper(
-                command.decode(conf.encoding or sys.getdefaultencoding())
+
+def get_credentials_from_helper(base_url: str, config) -> Tuple[bytes, bytes]:
+    """Retrieves credentials for the given url from git credential helpers"""
+
+    for command in get_matching_helper_commands(base_url, config):
+        helper = CredentialHelper(command)
+        parsed = urlparse(base_url)
+        try:
+            return helper.get(
+                protocol=parsed.scheme,
+                hostname=parsed.hostname,
+                port=parsed.port,
+                username=parsed.username,
             )
-            parsed = urlparse(base_url)
-            try:
-                return helper.get(
-                    protocol=parsed.scheme,
-                    hostname=parsed.hostname,
-                    port=parsed.port,
-                    username=parsed.username,
-                )
-            except CredentialNotFoundError:
-                continue
-
+        except CredentialNotFoundError:
+            continue
     raise CredentialNotFoundError
