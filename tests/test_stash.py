@@ -19,6 +19,23 @@ def test_git_stash_workspace(tmp_dir: TmpDir, scm: Git):
     assert (tmp_dir / "file").read_text() == "1"
 
 
+def test_git_stash_workspace_reinstate_index(tmp_dir: TmpDir, scm: Git):
+    tmp_dir.gen({"modified": "init", "deleted": "deleted"})
+    scm.add_commit(["modified", "deleted"], "init")
+
+    tmp_dir.gen({"newfile": "nefile"})
+    scm.add("newfile")
+    tmp_dir.gen({"modified": "modified"})
+    scm.add("modified")
+    (tmp_dir / "deleted").unlink()
+    scm.add("deleted")
+
+    prev_status = scm.status()
+    with scm.stash_workspace(reinstate_index=True):
+        pass
+    assert scm.status() == prev_status
+
+
 @pytest.mark.parametrize(
     "ref, include_untracked",
     [
