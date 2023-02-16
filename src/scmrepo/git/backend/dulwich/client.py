@@ -4,7 +4,7 @@
 from dulwich.client import Urllib3HttpGitClient
 from dulwich.config import StackedConfig
 
-from .credentials import CredentialNotFoundError, get_credentials_from_helper
+from scmrepo.git.credentials import CredentialNotFoundError, get_credentials_from_helper
 
 
 class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstract-method
