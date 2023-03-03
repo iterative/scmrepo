@@ -241,8 +241,7 @@ class BaseGitBackend(ABC):
         """Fetch refspecs from a remote Git repo.
 
         Args:
-            url: Remote repo Git URL (Note this must be a Git URL and not
-                a remote name).
+            url: Git remote name or absolute Git URL.
             refspecs: Iterable containing refspecs to fetch.
                 Note that this will not match subkeys.
             force: If True, local refs will be overwritten.
