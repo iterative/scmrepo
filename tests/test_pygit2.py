@@ -1,3 +1,4 @@
+# pylint: disable=unused-argument
 import pygit2
 import pytest
 from pytest_mock import MockerFixture
@@ -58,3 +59,17 @@ def test_pygit_stash_apply_conflicts(
         strategy=expected_strategy,
         reinstate_index=False,
     )
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "git@github.com:iterative/scmrepo.git",
+        "ssh://login@server.com:12345/repository.git",
+    ],
+)
+def test_pygit2_ssh_error(tmp_dir: TmpDir, scm: Git, url):
+    backend = Pygit2Backend(tmp_dir)
+    with pytest.raises(NotImplementedError):
+        with backend.get_remote(url):
+            pass
