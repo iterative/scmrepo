@@ -16,6 +16,7 @@ from typing import (
     Tuple,
     Union,
 )
+from urllib.parse import urlparse
 
 from funcy import cached_property, reraise
 from shortuuid import uuid
@@ -460,7 +461,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         except KeyError:
             raise SCMError(f"'{url}' is not a valid Git remote or URL")
 
-        if os.name == "nt" and url.startswith("ssh://"):
+        parsed = urlparse(url)
+        if parsed.scheme in ("git", "git+ssh", "ssh") or url.startswith("git@"):
             raise NotImplementedError
         if os.name == "nt" and url.startswith("file://"):
             url = url[len("file://") :]
