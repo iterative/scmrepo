@@ -1069,3 +1069,11 @@ def test_backend_func(
     mock = mocker.spy(backend, "add")
     scm.add(["foo"])
     mock.assert_called_once_with(["foo"])
+
+
+@pytest.mark.skip_git_backend("gitpython")
+def test_get_remote_url(tmp_dir: TmpDir, scm: Git, git: Git, remote_git_dir: TmpDir):
+    url = f"file://{remote_git_dir.resolve().as_posix()}"
+    scm.gitpython.repo.create_remote("origin", url)
+
+    assert git.get_remote_url("origin") == url

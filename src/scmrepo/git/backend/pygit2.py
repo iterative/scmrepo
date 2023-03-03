@@ -836,3 +836,6 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def check_ref_format(self, refname: str):
         raise NotImplementedError
+
+    def get_remote_url(self, remote_name: str):
+        return self.repo.remotes[remote_name].url

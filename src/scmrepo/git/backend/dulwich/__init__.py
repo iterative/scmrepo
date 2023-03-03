@@ -790,3 +790,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.refs import check_ref_format
 
         return check_ref_format(refname.encode())
+
+    def get_remote_url(self, remote_name: str):
+        config = self.repo.get_config()
+        return config.get(("remote", remote_name), "url").decode()
