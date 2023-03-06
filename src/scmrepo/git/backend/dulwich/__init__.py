@@ -3,6 +3,7 @@ import locale
 import logging
 import os
 import stat
+from contextlib import closing
 from functools import partial
 from io import BytesIO, StringIO
 from typing import (
@@ -198,7 +199,9 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 repo = clone_from(depth=depth, branch=os.fsencode(shallow_branch))
             else:
                 repo = clone_from()
-            cls._set_default_tracking_branch(repo)
+
+            with closing(repo):
+                cls._set_default_tracking_branch(repo)
         except Exception as exc:
             raise CloneError(url, to_path) from exc
 
