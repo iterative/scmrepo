@@ -11,6 +11,7 @@ from functools import partialmethod
 from typing import TYPE_CHECKING, Callable, Dict, Iterable, Optional, Tuple, Type, Union
 
 from funcy import cached_property, first
+from git import GitCommandNotFound
 from pathspec.patterns import GitWildMatchPattern
 
 from scmrepo.base import Base
@@ -32,6 +33,8 @@ BackendCls = Type[BaseGitBackend]
 
 
 _LOW_PRIO_BACKENDS = ("gitpython",)
+
+_SKIPPABLE = (NotImplementedError, GitCommandNotFound)
 
 
 class GitBackends(Mapping):
@@ -100,7 +103,7 @@ class Git(Base):
         for backend in self.backends.values():
             try:
                 return backend.dir
-            except NotImplementedError:
+            except _SKIPPABLE:
                 pass
         raise NotImplementedError
 
@@ -141,7 +144,7 @@ class Git(Base):
                 if rev:
                     repo.checkout(rev)
                 return repo
-            except NotImplementedError:
+            except _SKIPPABLE:
                 pass
         raise NoGitBackendError("clone")
 
@@ -284,7 +287,7 @@ class Git(Base):
                 self._last_backend = key
                 self.backends.move_to_end(key, last=False)
                 return result
-            except NotImplementedError:
+            except _SKIPPABLE:
                 pass
         raise NoGitBackendError(name)
 
@@ -302,7 +305,7 @@ class Git(Base):
                 backend.init(path, bare=bare)
                 # TODO: reuse created object instead of initializing a new one.
                 return cls(path)
-            except NotImplementedError:
+            except _SKIPPABLE:
                 pass
         raise NoGitBackendError("init")
 
