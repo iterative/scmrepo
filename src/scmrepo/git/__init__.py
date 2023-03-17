@@ -3,12 +3,11 @@
 import logging
 import os
 import re
-import typing
 from collections import OrderedDict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import partialmethod
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, Optional, Tuple, Type, Union
+from typing import Dict, Iterable, Optional, Tuple, Type, Union
 
 from funcy import cached_property, first
 from git import GitCommandNotFound
@@ -18,21 +17,20 @@ from scmrepo.base import Base
 from scmrepo.exceptions import FileNotInRepoError, GitHookAlreadyExists, RevError
 from scmrepo.utils import relpath
 
-from .backend.base import BaseGitBackend, NoGitBackendError, SyncStatus
+from .backend.base import BaseGitBackend, NoGitBackendError
 from .backend.dulwich import DulwichBackend
 from .backend.gitpython import GitPythonBackend
 from .backend.pygit2 import Pygit2Backend
 from .stash import Stash
 
-if TYPE_CHECKING:
-    from scmrepo.progress import GitProgressEvent
-
 logger = logging.getLogger(__name__)
 
 BackendCls = Type[BaseGitBackend]
 
-
 _LOW_PRIO_BACKENDS = ("gitpython",)
+
+# NOTE: preferring gitpython because CLI git handles auth best
+_AUTH_BACKENDS = ("gitpython", "dulwich", "pygit2")
 
 _SKIPPABLE = (NotImplementedError, GitCommandNotFound)
 
@@ -137,7 +135,8 @@ class Git(Base):
         rev: Optional[str] = None,
         **kwargs,
     ):
-        for _, backend in GitBackends.DEFAULT.items():
+        for name in _AUTH_BACKENDS:
+            backend = GitBackends.DEFAULT[name]
             try:
                 backend.clone(url, to_path, **kwargs)
                 repo = cls(to_path)
@@ -317,42 +316,13 @@ class Git(Base):
         self.add(paths)
         self.commit(msg=message)
 
-    _fetch_refspecs = partialmethod(
-        _backend_func, "fetch_refspecs", backends=["pygit2", "dulwich"]
-    )
-
-    def fetch_refspecs(
-        self,
-        url: str,
-        refspecs: Union[str, Iterable[str]],
-        force: bool = False,
-        on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
-        **kwargs,
-    ) -> typing.Mapping[str, SyncStatus]:
-        from .credentials import get_matching_helper_commands
-
-        if "dulwich" in kwargs.get("backends", self.backends.backends) and any(
-            get_matching_helper_commands(url, self.dulwich.repo.get_config_stack())
-        ):
-            kwargs["backends"] = ["dulwich"]
-
-        return self._fetch_refspecs(
-            url,
-            refspecs,
-            force=force,
-            on_diverged=on_diverged,
-            progress=progress,
-            **kwargs,
-        )
-
     is_ignored = partialmethod(_backend_func, "is_ignored")
     add = partialmethod(_backend_func, "add")
     commit = partialmethod(_backend_func, "commit")
     checkout = partialmethod(_backend_func, "checkout")
-    fetch = partialmethod(_backend_func, "fetch")
-    pull = partialmethod(_backend_func, "pull")
-    push = partialmethod(_backend_func, "push")
+    fetch = partialmethod(_backend_func, "fetch", backends=_AUTH_BACKENDS)
+    pull = partialmethod(_backend_func, "pull", backends=_AUTH_BACKENDS)
+    push = partialmethod(_backend_func, "push", backends=_AUTH_BACKENDS)
     branch = partialmethod(_backend_func, "branch")
     tag = partialmethod(_backend_func, "tag")
     untracked_files = partialmethod(_backend_func, "untracked_files")
@@ -372,7 +342,12 @@ class Git(Base):
     iter_refs = partialmethod(_backend_func, "iter_refs")
     iter_remote_refs = partialmethod(_backend_func, "iter_remote_refs")
     get_refs_containing = partialmethod(_backend_func, "get_refs_containing")
-    push_refspecs = partialmethod(_backend_func, "push_refspecs")
+    fetch_refspecs = partialmethod(
+        _backend_func, "fetch_refspecs", backends=_AUTH_BACKENDS
+    )
+    push_refspecs = partialmethod(
+        _backend_func, "push_refspecs", backends=_AUTH_BACKENDS
+    )
     _stash_iter = partialmethod(_backend_func, "_stash_iter")
     _stash_push = partialmethod(_backend_func, "_stash_push")
     _stash_apply = partialmethod(_backend_func, "_stash_apply")
