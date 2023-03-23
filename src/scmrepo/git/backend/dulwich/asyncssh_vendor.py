@@ -1,6 +1,14 @@
 """asyncssh SSH vendor for Dulwich."""
 import asyncio
-from typing import TYPE_CHECKING, Callable, Coroutine, List, Optional
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Coroutine,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+)
 
 from dulwich.client import SSHVendor
 
@@ -8,6 +16,9 @@ from scmrepo.asyn import BaseAsyncObject, sync_wrapper
 from scmrepo.exceptions import AuthError
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
+    from asyncssh.config import ConfigPaths, FilePath
     from asyncssh.connection import SSHClientConnection
     from asyncssh.process import SSHClientProcess
     from asyncssh.stream import SSHReader
@@ -172,3 +183,51 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
         return AsyncSSHWrapper(conn, proc)
 
     run_command = sync_wrapper(_run_command)
+
+
+# class ValidatedSSHClientConfig(SSHClientConfig):
+#     pass
+
+
+def get_unsupported_opts(config_paths: "ConfigPaths") -> Iterator[str]:
+    from pathlib import Path, PurePath
+
+    if config_paths:
+        if isinstance(config_paths, (str, PurePath)):
+            paths: Sequence["FilePath"] = [config_paths]
+        else:
+            paths = config_paths
+
+        for path in paths:
+            try:
+                yield from _parse_unsupported(Path(path))
+            except FileNotFoundError:
+                continue
+
+
+def _parse_unsupported(path: "Path") -> Iterator[str]:
+    import locale
+    import shlex
+
+    from asyncssh.config import SSHClientConfig
+
+    handlers = SSHClientConfig._handlers  # pylint: disable=protected-access
+    with open(path, encoding=locale.getpreferredencoding()) as fobj:
+        for line in fobj:
+            line = line.strip()
+            if not line or line[0] == "#":
+                continue
+
+            try:
+                args = shlex.split(line)
+            except ValueError:
+                continue
+
+            option = args.pop(0)
+            if option.endswith("="):
+                option = option[:-1]
+            elif "=" in option:
+                option, _ = option.split("=", 1)
+            loption = option.lower()
+            if loption not in handlers:
+                yield loption
