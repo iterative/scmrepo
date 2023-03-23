@@ -102,7 +102,7 @@ def _get_ssh_vendor() -> "SSHVendor":
 
     from dulwich.client import SubprocessSSHVendor
 
-    from .asyncssh_vendor import AsyncSSHVendor
+    from .asyncssh_vendor import AsyncSSHVendor, get_unsupported_opts
 
     ssh_command = os.environ.get("GIT_SSH_COMMAND", os.environ.get("GIT_SSH"))
     if ssh_command:
@@ -113,6 +113,15 @@ def _get_ssh_vendor() -> "SSHVendor":
         # see https://github.com/iterative/dvc/issues/7702
         logger.debug(
             "dulwich: native win32 Python inside MSYS2/git-bash, using MSYS2 OpenSSH"
+        )
+        return SubprocessSSHVendor()
+
+    default_config = os.path.expanduser(os.path.join("~", ".ssh", "config"))
+    unsupported = list(get_unsupported_opts([default_config]))
+    if unsupported:
+        logger.debug(
+            "dulwich: unsupported SSH config option(s) '%s', using system OpenSSH",
+            ", ".join(unsupported),
         )
         return SubprocessSSHVendor()
     return AsyncSSHVendor()

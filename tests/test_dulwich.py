@@ -169,5 +169,32 @@ def test_git_bash_ssh_vendor(mocker):
     mocker.patch.dict(os.environ, {"MSYSTEM": "MINGW64"})
     assert isinstance(_get_ssh_vendor(), SubprocessSSHVendor)
 
-    mocker.patch.dict(os.environ, {"MSYSTEM": None})
+    del os.environ["MSYSTEM"]
     assert isinstance(_get_ssh_vendor(), AsyncSSHVendor)
+
+
+def test_unsupported_config_ssh_vendor():
+    from dulwich.client import SubprocessSSHVendor
+
+    from scmrepo.git.backend.dulwich import _get_ssh_vendor
+
+    config = os.path.expanduser(os.path.join("~", ".ssh", "config"))
+    os.makedirs(os.path.dirname(config), exist_ok=True)
+
+    with open(config, "wb") as fobj:
+        fobj.write(
+            b"""
+Host *
+    IdentityFile ~/.ssh/id_rsa
+"""
+        )
+    assert isinstance(_get_ssh_vendor(), AsyncSSHVendor)
+
+    with open(config, "wb") as fobj:
+        fobj.write(
+            b"""
+Host *
+    UseKeychain yes
+"""
+        )
+    assert isinstance(_get_ssh_vendor(), SubprocessSSHVendor)
