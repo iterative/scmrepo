@@ -98,6 +98,8 @@ class DulwichProgressReporter(GitProgressReporter):
 
 
 def _get_ssh_vendor() -> "SSHVendor":
+    import sys
+
     from dulwich.client import SubprocessSSHVendor
 
     from .asyncssh_vendor import AsyncSSHVendor
@@ -105,6 +107,13 @@ def _get_ssh_vendor() -> "SSHVendor":
     ssh_command = os.environ.get("GIT_SSH_COMMAND", os.environ.get("GIT_SSH"))
     if ssh_command:
         logger.debug("dulwich: Using environment GIT_SSH_COMMAND '%s'", ssh_command)
+        return SubprocessSSHVendor()
+
+    if sys.platform == "win32" and os.environ.get("MSYSTEM"):
+        # see https://github.com/iterative/dvc/issues/7702
+        logger.debug(
+            "dulwich: native win32 Python inside MSYS2/git-bash, using MSYS2 OpenSSH"
+        )
         return SubprocessSSHVendor()
     return AsyncSSHVendor()
 

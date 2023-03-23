@@ -1,3 +1,4 @@
+import os
 import socket
 import threading
 from io import StringIO
@@ -157,3 +158,16 @@ def test_dulwich_github_compat(mocker: MockerFixture, algorithm: bytes):
     strings = iter((b"ssh-rsa", key_data))
     packet.get_string = lambda: next(strings)
     _process_public_key_ok_gh(auth, None, None, packet)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows only")
+def test_git_bash_ssh_vendor(mocker):
+    from dulwich.client import SubprocessSSHVendor
+
+    from scmrepo.git.backend.dulwich import _get_ssh_vendor
+
+    mocker.patch.dict(os.environ, {"MSYSTEM": "MINGW64"})
+    assert isinstance(_get_ssh_vendor(), SubprocessSSHVendor)
+
+    mocker.patch.dict(os.environ, {"MSYSTEM": None})
+    assert isinstance(_get_ssh_vendor(), AsyncSSHVendor)
