@@ -72,6 +72,7 @@ module = [
     "pygtrie",
     "funcy",
     "git",
+    "gitdb.*",
     "fsspec.*",
     "pathspec.patterns",
     "asyncssh.*",

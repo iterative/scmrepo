@@ -261,7 +261,7 @@ class BaseGitBackend(ABC):
         self,
         ref: str,
         message: Optional[str] = None,
-        include_untracked: Optional[bool] = False,
+        include_untracked: bool = False,
     ) -> Tuple[Optional[str], bool]:
         """Push a commit onto the specified stash.
 

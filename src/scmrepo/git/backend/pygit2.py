@@ -534,15 +534,19 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         self,
         ref: str,
         message: Optional[str] = None,
-        include_untracked: Optional[bool] = False,
+        include_untracked: bool = False,
     ) -> Tuple[Optional[str], bool]:
         from scmrepo.git import Stash
 
-        oid = self.repo.stash(
-            self.default_signature,
-            message=message,
-            include_untracked=include_untracked,
-        )
+        try:
+            oid = self.repo.stash(
+                self.default_signature,
+                message=message,
+                include_untracked=include_untracked,
+            )
+        except KeyError:
+            # GIT_ENOTFOUND, nothing to stash
+            return None, False
         commit = self.repo[oid]
 
         if ref != Stash.DEFAULT_STASH:

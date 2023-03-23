@@ -672,11 +672,17 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         self,
         ref: str,
         message: Optional[str] = None,
-        include_untracked: Optional[bool] = False,
+        include_untracked: bool = False,
     ) -> Tuple[Optional[str], bool]:
         from dulwich.repo import InvalidUserIdentity
 
         from scmrepo.git import Stash
+
+        # dulwich will silently generate an empty stash commit if there is
+        # nothing to stash, we check status here to get consistent behavior
+        # across backends
+        if not self.is_dirty(untracked_files=include_untracked):
+            return None, False
 
         if include_untracked or ref == Stash.DEFAULT_STASH:
             # dulwich stash.push does not support include_untracked and does

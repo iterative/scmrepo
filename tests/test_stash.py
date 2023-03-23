@@ -89,20 +89,13 @@ reason = """libgit2 stash_save() is flaky on linux when run inside pytest
     https://github.com/iterative/dvc/pull/5286#issuecomment-792574294"""
 
 
-@pytest.mark.parametrize(
-    "ref",
-    [
-        pytest.param(
-            None,
-            marks=pytest.mark.xfail(
-                sys.platform in ("linux", "win32"),
-                raises=AssertionError,
-                reason=reason,
-            ),
-        ),
-        "refs/foo/stash",
-    ],
+@pytest.mark.xfail(
+    sys.platform in ("linux", "win32"),
+    raises=AssertionError,
+    strict=False,
+    reason=reason,
 )
+@pytest.mark.parametrize("ref", [None, "refs/foo/stash"])
 def test_git_stash_pop(tmp_dir: TmpDir, scm: Git, ref: Optional[str]):
     tmp_dir.gen({"file": "0"})
     scm.add_commit("file", message="init")
@@ -165,3 +158,16 @@ def test_git_stash_apply_index(
     assert dict(staged) == {"modify": ["file"]}
     assert not dict(unstaged)
     assert not dict(untracked)
+
+
+def test_git_stash_push_clean_workspace(
+    tmp_dir: TmpDir,
+    scm: Git,
+    git: Git,
+):
+    tmp_dir.gen("file", "0")
+    scm.add_commit("file", message="init")
+    assert git._stash_push("refs/stash") == (  # pylint: disable=protected-access
+        None,
+        False,
+    )

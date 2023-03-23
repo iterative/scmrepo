@@ -359,11 +359,12 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         """Return Commit object for the specified revision."""
         from git.exc import BadName, GitCommandError
         from git.objects.tag import TagObject
+        from gitdb.exc import BadObject
 
         try:
             commit = self.repo.rev_parse(rev)
-        except (BadName, GitCommandError):
-            raise SCMError(f"Invalid commit '{rev}'")
+        except (BadName, BadObject, GitCommandError) as exc:
+            raise SCMError(f"Invalid commit '{rev}'") from exc
         if isinstance(commit, TagObject):
             commit = commit.object
         return GitCommit(
@@ -503,9 +504,12 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         self,
         ref: str,
         message: Optional[str] = None,
-        include_untracked: Optional[bool] = False,
+        include_untracked: bool = False,
     ) -> Tuple[Optional[str], bool]:
         from scmrepo.git import Stash
+
+        if not self.is_dirty(untracked_files=include_untracked):
+            return None, False
 
         args = ["push"]
         if message:
