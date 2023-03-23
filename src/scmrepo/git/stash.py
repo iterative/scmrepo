@@ -32,14 +32,13 @@ class Stash:
     def push(
         self, message: Optional[str] = None, include_untracked: bool = False
     ) -> Optional[str]:
-        if not self.scm.is_dirty(untracked_files=include_untracked):
-            logger.debug("No changes to stash")
-            return None
-
         logger.debug("Stashing changes in '%s'", self.ref)
         rev, reset = self.scm._stash_push(  # pylint: disable=protected-access
             self.ref, message=message, include_untracked=include_untracked
         )
+        if not rev:
+            logger.debug("No changes to stash")
+            return None
         if reset:
             self.scm.reset(hard=True)
         return rev
