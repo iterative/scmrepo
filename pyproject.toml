@@ -78,6 +78,7 @@ module = [
     "asyncssh.*",
     "pygit2.*",
     "pytest_docker.plugin",
+    "urllib3.*",
 ]
 ignore_missing_imports = true
 
