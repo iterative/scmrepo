@@ -1,5 +1,6 @@
 """asyncssh SSH vendor for Dulwich."""
 import asyncio
+import os
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -10,6 +11,7 @@ from typing import (
     Sequence,
 )
 
+from asyncssh import SSHClient
 from dulwich.client import SSHVendor
 
 from scmrepo.asyn import BaseAsyncObject, sync_wrapper
@@ -18,8 +20,10 @@ from scmrepo.exceptions import AuthError
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from asyncssh.auth import KbdIntPrompts, KbdIntResponse
     from asyncssh.config import ConfigPaths, FilePath
     from asyncssh.connection import SSHClientConnection
+    from asyncssh.misc import MaybeAwait
     from asyncssh.process import SSHClientProcess
     from asyncssh.stream import SSHReader
 
@@ -131,6 +135,36 @@ def _process_public_key_ok_gh(self, _pkttype, _pktid, packet):
     return True
 
 
+class InteractiveSSHClient(SSHClient):
+    def kbdint_auth_requested(self) -> "MaybeAwait[Optional[str]]":
+        return ""
+
+    async def kbdint_challenge_received(  # pylint: disable=invalid-overridden-method
+        self,
+        name: str,
+        instructions: str,
+        lang: str,
+        prompts: "KbdIntPrompts",
+    ) -> Optional["KbdIntResponse"]:
+        from getpass import getpass
+
+        if os.environ.get("GIT_TERMINAL_PROMPT") == "0":
+            return None
+
+        def _getpass(prompt: str) -> str:
+            return getpass(prompt=prompt).rstrip()
+
+        if instructions:
+            print(instructions)
+        loop = asyncio.get_running_loop()
+        return [
+            await loop.run_in_executor(
+                None, _getpass, f"({name}) {prompt}" if name else prompt
+            )
+            for prompt, _ in prompts
+        ]
+
+
 class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -176,6 +210,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
                 ignore_encrypted=not key_filename,
                 known_hosts=None,
                 encoding=None,
+                client_factory=InteractiveSSHClient,
             )
             proc = await conn.create_process(command, encoding=None)
         except asyncssh.misc.PermissionDenied as exc:
@@ -183,10 +218,6 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
         return AsyncSSHWrapper(conn, proc)
 
     run_command = sync_wrapper(_run_command)
-
-
-# class ValidatedSSHClientConfig(SSHClientConfig):
-#     pass
 
 
 def get_unsupported_opts(config_paths: "ConfigPaths") -> Iterator[str]:
