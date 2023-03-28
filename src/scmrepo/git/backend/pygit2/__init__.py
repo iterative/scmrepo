@@ -22,10 +22,9 @@ from funcy import cached_property, reraise
 from shortuuid import uuid
 
 from scmrepo.exceptions import CloneError, MergeConflictError, RevError, SCMError
+from scmrepo.git.backend.base import BaseGitBackend, SyncStatus
+from scmrepo.git.objects import GitCommit, GitObject
 from scmrepo.utils import relpath
-
-from ..objects import GitCommit, GitObject
-from .base import BaseGitBackend, SyncStatus
 
 logger = logging.getLogger(__name__)
 
@@ -164,10 +163,13 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     ):
         from pygit2 import GitError, clone_repository
 
+        from .callbacks import RemoteCallbacks
+
         if shallow_branch:
             raise NotImplementedError
         try:
-            clone_repository(url, to_path)
+            with RemoteCallbacks(progress=progress) as cb:
+                clone_repository(url, to_path, callbacks=cb)
         except GitError as exc:
             raise CloneError(url, to_path) from exc
 
@@ -484,6 +486,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     ) -> Mapping[str, SyncStatus]:
         from pygit2 import GitError
 
+        from .callbacks import RemoteCallbacks
+
         if isinstance(refspecs, str):
             refspecs = [refspecs]
 
@@ -507,7 +511,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 GitError,
                 SCMError(f"Git failed to fetch ref from '{url}'"),
             ):
-                remote.fetch(refspecs=fetch_refspecs)
+                with RemoteCallbacks(progress=progress) as cb:
+                    remote.fetch(
+                        refspecs=fetch_refspecs,
+                        callbacks=cb,
+                    )
 
             result: Dict[str, "SyncStatus"] = {}
             for refspec in fetch_refspecs:

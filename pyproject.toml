@@ -76,7 +76,7 @@ module = [
     "fsspec.*",
     "pathspec.patterns",
     "asyncssh.*",
-    "pygit2",
+    "pygit2.*",
     "pytest_docker.plugin",
 ]
 ignore_missing_imports = true
@@ -100,7 +100,7 @@ dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unuse
 ignored-argument-names = "_.*|^ignored_|^unused_|args|kwargs"
 
 [tool.codespell]
-ignore-words-list = "cachable"
+ignore-words-list = "cachable, keypair"
 
 [tool.bandit]
 exclude_dirs = ["tests"]
