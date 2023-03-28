@@ -1,5 +1,7 @@
+import os
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from types import TracebackType
+from typing import TYPE_CHECKING, Callable, Optional, Type, Union
 
 from pygit2 import RemoteCallbacks as _RemoteCallbacks
 
@@ -20,14 +22,21 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
         self,
         *args,
         progress: Optional[Callable[["GitProgressEvent"], None]] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.progress = GitProgressReporter(progress) if progress else None
         self._store_credentials: Optional["Credential"] = None
+        self._tried_credentials = False
 
-    def __exit__(self, *args, **kwargs):
-        self._approve_credentials()
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ):
+        if exc_type is None:
+            self._approve_credentials()
 
     def sideband_progress(self, string: str):
         if self.progress is not None:
@@ -36,16 +45,37 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
     def credentials(
         self, url: str, username_from_url: Optional[str], allowed_types: int
     ) -> "_Pygit2Credential":
-        from pygit2 import Passthrough
+        from getpass import getpass
+
+        from pygit2 import GitError, Passthrough
         from pygit2.credentials import GIT_CREDENTIAL_USERPASS_PLAINTEXT, UserPass
+
+        if self._tried_credentials:
+            raise GitError(f"authentication failed for '{url}'")
+        self._tried_credentials = True
 
         if allowed_types & GIT_CREDENTIAL_USERPASS_PLAINTEXT:
             try:
-                creds = Credential(username=username_from_url, url=url).fill()
-                self._store_credentials = creds
+                if self._store_credentials:
+                    creds = self._store_credentials
+                else:
+                    Credential(username=username_from_url, url=url).fill()
+                    self._store_credentials = creds
                 return UserPass(creds.username, creds.password)
             except CredentialNotFoundError:
                 pass
+
+            if os.environ.get("GIT_TERMINAL_PROMPT") != "0":
+                try:
+                    if username_from_url:
+                        username = username_from_url
+                    else:
+                        username = input(f"Username for '{url}': ")
+                    password = getpass(f"Password for '{url}': ")
+                    if username and password:
+                        return UserPass(username, password)
+                except KeyboardInterrupt:
+                    pass
         raise Passthrough
 
     def _approve_credentials(self):
