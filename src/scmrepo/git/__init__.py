@@ -330,13 +330,6 @@ class Git(Base):
         progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> typing.Mapping[str, SyncStatus]:
-        from .credentials import get_matching_helper_commands
-
-        if "dulwich" in kwargs.get("backends", self.backends.backends) and any(
-            get_matching_helper_commands(url, self.dulwich.repo.get_config_stack())
-        ):
-            kwargs["backends"] = ["dulwich"]
-
         return self._fetch_refspecs(
             url,
             refspecs,
