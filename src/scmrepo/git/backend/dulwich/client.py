@@ -22,21 +22,7 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
             config=config,
             **kwargs,
         )
-
         self._store_credentials: Optional["Credential"] = None
-        if not username:
-            import base64
-
-            try:
-                creds = Credential(url=base_url).fill()
-            except CredentialNotFoundError:
-                return
-            encoded = base64.b64encode(
-                f"{creds.username}:{creds.password}".encode()
-            ).decode("ascii")
-            basic_auth = {"authorization": f"Basic {encoded}"}
-            self.pool_manager.headers.update(basic_auth)
-            self._store_credentials = creds
 
     def _http_request(
         self,
