@@ -1,4 +1,3 @@
-import os
 from typing import Any, Dict, Optional
 
 from dulwich.client import HTTPUnauthorized, Urllib3HttpGitClient
@@ -46,8 +45,6 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
         return result
 
     def _get_auth(self) -> Dict[str, str]:
-        from getpass import getpass
-
         from urllib3.util import make_headers
 
         try:
@@ -55,20 +52,4 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
             self._store_credentials = creds
             return make_headers(basic_auth=f"{creds.username}:{creds.password}")
         except CredentialNotFoundError:
-            pass
-
-        if os.environ.get("GIT_TERMINAL_PROMPT") == "0":
-            return {}
-
-        try:
-            if self._username:
-                username = self._username
-            else:
-                username = input(f"Username for '{self._base_url}': ")
-            if self._password:
-                password = self._password
-            else:
-                password = getpass(f"Password for '{self._base_url}': ")
-            return make_headers(basic_auth=f"{username}:{password}")
-        except KeyboardInterrupt:
             return {}

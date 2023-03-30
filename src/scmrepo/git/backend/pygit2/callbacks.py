@@ -1,4 +1,3 @@
-import os
 from contextlib import AbstractContextManager
 from types import TracebackType
 from typing import TYPE_CHECKING, Callable, Optional, Type, Union
@@ -45,8 +44,6 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
     def credentials(
         self, url: str, username_from_url: Optional[str], allowed_types: int
     ) -> "_Pygit2Credential":
-        from getpass import getpass
-
         from pygit2 import GitError, Passthrough
         from pygit2.credentials import GIT_CREDENTIAL_USERPASS_PLAINTEXT, UserPass
 
@@ -59,23 +56,11 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
                 if self._store_credentials:
                     creds = self._store_credentials
                 else:
-                    Credential(username=username_from_url, url=url).fill()
+                    creds = Credential(username=username_from_url, url=url).fill()
                     self._store_credentials = creds
                 return UserPass(creds.username, creds.password)
             except CredentialNotFoundError:
                 pass
-
-            if os.environ.get("GIT_TERMINAL_PROMPT") != "0":
-                try:
-                    if username_from_url:
-                        username = username_from_url
-                    else:
-                        username = input(f"Username for '{url}': ")
-                    password = getpass(f"Password for '{url}': ")
-                    if username and password:
-                        return UserPass(username, password)
-                except KeyboardInterrupt:
-                    pass
         raise Passthrough
 
     def _approve_credentials(self):

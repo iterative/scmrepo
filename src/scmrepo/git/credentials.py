@@ -33,7 +33,18 @@ import shlex
 import shutil
 import subprocess  # nosec B404
 import sys
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
+from abc import ABC, abstractmethod
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+)
 from urllib.parse import urlparse, urlunparse
 
 from dulwich.config import StackedConfig
@@ -54,17 +65,38 @@ class CredentialNotFoundError(SCMError):
     """Error occurred while retrieving credentials/no credentials available."""
 
 
-class CredentialHelper:
-    """Helper for retrieving credentials for http/https git remotes
+class CredentialHelper(ABC):
+    """Base git-credential helper."""
+
+    @abstractmethod
+    def get(self, **kwargs) -> "Credential":
+        """Get a matching credential from this helper.
+
+        Raises:
+            CredentialNotFoundError: No matching credential was found.
+        """
+
+    @abstractmethod
+    def store(self, **kwargs):
+        """Store the credential, if applicable to the helper"""
+
+    @abstractmethod
+    def erase(self, **kwargs):
+        """Remove a matching credential, if any, from the helper’s storage"""
+
+
+class GitCredentialHelper(CredentialHelper):
+    """Helper for retrieving credentials through git-credential-<helper> commands.
 
     Usage:
-    >>> helper = CredentialHelper("store") # Use `git credential-store`
+    >>> helper = GitCredentialHelper("store") # Use `git credential-store`
     >>> credentials = helper.get("https://github.com/dtrifiro/aprivaterepo")
     >>> username = credentials["username"]
     >>> password = credentials["password"]
     """
 
     def __init__(self, command: str):
+        super().__init__()
         self._command = command
         self._run_kwargs: Dict[str, Any] = {}
         if self._command[0] == "!":
@@ -102,10 +134,7 @@ class CredentialHelper:
 
         return [executable, *argv[1:]]
 
-    def get(
-        self,
-        **kwargs,
-    ) -> "Credential":
+    def get(self, **kwargs) -> "Credential":
         if kwargs.get("protocol", kwargs.get("hostname")) is None:
             raise ValueError("One of protocol, hostname must be provided")
         cmd = self._prepare_command("get")
@@ -175,26 +204,111 @@ class CredentialHelper:
         except FileNotFoundError:
             logger.debug("Helper not found", exc_info=True)
 
+    @staticmethod
+    def get_matching_commands(
+        base_url: str, config: Optional[Union["ConfigDict", "StackedConfig"]] = None
+    ):
+        config = config or StackedConfig.default()
+        if isinstance(config, StackedConfig):
+            backends: Iterable["ConfigDict"] = config.backends
+        else:
+            backends = [config]
 
-def get_matching_helper_commands(
-    base_url: str, config: Optional[Union["ConfigDict", "StackedConfig"]] = None
-):
-    config = config or StackedConfig.default()
-    if isinstance(config, StackedConfig):
-        backends: Iterable["ConfigDict"] = config.backends
-    else:
-        backends = [config]
+        for conf in backends:
+            # We will try to match credential sections' url with the given url,
+            # falling back to the generic section if there's no match
+            for section in urlmatch_credential_sections(conf, base_url):
+                try:
+                    command = conf.get(section, "helper")
+                except KeyError:
+                    # no helper configured
+                    continue
+                yield command.decode(conf.encoding or sys.getdefaultencoding())
 
-    for conf in backends:
-        # We will try to match credential sections' url with the given url,
-        # falling back to the generic section if there's no match
-        for section in urlmatch_credential_sections(conf, base_url):
+
+class _CredentialKey(NamedTuple):
+    protocol: str
+    host: Optional[str]
+    path: Optional[str]
+
+
+class MemoryCredentialHelper(CredentialHelper):
+    """Memory credential helper that supports optional interactive input."""
+
+    def __init__(self):
+        super().__init__()
+        self._credentials: Dict["_CredentialKey", "Credential"] = {}
+
+    def get(self, *, interactive: bool = False, **kwargs) -> "Credential":
+        """Get a matching credential from this helper.
+
+        Raises:
+            CredentialNotFoundError: No matching credential was found.
+        """
+        from getpass import getpass
+
+        key = self._key(**kwargs)
+        if key.path:
+            try_keys = [key, _CredentialKey(key.protocol, key.host, None)]
+        else:
+            try_keys = [key]
+        for try_key in try_keys:
             try:
-                command = conf.get(section, "helper")
+                return self._credentials[try_key]
             except KeyError:
-                # no helper configured
-                continue
-            yield command.decode(conf.encoding or sys.getdefaultencoding())
+                pass
+        if not interactive or os.environ.get("GIT_TERMINAL_PROMPT") == "0":
+            raise CredentialNotFoundError("Interactive input is disabled")
+
+        scheme = f"{key.protocol}://" if key.protocol else ""
+        netloc = f"{key.host}" if key.host else ""
+        url = f"{scheme}{netloc}"
+        try:
+            username = kwargs.get("username", "")
+            if not username:
+                username = input(f"Username for '{url}': ")
+            password = kwargs.get("password", "")
+            if not password:
+                url = f"{scheme}{username}@{netloc}"
+                password = getpass(f"Password for '{url}': ")
+        except KeyboardInterrupt:
+            raise CredentialNotFoundError("User cancelled prompt")
+        return Credential(
+            protocol=key.protocol,
+            host=key.host,
+            path=key.path,
+            username=username,
+            password=password,
+            memory_only=True,
+        )
+
+    def store(self, **kwargs):
+        """Store the credential, if applicable to the helper"""
+        cred = Credential(**kwargs)
+        cred.memory_only = True
+        key = self._key(**kwargs)
+        self._credentials[key] = cred
+
+    def erase(self, **kwargs):
+        """Remove a matching credential, if any, from the helper’s storage"""
+        key = self._key(**kwargs)
+        try:
+            del self._credentials[key]
+        except KeyError:
+            pass
+
+    @staticmethod
+    def _key(
+        *,
+        protocol: str = "",
+        host: Optional[str] = None,
+        path: Optional[str] = None,
+        **kwargs,
+    ) -> _CredentialKey:
+        return _CredentialKey(protocol, host, path)
+
+
+memory_helper = MemoryCredentialHelper()
 
 
 class Credential:
@@ -232,6 +346,7 @@ class Credential:
         password: Optional[str] = None,
         password_expiry_utc: Optional[int] = None,
         url: Optional[str] = None,
+        memory_only: bool = False,
     ):
         self.protocol = protocol
         self.host = host
@@ -239,6 +354,7 @@ class Credential:
         self.username = username
         self.password = password
         self.password_expiry_utc = password_expiry_utc
+        self.memory_only = memory_only
         self._approved = False
         if url:
             parsed = urlparse(url)
@@ -281,28 +397,43 @@ class Credential:
     def helpers(self) -> List["CredentialHelper"]:
         url = self.url
         return [
-            CredentialHelper(command) for command in get_matching_helper_commands(url)
+            GitCredentialHelper(command)
+            for command in GitCredentialHelper.get_matching_commands(url)
         ]
 
     def fill(self) -> "Credential":
         """Return a new credential with filled username and password."""
+        try:
+            return memory_helper.get(interactive=False, **self._helper_kwargs)
+        except CredentialNotFoundError:
+            pass
+
         for helper in self.helpers:
             try:
                 return helper.get(**self._helper_kwargs)
             except CredentialNotFoundError:
                 continue
+
+        try:
+            return memory_helper.get(interactive=True, **self._helper_kwargs)
+        except CredentialNotFoundError:
+            pass
+
         raise CredentialNotFoundError(f"No available credentials for '{self.url}'")
 
     def approve(self):
         """Store this credential in available helpers."""
         if self._approved or not (self.username and self.password):
             return
-        for helper in self.helpers:
-            helper.store(**self._helper_kwargs)
+        if not self.memory_only:
+            for helper in self.helpers:
+                helper.store(**self._helper_kwargs)
+        memory_helper.store(**self._helper_kwargs)
         self._approved = True
 
     def reject(self):
         """Remove this credential from available helpers."""
         for helper in self.helpers:
             helper.erase(**self._helper_kwargs)
+        memory_helper.erase(**self._helper_kwargs)
         self._approved = False
