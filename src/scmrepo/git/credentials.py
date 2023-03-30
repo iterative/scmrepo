@@ -156,6 +156,8 @@ class GitCredentialHelper(CredentialHelper):
             raise CredentialNotFoundError("Helper not found") from exc
         if res.stderr:
             logger.debug(res.stderr)
+        if not res.stdout:
+            raise CredentialNotFoundError("No credentials found")
 
         credentials = {}
         for line in res.stdout.strip().splitlines():
