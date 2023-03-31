@@ -68,6 +68,10 @@ class CredentialNotFoundError(SCMError):
     """Error occurred while retrieving credentials/no credentials available."""
 
 
+class CredentialQuitError(SCMError):
+    """Credential helper returned quit=1."""
+
+
 class CredentialHelper(ABC):
     """Base git-credential helper."""
 
@@ -174,6 +178,9 @@ class GitCredentialHelper(CredentialHelper):
                 continue
         if not credentials:
             raise CredentialNotFoundError("No credentials found")
+        quit_ = credentials.get("quit")
+        if quit_ is not None and quit_.lower() in ("true", "1"):
+            raise CredentialQuitError("Helper returned quit=1")
         return Credential(**credentials)
 
     def store(self, credential: "Credential", **kwargs):
@@ -539,6 +546,9 @@ class Credential(Mapping[str, str]):
 
     def fill(self, interactive: bool = True) -> "Credential":
         """Return a new credential with filled username and password."""
+        if self.username and self.password:
+            return Credential(**self)
+
         try:
             return memory_helper.get(self, interactive=False)
         except CredentialNotFoundError:
@@ -549,13 +559,17 @@ class Credential(Mapping[str, str]):
                 return helper.get(self)
             except CredentialNotFoundError:
                 continue
+            except CredentialQuitError as exc:
+                raise CredentialNotFoundError(
+                    f"No available credentials for '{self}'"
+                ) from exc
 
         try:
             return memory_helper.get(self, interactive=interactive)
         except CredentialNotFoundError:
             pass
 
-        raise CredentialNotFoundError(f"No available credentials for '{self.url}'")
+        raise CredentialNotFoundError(f"No available credentials for '{self}'")
 
     def approve(self):
         """Store this credential in available helpers."""
