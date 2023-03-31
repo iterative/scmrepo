@@ -369,6 +369,11 @@ class Credential:
             self.username = self.username or parsed.username
             self.password = self.password or parsed.password
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Credential):
+            return self._helper_kwargs == other._helper_kwargs
+        return False
+
     @property
     def url(self) -> str:
         if self.username or self.password:
