@@ -7,7 +7,6 @@ from scmrepo.git.credentials import (
     CredentialNotFoundError,
     GitCredentialHelper,
     MemoryCredentialHelper,
-    _CredentialKey,
 )
 
 
@@ -100,7 +99,7 @@ def test_memory_helper_get_cached(mocker):
     expected = Credential(
         protocol="https", host="foo.com", username="foo", password="bar"
     )
-    helper._credentials[_CredentialKey.from_credential(expected)] = expected
+    helper[expected] = expected
 
     get_interactive = mocker.patch.object(
         helper,
