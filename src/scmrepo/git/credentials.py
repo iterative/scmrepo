@@ -164,6 +164,8 @@ class GitCredentialHelper(CredentialHelper):
                 credentials[key] = value
             except ValueError:
                 continue
+        if not credentials:
+            raise CredentialNotFoundError("No credentials found")
         return Credential(**credentials)
 
     def store(self, **kwargs):
@@ -366,6 +368,11 @@ class Credential:
             self.host = self.host or f"{hostname}{port}"
             self.username = self.username or parsed.username
             self.password = self.password or parsed.password
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Credential):
+            return self._helper_kwargs == other._helper_kwargs
+        return False
 
     @property
     def url(self) -> str:
