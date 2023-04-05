@@ -508,7 +508,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def get_refs_containing(self, rev: str, pattern: Optional[str] = None):
         raise NotImplementedError
 
-    def push_refspecs(
+    def push_refspecs(  # noqa: C901
         self,
         url: str,
         refspecs: Union[str, Iterable[str]],
@@ -568,7 +568,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             return new_refs
 
         try:
-            client.send_pack(
+            result = client.send_pack(
                 path,
                 update_refs,
                 self.repo.object_store.generate_pack_data,
@@ -579,6 +579,17 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             raise SCMError(f"Git failed to push '{src}' to '{url}'") from exc
         except HTTPUnauthorized as exc:
             raise AuthError(url) from exc
+        if result.ref_status and any(
+            (value is not None) for value in result.ref_status.values()
+        ):
+            reasons = ", ".join(
+                (
+                    f"{os.fsdecode(ref)}: {reason}"
+                    for ref, reason in result.ref_status.items()
+                    if reason is not None
+                )
+            )
+            raise SCMError(f"Git failed to push some refs to '{url}' ({reasons})")
         return change_result
 
     def fetch_refspecs(
