@@ -6,6 +6,7 @@ import sys
 from functools import partial
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Dict,
     Iterable,
@@ -211,17 +212,29 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def dir(self) -> str:
         return self.repo.git_dir
 
-    def add(self, paths: Union[str, Iterable[str]], update=False):
-        # NOTE: GitPython is not currently able to handle index version >= 3.
-        # See https://github.com/iterative/dvc/issues/610 for more details.
+    def add(
+        self,
+        paths: Union[str, Iterable[str]],
+        update: bool = False,
+        force: bool = False,
+    ):
         try:
-            if update:
+            if update or not force:
+                # NOTE: git-python index.add() defines force parameter but
+                # ignores it (index.add() behavior is always force=True)
+                kwargs: Dict[str, Any] = {}
+                if update:
+                    kwargs["update"] = True
                 if isinstance(paths, str):
                     paths = [paths]
-                self.git.add(*paths, update=True)
+                if not force:
+                    paths = [path for path in paths if not self.is_ignored(path)]
+                self.git.add(*paths, **kwargs)
             else:
                 self.repo.index.add(paths)
         except AssertionError as exc:
+            # NOTE: GitPython is not currently able to handle index version >= 3.
+            # See https://github.com/iterative/dvc/issues/610 for more details.
             raise UnsupportedIndexFormat from exc
 
     def commit(self, msg: str, no_verify: bool = False):

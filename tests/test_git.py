@@ -669,6 +669,22 @@ def test_add(tmp_dir: TmpDir, scm: Git, git: Git):
     assert len(untracked) == 1
 
 
+@pytest.mark.skip_git_backend("pygit2")
+def test_add_force(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen({"foo": "foo", "bar": "bar", "dir": {"baz": "baz"}})
+    tmp_dir.gen({".gitignore": "foo\ndir/"})
+
+    git.add(["foo", "bar", "dir"])
+    staged, _unstaged, untracked = scm.status()
+    assert set(staged["add"]) == {"bar"}
+    assert set(untracked) == {".gitignore"}
+
+    git.add(["foo", "bar", "dir"], force=True)
+    staged, _unstaged, untracked = scm.status()
+    assert set(staged["add"]) == {"foo", "bar", "dir/baz"}
+    assert set(untracked) == {".gitignore"}
+
+
 @pytest.mark.skip_git_backend("dulwich", "gitpython")
 def test_checkout_subdir(tmp_dir: TmpDir, scm: Git, git: Git):
     tmp_dir.gen("foo", "foo")

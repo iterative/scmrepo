@@ -64,7 +64,12 @@ class BaseGitBackend(ABC):
         pass
 
     @abstractmethod
-    def add(self, paths: Union[str, Iterable[str]], update=False):
+    def add(
+        self,
+        paths: Union[str, Iterable[str]],
+        update: bool = False,
+        force: bool = False,
+    ):
         pass
 
     @abstractmethod
