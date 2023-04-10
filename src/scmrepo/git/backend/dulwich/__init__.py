@@ -12,6 +12,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Optional,
@@ -248,17 +249,37 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def dir(self) -> str:
         return self.repo.commondir()
 
-    def add(self, paths: Union[str, Iterable[str]], update=False):
+    def add(
+        self,
+        paths: Union[str, Iterable[str]],
+        update: bool = False,
+        force: bool = False,
+    ):
         assert paths or update
 
-        if isinstance(paths, str):
-            paths = [paths]
+        paths = [paths] if isinstance(paths, str) else list(paths)
 
         if update and not paths:
             self.repo.stage(list(self.repo.open_index()))
             return
 
-        files: List[bytes] = []
+        files: List[bytes] = [
+            os.fsencode(fpath) for fpath in self._expand_paths(paths, force=force)
+        ]
+        if update:
+            index = self.repo.open_index()
+            if os.name == "nt":
+                # NOTE: we need git/unix separator to compare against index
+                # paths but repo.stage() expects to be called with OS paths
+                self.repo.stage(
+                    [fname for fname in files if fname.replace(b"\\", b"/") in index]
+                )
+            else:
+                self.repo.stage([fname for fname in files if fname in index])
+        else:
+            self.repo.stage(files)
+
+    def _expand_paths(self, paths: List[str], force: bool = False) -> Iterator[str]:
         for path in paths:
             if not os.path.isabs(path) and self._submodules:
                 # NOTE: If path is inside a submodule, Dulwich expects the
@@ -275,27 +296,15 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                         )
                         break
             if os.path.isdir(path):
-                files.extend(
-                    os.fsencode(relpath(os.path.join(root, fpath), self.root_dir))
-                    for root, _, fs in os.walk(path)
-                    for fpath in fs
-                )
+                for root, _, fs in os.walk(path):
+                    for fpath in fs:
+                        rel = relpath(os.path.join(root, fpath), self.root_dir)
+                        if force or not self.ignore_manager.is_ignored(rel):
+                            yield rel
             else:
-                files.append(os.fsencode(relpath(path, self.root_dir)))
-
-        # NOTE: this doesn't check gitignore, same as GitPythonBackend.add
-        if update:
-            index = self.repo.open_index()
-            if os.name == "nt":
-                # NOTE: we need git/unix separator to compare against index
-                # paths but repo.stage() expects to be called with OS paths
-                self.repo.stage(
-                    [fname for fname in files if fname.replace(b"\\", b"/") in index]
-                )
-            else:
-                self.repo.stage([fname for fname in files if fname in index])
-        else:
-            self.repo.stage(files)
+                rel = relpath(path, self.root_dir)
+                if force or not self.ignore_manager.is_ignored(rel):
+                    yield rel
 
     def commit(self, msg: str, no_verify: bool = False):
         from dulwich.errors import CommitError
