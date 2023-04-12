@@ -580,7 +580,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             result = client.send_pack(
                 path,
                 update_refs,
-                self.repo.object_store.generate_pack_data,
+                generate_pack_data=self.repo.generate_pack_data,
                 progress=(DulwichProgressReporter(progress) if progress else None),
             )
         except (NotGitRepository, SendPackError) as exc:
