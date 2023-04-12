@@ -107,7 +107,7 @@ class GitCredentialHelper(CredentialHelper):
     >>> password = credentials.password
     """
 
-    def __init__(self, command: str):
+    def __init__(self, command: str, use_http_path: bool = False):
         super().__init__()
         self._command = command
         self._run_kwargs: Dict[str, Any] = {}
@@ -115,6 +115,7 @@ class GitCredentialHelper(CredentialHelper):
             # On Windows this will only work in git-bash and/or WSL2
             self._run_kwargs["shell"] = True
         self._encoding = locale.getpreferredencoding()
+        self.use_http_path = use_http_path
 
     def _prepare_command(self, action: Optional[str] = None) -> Union[str, List[str]]:
         if self._command[0] == "!":
@@ -150,7 +151,12 @@ class GitCredentialHelper(CredentialHelper):
         if not (credential.protocol or credential.host):
             raise ValueError("One of protocol, hostname must be provided")
         cmd = self._prepare_command("get")
-        helper_input = [f"{key}={value}" for key, value in credential.items()]
+        use_path = credential.protocol in ("http", "https") and self.use_http_path
+        helper_input = [
+            f"{key}={value}"
+            for key, value in credential.items()
+            if key != "path" or use_path
+        ]
         helper_input.append("")
 
         try:
@@ -186,7 +192,12 @@ class GitCredentialHelper(CredentialHelper):
     def store(self, credential: "Credential", **kwargs):
         """Store the credential, if applicable to the helper"""
         cmd = self._prepare_command("store")
-        helper_input = [f"{key}={value}" for key, value in credential.items()]
+        use_path = credential.protocol in ("http", "https") and self.use_http_path
+        helper_input = [
+            f"{key}={value}"
+            for key, value in credential.items()
+            if key != "path" or use_path
+        ]
         helper_input.append("")
 
         try:
@@ -205,7 +216,12 @@ class GitCredentialHelper(CredentialHelper):
     def erase(self, credential: "Credential", **kwargs):
         """Remove a matching credential, if any, from the helper’s storage"""
         cmd = self._prepare_command("erase")
-        helper_input = [f"{key}={value}" for key, value in credential.items()]
+        use_path = credential.protocol in ("http", "https") and self.use_http_path
+        helper_input = [
+            f"{key}={value}"
+            for key, value in credential.items()
+            if key != "path" or use_path
+        ]
         helper_input.append("")
 
         try:
@@ -224,7 +240,7 @@ class GitCredentialHelper(CredentialHelper):
     @staticmethod
     def get_matching_commands(
         base_url: str, config: Optional[Union["ConfigDict", "StackedConfig"]] = None
-    ):
+    ) -> Iterator[Tuple[str, bool]]:
         config = config or StackedConfig.default()
         if isinstance(config, StackedConfig):
             backends: Iterable["ConfigDict"] = config.backends
@@ -240,7 +256,11 @@ class GitCredentialHelper(CredentialHelper):
                 except KeyError:
                     # no helper configured
                     continue
-                yield command.decode(conf.encoding or sys.getdefaultencoding())
+                use_http_path = conf.get_boolean(section, "usehttppath", False)
+                yield (
+                    command.decode(conf.encoding or sys.getdefaultencoding()),
+                    use_http_path,
+                )
 
 
 class _CredentialKey(NamedTuple):
@@ -542,8 +562,8 @@ class Credential(Mapping[str, str]):
     def helpers(self) -> List["CredentialHelper"]:
         url = self.url
         return [
-            GitCredentialHelper(command)
-            for command in GitCredentialHelper.get_matching_commands(url)
+            GitCredentialHelper(command, use_http_path=use_http_path)
+            for command, use_http_path in GitCredentialHelper.get_matching_commands(url)
         ]
 
     def fill(self, interactive: bool = True) -> "Credential":
