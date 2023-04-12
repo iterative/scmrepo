@@ -68,7 +68,8 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
         from urllib3.util import make_headers
 
         try:
-            creds = Credential(username=self._username, url=self._base_url).fill()
+            base_url = self._base_url.rstrip("/")
+            creds = Credential(username=self._username, url=base_url).fill()
             self._store_credentials = creds
             return make_headers(basic_auth=f"{creds.username}:{creds.password}")
         except CredentialNotFoundError:
