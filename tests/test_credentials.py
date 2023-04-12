@@ -1,3 +1,4 @@
+import io
 import os
 
 import pytest
@@ -25,12 +26,28 @@ def test_subprocess_get(git_helper, mocker):
             )
         ),
     )
-    creds = git_helper.get(Credential(protocol="https", host="foo.com"))
+    creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))
     assert run.call_args.args[0] == ["git-credential-foo", "get"]
     assert run.call_args.kwargs.get("input") == os.linesep.join(
         ["protocol=https", "host=foo.com", ""]
     )
     assert creds == Credential(url="https://foo:bar@foo.com")
+
+
+def test_subprocess_get_use_http_path(git_helper, mocker):
+    git_helper.use_http_path = True
+    run = mocker.patch(
+        "subprocess.run",
+        return_value=mocker.Mock(
+            stdout=os.linesep.join(["username=foo", "password=bar", ""])
+        ),
+    )
+    creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))
+    assert run.call_args.args[0] == ["git-credential-foo", "get"]
+    assert run.call_args.kwargs.get("input") == os.linesep.join(
+        ["protocol=https", "host=foo.com", "path=foo.git", ""]
+    )
+    assert creds == Credential(username="foo", password="bar")
 
 
 def test_subprocess_get_failed(git_helper, mocker):
@@ -151,3 +168,36 @@ def test_memory_helper_prompt_askpass(mocker):
         "/usr/local/bin/my-askpass",
         "Password for 'https://foo@foo.com': ",
     ]
+
+
+def test_get_matching_commands():
+    from dulwich.config import ConfigFile
+
+    config_file = io.BytesIO(
+        """
+[credential]
+    helper = /usr/local/bin/my-helper
+    UseHttpPath = true
+""".encode(
+            "ascii"
+        )
+    )
+    config_file.seek(0)
+    config = ConfigFile.from_file(config_file)
+    assert list(
+        GitCredentialHelper.get_matching_commands("https://foo.com/foo.git", config)
+    ) == [("/usr/local/bin/my-helper", True)]
+
+    config_file = io.BytesIO(
+        """
+[credential]
+    helper = /usr/local/bin/my-helper
+""".encode(
+            "ascii"
+        )
+    )
+    config_file.seek(0)
+    config = ConfigFile.from_file(config_file)
+    assert list(
+        GitCredentialHelper.get_matching_commands("https://foo.com/foo.git", config)
+    ) == [("/usr/local/bin/my-helper", False)]
