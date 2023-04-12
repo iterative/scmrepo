@@ -493,6 +493,8 @@ class Credential(Mapping[str, str]):
             self.host = self.host or f"{hostname}{port}"
             self.username = self.username or parsed.username
             self.password = self.password or parsed.password
+            if parsed.path:
+                self.path = self.path or parsed.path
 
     def __getitem__(self, key: object) -> str:
         if isinstance(key, str):
