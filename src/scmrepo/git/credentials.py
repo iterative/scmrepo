@@ -176,9 +176,9 @@ class GitCredentialHelper(CredentialHelper):
             logger.debug(res.stderr)
 
         credentials = {}
-        for line in res.stdout.strip().splitlines():
+        for line in res.stdout.splitlines():
             try:
-                key, value = line.split("=")
+                key, value = line.split("=", maxsplit=1)
                 credentials[key] = value
             except ValueError:
                 continue
@@ -399,7 +399,8 @@ class MemoryCredentialHelper(CredentialHelper):
 
     def store(self, credential: "Credential", **kwargs):
         """Store the credential, if applicable to the helper"""
-        self[credential] = credential
+        if credential.protocol or credential.host or credential.path:
+            self[credential] = credential
 
     def erase(self, credential: "Credential", **kwargs):
         """Remove a matching credential, if any, from the helper’s storage"""
@@ -514,7 +515,7 @@ class Credential(Mapping[str, str]):
             self.username = self.username or parsed.username
             self.password = self.password or parsed.password
             if parsed.path:
-                self.path = self.path or parsed.path
+                self.path = self.path or parsed.path.lstrip("/")
 
     def __getitem__(self, key: object) -> str:
         if isinstance(key, str):
