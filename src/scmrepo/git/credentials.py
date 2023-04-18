@@ -283,6 +283,8 @@ def _input_tty(prompt: str = "Username: ") -> str:
     from contextlib import ExitStack
 
     if os.name == "nt":
+        if not sys.stdin.isatty():
+            raise EOFError
         return input(prompt)
 
     with ExitStack() as stack:
@@ -297,6 +299,8 @@ def _input_tty(prompt: str = "Username: ") -> str:
         except OSError:
             stack.close()
             # fallback to default input()
+            if not sys.stdin.isatty():
+                raise
             return input(prompt)
         try:
             stream.write(prompt)
@@ -365,10 +369,13 @@ class MemoryCredentialHelper(CredentialHelper):
             except KeyError:
                 pass
         if interactive:
-            if self.askpass:
-                return self._get_interactive(credential, self.askpass.input)
-            if not os.environ.get("GIT_TERMINAL_PROMPT") == "0":
-                return self._get_interactive(credential, _input_tty, getpass)
+            try:
+                if self.askpass:
+                    return self._get_interactive(credential, self.askpass.input)
+                if not os.environ.get("GIT_TERMINAL_PROMPT") == "0":
+                    return self._get_interactive(credential, _input_tty, getpass)
+            except (EOFError, OSError):
+                pass
         raise CredentialNotFoundError("No matching credentials")
 
     def _get_interactive(
