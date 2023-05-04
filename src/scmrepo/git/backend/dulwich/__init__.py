@@ -614,6 +614,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.errors import NotGitRepository
         from dulwich.objectspec import parse_reftuples
         from dulwich.porcelain import DivergedBranches, check_diverged, get_remote_repo
+        from dulwich.refs import DictRefsContainer
 
         fetch_refs = []
 
@@ -623,7 +624,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         ) -> List[bytes]:
             fetch_refs.extend(
                 parse_reftuples(
-                    remote_refs,
+                    DictRefsContainer(remote_refs),
                     self.repo.refs,
                     os.fsencode(refspecs)
                     if isinstance(refspecs, str)
