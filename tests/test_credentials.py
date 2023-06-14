@@ -205,13 +205,16 @@ def test_get_matching_commands():
     config_file = io.BytesIO(
         """
 [credential]
-    helper = 
+    helper =
 """.encode(
             "ascii"
         )
     )
     config_file.seek(0)
     config = ConfigFile.from_file(config_file)
-    assert list(
-        GitCredentialHelper.get_matching_commands("https://foo.com/foo.git", config)
-    ) == []
+    assert (
+        list(
+            GitCredentialHelper.get_matching_commands("https://foo.com/foo.git", config)
+        )
+        == []
+    )
