@@ -201,3 +201,17 @@ def test_get_matching_commands():
     assert list(
         GitCredentialHelper.get_matching_commands("https://foo.com/foo.git", config)
     ) == [("/usr/local/bin/my-helper", False)]
+
+    config_file = io.BytesIO(
+        """
+[credential]
+    helper = 
+""".encode(
+            "ascii"
+        )
+    )
+    config_file.seek(0)
+    config = ConfigFile.from_file(config_file)
+    assert list(
+        GitCredentialHelper.get_matching_commands("https://foo.com/foo.git", config)
+    ) == []
