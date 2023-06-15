@@ -256,6 +256,8 @@ class GitCredentialHelper(CredentialHelper):
                 except KeyError:
                     # no helper configured
                     continue
+                if not command:
+                    continue
                 use_http_path = conf.get_boolean(section, "usehttppath", False)
                 yield (
                     command.decode(conf.encoding or sys.getdefaultencoding()),
