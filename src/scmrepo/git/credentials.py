@@ -164,7 +164,7 @@ class GitCredentialHelper(CredentialHelper):
                 cmd,
                 check=True,
                 capture_output=True,
-                input=os.linesep.join(helper_input),
+                input="\n".join(helper_input),
                 encoding=self._encoding,
                 **self._run_kwargs,
             )
@@ -204,7 +204,7 @@ class GitCredentialHelper(CredentialHelper):
             res = subprocess.run(  # type: ignore # nosec B603 # pylint: disable=W1510
                 cmd,
                 capture_output=True,
-                input=os.linesep.join(helper_input),
+                input="\n".join(helper_input),
                 encoding=self._encoding,
                 **self._run_kwargs,
             )
@@ -228,7 +228,7 @@ class GitCredentialHelper(CredentialHelper):
             res = subprocess.run(  # type: ignore # nosec B603 # pylint: disable=W1510
                 cmd,
                 capture_output=True,
-                input=os.linesep.join(helper_input),
+                input="\n".join(helper_input),
                 encoding=self._encoding,
                 **self._run_kwargs,
             )
