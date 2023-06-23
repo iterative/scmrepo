@@ -99,6 +99,7 @@ class DulwichProgressReporter(GitProgressReporter):
 
 
 def _get_ssh_vendor() -> "SSHVendor":
+    import shutil
     import sys
 
     from dulwich.client import SubprocessSSHVendor
@@ -110,7 +111,7 @@ def _get_ssh_vendor() -> "SSHVendor":
         logger.debug("dulwich: Using environment GIT_SSH_COMMAND '%s'", ssh_command)
         return SubprocessSSHVendor()
 
-    if sys.platform == "win32" and os.environ.get("MSYSTEM"):
+    if sys.platform == "win32" and os.environ.get("MSYSTEM") and shutil.which("ssh"):
         # see https://github.com/iterative/dvc/issues/7702
         logger.debug(
             "dulwich: native win32 Python inside MSYS2/git-bash, using MSYS2 OpenSSH"
@@ -119,7 +120,7 @@ def _get_ssh_vendor() -> "SSHVendor":
 
     default_config = os.path.expanduser(os.path.join("~", ".ssh", "config"))
     unsupported = list(get_unsupported_opts([default_config]))
-    if unsupported:
+    if unsupported and shutil.which("ssh"):
         logger.debug(
             "dulwich: unsupported SSH config option(s) '%s', using system OpenSSH",
             ", ".join(unsupported),
