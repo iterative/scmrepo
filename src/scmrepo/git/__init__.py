@@ -135,11 +135,13 @@ class Git(Base):
         url: str,
         to_path: str,
         rev: Optional[str] = None,
+        bare: bool = False,
         **kwargs,
     ):
+        assert not (rev and bare), "rev checkout is unsupported in bare repos"
         for _, backend in GitBackends.DEFAULT.items():
             try:
-                backend.clone(url, to_path, **kwargs)
+                backend.clone(url, to_path, bare=bare, **kwargs)
                 repo = cls(to_path)
                 if rev:
                     repo.checkout(rev)
