@@ -193,12 +193,15 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         bare: bool = False,
+        mirror: bool = False,
     ):
         from urllib.parse import urlparse
 
         from dulwich.porcelain import NoneStream
         from dulwich.porcelain import clone as git_clone
 
+        if mirror:
+            bare = True
         parsed = urlparse(url)
         try:
             clone_from = partial(
@@ -223,7 +226,10 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 repo = clone_from()
 
             with closing(repo):
-                cls._set_default_tracking_branch(repo)
+                if mirror:
+                    cls._set_mirror(repo, progress=progress)
+                else:
+                    cls._set_default_tracking_branch(repo)
         except Exception as exc:
             raise CloneError(url, to_path) from exc
 
@@ -241,6 +247,27 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             section = ("branch", os.fsencode(branch))
             config.set(section, b"remote", b"origin")
             config.set(section, b"merge", ref)
+
+    @staticmethod
+    def _set_mirror(
+        repo: "Repo", progress: Callable[["GitProgressEvent"], None] = None
+    ):
+        from dulwich.porcelain import NoneStream, fetch
+
+        config = repo.get_config()
+        section = config[(b"remote", b"origin")]
+        try:
+            del section[b"fetch"]
+        except KeyError:
+            pass
+        section[b"fetch"] = b"+refs/*:refs/*"
+        section[b"mirror"] = b"true"
+        config.write_to_path()
+        fetch(
+            repo,
+            remote_location=b"origin",
+            errstream=(DulwichProgressReporter(progress) if progress else NoneStream()),
+        )
 
     @staticmethod
     def init(path: str, bare: bool = False) -> None:
