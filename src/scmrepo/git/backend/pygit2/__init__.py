@@ -160,6 +160,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         to_path: str,
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
+        bare: bool = False,
     ):
         from pygit2 import GitError, clone_repository
 
@@ -169,7 +170,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             raise NotImplementedError
         try:
             with RemoteCallbacks(progress=progress) as cb:
-                clone_repository(url, to_path, callbacks=cb)
+                clone_repository(url, to_path, callbacks=cb, bare=bare)
         except GitError as exc:
             raise CloneError(url, to_path) from exc
 

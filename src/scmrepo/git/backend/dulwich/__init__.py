@@ -192,6 +192,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         to_path: str,
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
+        bare: bool = False,
     ):
         from urllib.parse import urlparse
 
@@ -207,6 +208,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 errstream=(
                     DulwichProgressReporter(progress) if progress else NoneStream()
                 ),
+                bare=bare,
             )
             if shallow_branch:
                 # NOTE: dulwich only supports shallow/depth for non-local

@@ -50,6 +50,7 @@ class BaseGitBackend(ABC):
         to_path: str,
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
+        bare: bool = False,
     ):
         pass
 

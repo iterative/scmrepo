@@ -907,6 +907,7 @@ async def test_git_ssh(
 
 @pytest.mark.parametrize("scheme", ["", "file://"])
 @pytest.mark.parametrize("shallow_branch", [None, "master"])
+@pytest.mark.parametrize("bare", [True, False])
 def test_clone(
     tmp_dir: TmpDir,
     scm: Git,
@@ -914,16 +915,29 @@ def test_clone(
     tmp_dir_factory: TempDirFactory,
     scheme: str,
     shallow_branch: Optional[str],
+    bare: bool,
 ):
     tmp_dir.gen("foo", "foo")
     scm.add_commit("foo", message="init")
     rev = scm.get_rev()
 
     target_dir = tmp_dir_factory.mktemp("git-clone")
-    git.clone(f"{scheme}{tmp_dir}", str(target_dir), shallow_branch=shallow_branch)
+    git.clone(
+        f"{scheme}{tmp_dir}",
+        str(target_dir),
+        shallow_branch=shallow_branch,
+        bare=bare,
+    )
     target = Git(str(target_dir))
     assert target.get_rev() == rev
-    assert (target_dir / "foo").read_text() == "foo"
+    if bare:
+        assert not (target_dir / "foo").exists()
+    else:
+        assert (target_dir / "foo").read_text() == "foo"
+        assert (target_dir / "foo").read_text() == "foo"
+    fs = target.get_fs(rev)
+    with fs.open("foo", mode="r") as fobj:
+        assert fobj.read().strip() == "foo"
 
 
 @pytest.mark.skip_git_backend("pygit2")
