@@ -51,6 +51,7 @@ class BaseGitBackend(ABC):
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         bare: bool = False,
+        mirror: bool = False,
     ):
         pass
 

@@ -147,6 +147,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         bare: bool = False,
+        mirror: bool = False,
     ):
         from git import Repo
         from git.exc import GitCommandError
@@ -180,6 +181,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 no_single_branch=True,
                 progress=GitProgressReporter.wrap_fn(progress) if progress else None,
                 bare=bare,
+                mirror=mirror,
             )
             if shallow_branch is None:
                 tmp_repo = clone_from()

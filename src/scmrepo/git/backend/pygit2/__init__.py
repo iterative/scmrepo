@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from pygit2.remote import Remote  # type: ignore
+    from pygit2.repository import Repository
 
     from scmrepo.progress import GitProgressEvent
 
@@ -154,13 +155,15 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         # can be reacquired later as needed.
         self.repo.free()
 
-    @staticmethod
+    @classmethod
     def clone(
+        cls,
         url: str,
         to_path: str,
         shallow_branch: Optional[str] = None,
         progress: Callable[["GitProgressEvent"], None] = None,
         bare: bool = False,
+        mirror: bool = False,
     ):
         from pygit2 import GitError, clone_repository
 
@@ -168,11 +171,34 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         if shallow_branch:
             raise NotImplementedError
+        if mirror:
+            bare = True
         try:
             with RemoteCallbacks(progress=progress) as cb:
-                clone_repository(url, to_path, callbacks=cb, bare=bare)
+                repo = clone_repository(url, to_path, callbacks=cb, bare=bare)
+                if mirror:
+                    cls._set_mirror(repo, progress=progress)
         except GitError as exc:
             raise CloneError(url, to_path) from exc
+
+    @staticmethod
+    def _set_mirror(
+        repo: "Repository",
+        progress: Callable[["GitProgressEvent"], None] = None,
+    ):
+        from .callbacks import RemoteCallbacks
+
+        url = repo.remotes["origin"].url
+        repo.remotes.delete("origin")
+        # NOTE: Pygit2 remotes.create("origin", url, fetch_refspec) creates a
+        # duplicate config section for each remote config entry. We just edit
+        # the config directly so that it creates a single section to be
+        # consistent with CLI Git
+        repo.config["remote.origin.url"] = url
+        repo.config["remote.origin.fetch"] = "+refs/*:refs/*"
+        repo.config["remote.origin.mirror"] = True
+        with RemoteCallbacks(progress=progress) as cb:
+            repo.remotes["origin"].fetch(callbacks=cb)
 
     @staticmethod
     def init(path: str, bare: bool = False) -> None:
