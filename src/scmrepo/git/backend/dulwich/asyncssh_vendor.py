@@ -154,6 +154,7 @@ class InteractiveSSHClient(SSHClient):
         self,
     ) -> Optional["KeyPairListArg"]:
         from asyncssh.public_key import (
+            _DEFAULT_KEY_FILES,
             KeyImportError,
             SSHLocalKeyPair,
             read_private_key,
@@ -169,12 +170,20 @@ class InteractiveSSHClient(SSHClient):
             options = self._conn._options  # pylint: disable=protected-access
             config = options.config
             client_keys = cast(Sequence["FilePath"], config.get("IdentityFile", ()))
+            if not client_keys:
+                client_keys = [
+                    os.path.expanduser(os.path.join("~", ".ssh", path))
+                    for path, cond in _DEFAULT_KEY_FILES
+                    if cond
+                ]
             for key_to_load in client_keys:
                 try:
                     read_private_key(key_to_load, passphrase=options.passphrase)
                 except KeyImportError as exc:
                     if str(exc).startswith("Passphrase"):
                         self._keys_to_try.append(key_to_load)
+                except OSError:
+                    pass
 
         while self._keys_to_try:
             key_to_load = self._keys_to_try.pop()
