@@ -28,7 +28,7 @@ from scmrepo.exceptions import (
 )
 from scmrepo.utils import relpath
 
-from ..objects import GitCommit, GitObject
+from ..objects import GitCommit, GitObject, GitTag
 from .base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
@@ -684,3 +684,21 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def check_ref_format(self, refname: str):
         raise NotImplementedError
+
+    def get_tag(self, name: str) -> Optional[Union[str, "GitTag"]]:
+        try:
+            ref = self.repo.tags[name]
+            if not ref.tag:
+                return ref.commit.hexsha
+            tag = ref.tag
+            return GitTag(
+                tag.tag,
+                tag.hexsha,
+                tag.object.hexsha,
+                tag.tagged_date,
+                tag.tagger_tz_offset,
+                tag.message,
+            )
+        except IndexError:
+            pass
+        return None

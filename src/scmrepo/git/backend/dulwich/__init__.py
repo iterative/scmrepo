@@ -26,7 +26,7 @@ from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, RevError, S
 from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
 
-from ...objects import GitObject
+from ...objects import GitObject, GitTag
 from ..base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
@@ -878,3 +878,24 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.refs import check_ref_format
 
         return check_ref_format(refname.encode())
+
+    def get_tag(self, name: str) -> Optional[Union[str, "GitTag"]]:
+        from dulwich.objects import Tag
+
+        name_b = os.fsencode(f"refs/tags/{name}")
+        try:
+            ref = self.repo.refs[name_b]
+        except KeyError:
+            return None
+        if ref in self.repo and isinstance(self.repo[ref], Tag):
+            tag = self.repo[ref]
+            _typ, target_sha = tag.object
+            return GitTag(
+                os.fsdecode(tag.name),
+                tag.id,
+                target_sha.decode("ascii"),
+                tag.tag_time,
+                tag.tag_timezone,
+                tag.message.decode("utf-8"),
+            )
+        return os.fsdecode(ref)

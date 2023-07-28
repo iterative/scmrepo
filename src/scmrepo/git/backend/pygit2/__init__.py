@@ -23,7 +23,7 @@ from shortuuid import uuid
 
 from scmrepo.exceptions import CloneError, MergeConflictError, RevError, SCMError
 from scmrepo.git.backend.base import BaseGitBackend, SyncStatus
-from scmrepo.git.objects import GitCommit, GitObject
+from scmrepo.git.objects import GitCommit, GitObject, GitTag
 from scmrepo.utils import relpath
 
 logger = logging.getLogger(__name__)
@@ -893,3 +893,27 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def check_ref_format(self, refname: str):
         raise NotImplementedError
+
+    def get_tag(self, name: str) -> Optional[Union[str, "GitTag"]]:
+        from pygit2 import InvalidSpecError, Tag
+
+        try:
+            ref = self.repo.references.get(f"refs/tags/{name}")
+        except InvalidSpecError:
+            return None
+        if not ref:
+            return None
+        try:
+            tag = self.repo[ref.target]
+            if isinstance(tag, Tag):
+                return GitTag(
+                    tag.name,
+                    str(tag.oid),
+                    str(tag.target),
+                    tag.tagger.time,
+                    tag.tagger.offset,
+                    tag.message,
+                )
+        except KeyError:
+            pass
+        return str(ref.target)
