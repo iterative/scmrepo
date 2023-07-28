@@ -162,3 +162,13 @@ class GitCommit:
     commit_time_offset: int
     message: str
     parents: List[str]
+
+
+@dataclass
+class GitTag:
+    name: str
+    hexsha: str  # SHA for the tag object itself
+    target: str  # SHA for the object the tag points to
+    tag_time: int
+    tag_time_offset: int
+    message: str

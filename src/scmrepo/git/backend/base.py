@@ -10,7 +10,7 @@ from ..objects import GitObject
 if TYPE_CHECKING:
     from scmrepo.progress import GitProgressEvent
 
-    from ..objects import GitCommit
+    from ..objects import GitCommit, GitTag
 
 
 class NoGitBackendError(SCMError):
@@ -391,3 +391,16 @@ class BaseGitBackend(ABC):
     @abstractmethod
     def check_ref_format(self, refname: str) -> bool:
         """Check if a reference name is well formed."""
+
+    @abstractmethod
+    def get_tag(self, name: str) -> Optional[Union[str, "GitTag"]]:
+        """Return the specified tag object.
+
+        Args:
+            name: Tag name (without 'refs/tags/' prefix).
+
+        Returns:
+            None if the specified tag does not exist.
+            String SHA for the target object if the tag is a lightweight tag.
+            GitTag object if the tag is an annotated tag.
+        """

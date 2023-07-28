@@ -15,6 +15,7 @@ from pytest_test_utils.matchers import Matcher
 
 from scmrepo.exceptions import InvalidRemote, MergeConflictError, RevError, SCMError
 from scmrepo.git import Git
+from scmrepo.git.objects import GitTag
 
 from .conftest import backends
 
@@ -1111,3 +1112,20 @@ def test_tag(tmp_dir: TmpDir, scm: Git, git: Git):
 
     git.tag("annotated", annotated=True, message="message")
     assert scm.resolve_rev("annotated") == rev
+
+
+def test_get_tag(tmp_dir, scm: Git, git: Git):
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="init")
+    rev = scm.get_rev()
+
+    assert git.get_tag("nonexistent") is None
+
+    scm.tag("lightweight")
+    assert git.get_tag("lightweight") == rev
+
+    scm.tag("annotated", annotated=True, message="message")
+    tag = git.get_tag("annotated")
+    assert isinstance(tag, GitTag)
+    assert tag.target == rev
+    assert tag.message.strip() == "message"
