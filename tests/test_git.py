@@ -201,7 +201,7 @@ def test_get_ref(tmp_dir: TmpDir, scm: Git, git: Git):
             os.path.join(".git", "refs", "foo", "baz"): "ref: refs/heads/master",
         }
     )
-    scm.tag(["-a", "annotated", "-m", "Annotated Tag"])
+    scm.tag("annotated", annotated=True, message="Annotated Tag")
 
     assert init_rev == git.get_ref("refs/foo/bar")
     assert init_rev == git.get_ref("refs/foo/baz")
@@ -1099,3 +1099,15 @@ def test_backend_func(
     mock = mocker.spy(backend, "add")
     scm.add(["foo"])
     mock.assert_called_once_with(["foo"])
+
+
+def test_tag(tmp_dir: TmpDir, scm: Git, git: Git):
+    tmp_dir.gen("foo", "foo")
+    scm.add_commit("foo", message="init")
+    rev = scm.get_rev()
+
+    git.tag("lightweight")
+    assert scm.resolve_rev("lightweight") == rev
+
+    git.tag("annotated", annotated=True, message="message")
+    assert scm.resolve_rev("annotated") == rev
