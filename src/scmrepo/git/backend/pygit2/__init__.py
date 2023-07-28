@@ -274,8 +274,19 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         except GitError as exc:
             raise SCMError(f"Failed to create branch '{branch}'") from exc
 
-    def tag(self, tag: str):
-        raise NotImplementedError
+    def tag(self, tag: str, annotated: bool = False, message: Optional[str] = None):
+        from pygit2 import GIT_OBJ_COMMIT, GitError
+
+        if annotated and not message:
+            raise SCMError("message is required for annotated tag")
+        with reraise(GitError, SCMError("Failed to create tag")):
+            self.repo.create_tag(
+                tag,
+                self.repo.head.target,
+                GIT_OBJ_COMMIT,
+                self.default_signature,
+                message or "",
+            )
 
     def untracked_files(self) -> Iterable[str]:
         raise NotImplementedError

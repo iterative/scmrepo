@@ -390,8 +390,18 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except Error as exc:
             raise SCMError(f"Failed to create branch '{branch}'") from exc
 
-    def tag(self, tag: str):
-        raise NotImplementedError
+    def tag(self, tag: str, annotated: bool = False, message: Optional[str] = None):
+        from dulwich.porcelain import Error, tag_create
+
+        if annotated and not message:
+            raise SCMError("message is required for annotated tag")
+        with reraise(Error, SCMError("Failed to create tag")):
+            tag_create(
+                self.repo,
+                os.fsencode(tag),
+                annotated=annotated,
+                message=message.encode("utf-8") if message else None,
+            )
 
     def untracked_files(self) -> Iterable[str]:
         _staged, _unstaged, untracked = self.status()

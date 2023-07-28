@@ -15,7 +15,7 @@ def test_pygit_resolve_refish(tmp_dir: TmpDir, scm: Git, use_sha: str):
     scm.add_commit("foo", message="foo")
     head = scm.get_rev()
     tag = "my_tag"
-    scm.gitpython.git.tag("-a", tag, "-m", "create annotated tag")
+    scm.tag(tag, annotated=True, message="create annotated tag")
 
     if use_sha:
         # refish will be annotated tag SHA (not commit SHA)
