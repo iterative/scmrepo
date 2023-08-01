@@ -169,6 +169,8 @@ class GitTag:
     name: str
     hexsha: str  # SHA for the tag object itself
     target: str  # SHA for the object the tag points to
+    tagger_name: str
+    tagger_email: str
     tag_time: int
     tag_time_offset: int
     message: str
