@@ -143,8 +143,6 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         from pygit2 import Signature
 
         sig = self.default_signature
-        sig.name = os.environ.get(f"{name}_NAME", sig.name)
-        sig.email = os.environ.get(f"{name}_EMAIL", sig.email)
         if os.environ.get(f"{name}_DATE"):
             raise NotImplementedError("signature date override unsupported")
         return Signature(
@@ -298,15 +296,22 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         except GitError as exc:
             raise SCMError(f"Failed to create branch '{branch}'") from exc
 
-    def tag(self, tag: str, annotated: bool = False, message: Optional[str] = None):
+    def tag(
+        self,
+        tag: str,
+        target: Optional[str] = None,
+        annotated: bool = False,
+        message: Optional[str] = None,
+    ):
         from pygit2 import GIT_OBJ_COMMIT, GitError
 
         if annotated and not message:
             raise SCMError("message is required for annotated tag")
+        target_obj = self.repo.revparse_single(target or "HEAD")
         with reraise(GitError, SCMError("Failed to create tag")):
             self.repo.create_tag(
                 tag,
-                self.repo.head.target,
+                target_obj.id,
                 GIT_OBJ_COMMIT,
                 self.committer,
                 message or "",
