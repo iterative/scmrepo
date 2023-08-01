@@ -294,10 +294,16 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def branch(self, branch):
         self.repo.git.branch(branch)
 
-    def tag(self, tag: str, annotated: bool = False, message: Optional[str] = None):
+    def tag(
+        self,
+        tag: str,
+        target: Optional[str] = None,
+        annotated: bool = False,
+        message: Optional[str] = None,
+    ):
         if annotated and not message:
             raise SCMError("message is required for annotated tag")
-        self.repo.git.tag(tag, a=annotated, m=message)
+        self.repo.git.tag(tag, target or "HEAD", a=annotated, m=message)
 
     def untracked_files(self):
         files = self.repo.untracked_files

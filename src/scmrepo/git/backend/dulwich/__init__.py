@@ -390,7 +390,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except Error as exc:
             raise SCMError(f"Failed to create branch '{branch}'") from exc
 
-    def tag(self, tag: str, annotated: bool = False, message: Optional[str] = None):
+    def tag(
+        self,
+        tag: str,
+        target: Optional[str] = None,
+        annotated: bool = False,
+        message: Optional[str] = None,
+    ):
         from dulwich.porcelain import Error, tag_create
 
         if annotated and not message:
@@ -399,6 +405,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             tag_create(
                 self.repo,
                 os.fsencode(tag),
+                objectish=target or "HEAD",
                 annotated=annotated,
                 message=message.encode("utf-8") if message else None,
             )

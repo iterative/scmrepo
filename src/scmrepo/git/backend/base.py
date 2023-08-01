@@ -110,7 +110,13 @@ class BaseGitBackend(ABC):
         pass
 
     @abstractmethod
-    def tag(self, tag: str, annotated: bool = False, message: Optional[str] = None):
+    def tag(
+        self,
+        tag: str,
+        target: Optional[str] = None,
+        annotated: bool = False,
+        message: Optional[str] = None,
+    ):
         pass
 
     @abstractmethod
