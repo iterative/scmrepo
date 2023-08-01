@@ -940,6 +940,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     tag.name,
                     str(tag.oid),
                     str(tag.target),
+                    tag.tagger.name,
+                    tag.tagger.email,
                     tag.tagger.time,
                     tag.tagger.offset,
                     tag.message,

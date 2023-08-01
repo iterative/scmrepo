@@ -2,6 +2,7 @@ import fnmatch
 import locale
 import logging
 import os
+import re
 import stat
 from contextlib import closing
 from functools import partial
@@ -906,12 +907,25 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         if ref in self.repo and isinstance(self.repo[ref], Tag):
             tag = self.repo[ref]
             _typ, target_sha = tag.object
+            tagger_name, tagger_email = _parse_identity(tag.tagger.decode("utf-8"))
             return GitTag(
                 os.fsdecode(tag.name),
                 tag.id,
                 target_sha.decode("ascii"),
+                tagger_name,
+                tagger_email,
                 tag.tag_time,
                 tag.tag_timezone,
                 tag.message.decode("utf-8"),
             )
         return os.fsdecode(ref)
+
+
+_IDENTITY_RE = re.compile(r"(?P<name>.+)\s+<(?P<email>.+)>")
+
+
+def _parse_identity(identity: str) -> Tuple[str, str]:
+    m = _IDENTITY_RE.match(identity)
+    if not m:
+        raise SCMError("Could not parse tagger identity '{identity}'")
+    return m.group("name"), m.group("email")

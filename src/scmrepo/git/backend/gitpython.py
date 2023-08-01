@@ -701,6 +701,8 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 tag.tag,
                 tag.hexsha,
                 tag.object.hexsha,
+                tag.tagger.name,
+                tag.tagger.email,
                 tag.tagged_date,
                 tag.tagger_tz_offset,
                 tag.message,
