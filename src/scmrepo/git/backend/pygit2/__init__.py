@@ -308,10 +308,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         return self.repo.head.shorthand
 
     def list_branches(self) -> Iterable[str]:
-        raise NotImplementedError
+        base = "refs/heads/"
+        return sorted(ref[len(base) :] for ref in self.iter_refs(base))
 
     def list_tags(self) -> Iterable[str]:
-        raise NotImplementedError
+        base = "refs/tags/"
+        return sorted(ref[len(base) :] for ref in self.iter_refs(base))
 
     def list_all_commits(self) -> Iterable[str]:
         raise NotImplementedError
