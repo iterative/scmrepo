@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
+    from pygit2 import Signature
     from pygit2.remote import Remote  # type: ignore
     from pygit2.repository import Repository
 
@@ -124,11 +125,34 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         return commit, ref
 
     @property
-    def default_signature(self):
+    def default_signature(self) -> "Signature":
         try:
             return self.repo.default_signature
         except KeyError as exc:
             raise SCMError("Git username and email must be configured") from exc
+
+    @property
+    def author(self) -> "Signature":
+        return self._get_signature("GIT_AUTHOR")
+
+    @property
+    def committer(self) -> "Signature":
+        return self._get_signature("GIT_COMMITTER")
+
+    def _get_signature(self, name: str) -> "Signature":
+        from pygit2 import Signature
+
+        sig = self.default_signature
+        sig.name = os.environ.get(f"{name}_NAME", sig.name)
+        sig.email = os.environ.get(f"{name}_EMAIL", sig.email)
+        if os.environ.get(f"{name}_DATE"):
+            raise NotImplementedError("signature date override unsupported")
+        return Signature(
+            name=os.environ.get(f"{name}_NAME", sig.name),
+            email=os.environ.get(f"{name}_EMAIL", sig.email),
+            time=sig.time,
+            offset=sig.offset,
+        )
 
     @staticmethod
     def _get_checkout_strategy(strategy: Optional[int] = None):
@@ -284,7 +308,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 tag,
                 self.repo.head.target,
                 GIT_OBJ_COMMIT,
-                self.default_signature,
+                self.committer,
                 message or "",
             )
 
@@ -593,7 +617,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             oid = self.repo.stash(
-                self.default_signature,
+                self.committer,
                 message=message,
                 include_untracked=include_untracked,
             )
@@ -878,12 +902,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def _merge_commit(self, msg: Optional[str], obj) -> str:
         if not msg:
             raise SCMError("Merge commit message is required")
-        user = self.default_signature
         tree = self.repo.index.write_tree()
         merge_commit = self.repo.create_commit(
             "HEAD",
-            user,
-            user,
+            self.author,
+            self.committer,
             msg,
             tree,
             [self.repo.head.target, obj.id],
