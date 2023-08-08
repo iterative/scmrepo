@@ -22,6 +22,12 @@ from .backend.base import BaseGitBackend, NoGitBackendError, SyncStatus
 from .backend.dulwich import DulwichBackend
 from .backend.gitpython import GitPythonBackend
 from .backend.pygit2 import Pygit2Backend
+from .objects import (  # noqa: F401, pylint: disable=unused-import
+    GitCommit,
+    GitObject,
+    GitTag,
+    GitTrie,
+)
 from .stash import Stash
 
 if TYPE_CHECKING:
