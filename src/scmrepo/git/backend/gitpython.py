@@ -398,6 +398,12 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             commit.committer_tz_offset,
             commit.message,
             [str(parent) for parent in commit.parents],
+            commit.committer.name,
+            commit.committer.email,
+            commit.author.name,
+            commit.author.email,
+            commit.authored_date,
+            commit.author_tz_offset,
         )
 
     def set_ref(

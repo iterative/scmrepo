@@ -387,6 +387,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             commit.commit_time_offset,
             commit.message,
             [str(parent) for parent in commit.parent_ids],
+            commit.committer.name,
+            commit.committer.email,
+            commit.author.name,
+            commit.author.email,
+            commit.author.time,
+            commit.author.offset,
         )
 
     def _get_stash(self, ref: str):

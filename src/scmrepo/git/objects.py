@@ -162,6 +162,12 @@ class GitCommit:
     commit_time_offset: int
     message: str
     parents: List[str]
+    committer_name: str
+    committer_email: str
+    author_name: str
+    author_email: str
+    author_time: int
+    author_time_offset: int
 
 
 @dataclass
