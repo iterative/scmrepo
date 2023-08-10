@@ -431,19 +431,12 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         raise NotImplementedError
 
     def list_branches(self) -> Iterable[str]:
-        from dulwich.refs import LOCAL_BRANCH_PREFIX
-
-        return sorted(
-            os.fsdecode(ref[len(LOCAL_BRANCH_PREFIX) :])
-            for ref in self.repo.refs.keys()
-        )
+        base = "refs/heads/"
+        return sorted(ref[len(base) :] for ref in self.iter_refs(base))
 
     def list_tags(self) -> Iterable[str]:
-        from dulwich.refs import LOCAL_TAG_PREFIX
-
-        return sorted(
-            os.fsdecode(ref[len(LOCAL_TAG_PREFIX) :]) for ref in self.repo.refs.keys()
-        )
+        base = "refs/tags/"
+        return sorted(ref[len(base) :] for ref in self.iter_refs(base))
 
     def list_all_commits(self) -> Iterable[str]:
         raise NotImplementedError
