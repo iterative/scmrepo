@@ -142,14 +142,32 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def _get_signature(self, name: str) -> "Signature":
         from pygit2 import Signature
 
-        sig = self.default_signature
+        try:
+            sig = self.default_signature
+        except SCMError:
+            logger.debug("No default signature (config is not set in repo)")
+            sig = None
+
         if os.environ.get(f"{name}_DATE"):
             raise NotImplementedError("signature date override unsupported")
+
+        user_name = os.environ.get(f"{name}_NAME", sig.name if sig else None)
+        user_email = os.environ.get(f"{name}_EMAIL", sig.email if sig else None)
+
+        if not user_email or not user_name:
+            raise SCMError("Git user name and email must be configured")
+
+        if sig:
+            return Signature(
+                name=user_name,
+                email=user_email,
+                time=sig.time,
+                offset=sig.offset,
+            )
+
         return Signature(
-            name=os.environ.get(f"{name}_NAME", sig.name),
-            email=os.environ.get(f"{name}_EMAIL", sig.email),
-            time=sig.time,
-            offset=sig.offset,
+            name=user_name,
+            email=user_email,
         )
 
     @staticmethod
