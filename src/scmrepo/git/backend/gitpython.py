@@ -3,7 +3,7 @@ import locale
 import logging
 import os
 import sys
-from functools import partial
+from functools import partial, wraps
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -36,6 +36,22 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def requires_git(f: Callable):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            from git.exc import GitCommandNotFound
+        except ImportError as exc:
+            raise NotImplementedError from exc
+
+        try:
+            return f(*args, **kwargs)
+        except GitCommandNotFound as exc:
+            raise NotImplementedError from exc
+
+    return wrapper
 
 
 # NOTE: Check if we are in a bundle
@@ -103,6 +119,7 @@ class GitPythonObject(GitObject):
 class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
     """git-python Git backend."""
 
+    @requires_git
     def __init__(  # pylint:disable=W0231
         self, root_dir=os.curdir, search_parent_directories=True
     ):
@@ -141,6 +158,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return self.repo.working_tree_dir
 
     @staticmethod
+    @requires_git
     def clone(
         url: str,
         to_path: str,
@@ -192,6 +210,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             raise CloneError(url, to_path) from exc
 
     @staticmethod
+    @requires_git
     def init(path: str, bare: bool = False) -> None:
         from funcy import retry
         from git import Repo
@@ -207,6 +226,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         git.close()
 
     @staticmethod
+    @requires_git
     def is_sha(rev):
         import git
 
