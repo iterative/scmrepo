@@ -19,7 +19,6 @@ from typing import (
 from urllib.parse import urlparse
 
 from funcy import cached_property, reraise
-from shortuuid import uuid
 
 from scmrepo.exceptions import CloneError, MergeConflictError, RevError, SCMError
 from scmrepo.git.backend.base import BaseGitBackend, SyncStatus
@@ -567,11 +566,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         if os.name == "nt" and url.startswith("file://"):
             url = url[len("file://") :]
 
-        try:
-            remote_name = uuid()
-            yield self.repo.remotes.create(remote_name, url)
-        finally:
-            self.repo.remotes.delete(remote_name)
+        yield self.repo.remotes.create_anonymous(url)
 
     def fetch_refspecs(
         self,
