@@ -171,6 +171,13 @@ class Git(Base):
     def ignore_file(self):
         return self.GITIGNORE
 
+    @cached_property
+    def lfs_storage(self):
+        from .lfs import LFSStorage
+
+        path = os.path.join(self._get_git_dir(self.root_dir), "lfs")
+        return LFSStorage(path)
+
     def _get_gitignore(self, path):
         ignore_file_dir = os.path.dirname(path)
 
