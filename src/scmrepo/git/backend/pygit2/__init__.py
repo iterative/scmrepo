@@ -46,13 +46,35 @@ if TYPE_CHECKING:
 
 
 class Pygit2Object(GitObject):
-    def __init__(self, obj):
+    def __init__(self, obj, backend: Optional["Pygit2Backend"] = None):
         self.obj = obj
+        self.backend = backend
 
-    def open(self, mode: str = "r", encoding: str = None):
+    def open(
+        self,
+        mode: str = "r",
+        encoding: str = None,
+        key: tuple = None,
+        rev: str = None,
+        **kwargs,
+    ):
+        from pygit2 import GitError
+
         if not encoding:
             encoding = locale.getpreferredencoding(False)
-        data = self.obj.read_raw()
+        if self.backend is not None:
+            if rev:
+                commit, _ref = self.backend._resolve_refish(rev)
+            else:
+                pass
+            try:
+                path = "/".join(key)
+                data = self.obj.filter(path, commit_id=commit.oid)
+            except GitError as exc:
+                logger.debug(f"pygit2 filter failed: {exc}")
+                data = self.obj.read_raw()
+        else:
+            data = self.obj.read_raw()
         if mode == "rb":
             return BytesIO(data)
         return StringIO(data.decode(encoding))
@@ -83,7 +105,7 @@ class Pygit2Object(GitObject):
 
     def scandir(self) -> Iterable["Pygit2Object"]:
         for entry in self.obj:  # noqa: B301
-            yield Pygit2Object(entry)
+            yield Pygit2Object(entry, backend=self.backend)
 
 
 class Pygit2Config(Config):
@@ -119,6 +141,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     ):
         import pygit2
 
+        from .filter import LFSFilter
+
         if search_parent_directories:
             ceiling_dirs = ""
         else:
@@ -134,6 +158,14 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         self.repo = pygit2.Repository(path)
 
         self._stashes: dict = {}
+
+        try:
+            # NOTE: we want this init to be lazy so we do it on backend init.
+            # for subsequent backend instances, this call will error out since
+            # the filter is already registered
+            pygit2.filter_register("lfs", LFSFilter)
+        except pygit2.GitError:
+            pass
 
     def close(self):
         if hasattr(self, "_refdb"):
@@ -411,7 +443,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def get_tree_obj(self, rev: str, **kwargs) -> Pygit2Object:
         tree = self.repo[rev].tree
-        return Pygit2Object(tree)
+        return Pygit2Object(tree, backend=self)
 
     def get_rev(self) -> str:
         raise NotImplementedError

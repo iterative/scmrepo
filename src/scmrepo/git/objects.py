@@ -20,7 +20,7 @@ def _to_datetime(time: int, offset: int) -> datetime.datetime:
 
 class GitObject(ABC):
     @abstractmethod
-    def open(self, mode: str = "r", encoding: str = None):
+    def open(self, mode: str = "r", encoding: str = None, **kwargs):
         pass
 
     @property
@@ -87,7 +87,7 @@ class GitTrie:
         if obj.isdir:
             raise IsADirectoryError
 
-        return obj.open(mode=mode, encoding=encoding)
+        return obj.open(mode=mode, encoding=encoding, key=key, rev=self.rev)
 
     def exists(self, key: tuple) -> bool:
         return bool(self.trie.has_node(key))
