@@ -187,9 +187,10 @@ class GitFileSystem(AbstractFileSystem):
         self,
         path: str,
         mode: str = "rb",
-        block_size: int = None,
+        block_size: Optional[int] = None,
         autocommit: bool = True,
-        cache_options: Dict = None,
+        cache_options: Optional[Dict] = None,
+        raw: bool = False,
         **kwargs: Any,
     ) -> BinaryIO:
         if mode != "rb":
@@ -197,7 +198,7 @@ class GitFileSystem(AbstractFileSystem):
 
         key = self._get_key(path)
         try:
-            obj = self.trie.open(key, mode=mode)
+            obj = self.trie.open(key, mode=mode, raw=raw)
             obj.size = bytesio_len(obj)
             return obj
         except KeyError as exc:

@@ -274,6 +274,8 @@ class Git(Base):
 
     def close(self):
         self.backends.close_initialized()
+        if "lfs_storage" in self.__dict__:
+            self.lfs_storage.close()
 
     @property
     def no_commits(self):

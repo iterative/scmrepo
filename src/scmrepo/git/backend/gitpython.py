@@ -83,7 +83,15 @@ class GitPythonObject(GitObject):
     def __init__(self, obj):
         self.obj = obj
 
-    def open(self, mode: str = "r", encoding: str = None):
+    def open(
+        self,
+        mode: str = "r",
+        encoding: str = None,
+        raw: bool = True,
+        **kwargs,
+    ):
+        if not raw:
+            raise NotImplementedError
         if not encoding:
             encoding = locale.getpreferredencoding(False)
         # GitPython's obj.data_stream is a fragile thing, it is better to

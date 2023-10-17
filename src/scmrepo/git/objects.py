@@ -82,12 +82,13 @@ class GitTrie:
         key: tuple,
         mode: Optional[str] = "r",
         encoding: Optional[str] = None,
+        raw: bool = True,
     ):
         obj = self.trie[key]
         if obj.isdir:
             raise IsADirectoryError
 
-        return obj.open(mode=mode, encoding=encoding, key=key, rev=self.rev)
+        return obj.open(mode=mode, encoding=encoding, key=key, raw=raw, rev=self.rev)
 
     def exists(self, key: tuple) -> bool:
         return bool(self.trie.has_node(key))

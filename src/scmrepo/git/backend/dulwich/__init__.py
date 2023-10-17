@@ -51,7 +51,16 @@ class DulwichObject(GitObject):
         self._mode = mode
         self._sha = sha
 
-    def open(self, mode: str = "r", encoding: str = None):
+    def open(
+        self,
+        mode: str = "r",
+        encoding: Optional[str] = None,
+        raw: bool = True,
+        rev: Optional[str] = None,
+        **kwargs,
+    ):
+        if not raw:
+            raise NotImplementedError
         if not encoding:
             encoding = locale.getpreferredencoding(False)
         # NOTE: we didn't load the object before as Dulwich will also try to
