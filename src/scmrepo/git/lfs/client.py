@@ -191,7 +191,6 @@ class LFSClient(AbstractContextManager):
             get_coro = callback.wrap_and_branch_coro(
                 self.httpfs._get_file  # pylint: disable=protected-access
             )
-            # get_coro = self.httpfs._get_file  # pylint: disable=protected-access
             with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
                 return await get_coro(
                     from_path,

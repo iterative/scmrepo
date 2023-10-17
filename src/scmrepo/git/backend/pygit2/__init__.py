@@ -3,9 +3,10 @@ import logging
 import os
 import stat
 from contextlib import contextmanager
-from io import BytesIO, StringIO
+from io import BytesIO, StringIO, TextIOWrapper
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Dict,
     Generator,
@@ -55,24 +56,34 @@ class Pygit2Object(GitObject):
         mode: str = "r",
         encoding: str = None,
         key: tuple = None,
-        rev: str = None,
+        raw: bool = True,
+        rev: Optional[str] = None,
         **kwargs,
     ):
-        from pygit2 import GitError
+        from pygit2 import BlobIO, GitError
 
         if not encoding:
             encoding = locale.getpreferredencoding(False)
         if self.backend is not None:
-            if rev:
-                commit, _ref = self.backend._resolve_refish(rev)
-            else:
-                pass
             try:
-                path = "/".join(key)
-                data = self.obj.filter(path, commit_id=commit.oid)
+                if rev:
+                    commit, _ref = self.backend._resolve_refish(rev)
+                else:
+                    pass
+                if raw:
+                    blob_kwargs = {}
+                else:
+                    path = "/".join(key)
+                    blob_kwargs: Dict[str, Any] = {
+                        "as_path": path,
+                        "commit_id": commit.oid,
+                    }
+                blobio = BlobIO(self.obj, **blob_kwargs)
+                if mode == "rb":
+                    return blobio
+                return TextIOWrapper(blobio, encoding=encoding)
             except GitError as exc:
-                logger.debug(f"pygit2 filter failed: {exc}")
-                data = self.obj.read_raw()
+                raise SCMError("failed to read git blob") from exc
         else:
             data = self.obj.read_raw()
         if mode == "rb":
@@ -164,7 +175,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             # for subsequent backend instances, this call will error out since
             # the filter is already registered
             pygit2.filter_register("lfs", LFSFilter)
-        except pygit2.GitError:
+        except ValueError:
             pass
 
     def close(self):

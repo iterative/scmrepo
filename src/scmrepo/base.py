@@ -1,7 +1,8 @@
 """Manages source control systems (e.g. Git) in DVC."""
+from contextlib import AbstractContextManager
 
 
-class Base:
+class Base(AbstractContextManager):
     """Base class for source control management driver implementations."""
 
     def __init__(self, root_dir=None):
@@ -17,6 +18,9 @@ class Base:
         return "{class_name}: '{directory}'".format(
             class_name=type(self).__name__, directory=self.dir
         )
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     @property
     def dir(self):

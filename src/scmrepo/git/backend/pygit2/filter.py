@@ -15,11 +15,13 @@ class LFSFilter(Filter):
 
     def __init__(self, *args, **kwargs):
         self._smudge_buf: Optional[io.BytesIO] = None
+        self._smudge_src: Optional["FilterSource"] = None
 
     def check(self, src: "FilterSource", attr_values: List[str]):
         if attr_values[0] == "lfs":
             if src.mode != GIT_FILTER_CLEAN:
                 self._smudge_buf = io.BytesIO()
+                self._smudge_src = src
                 return
         raise Passthrough
 
@@ -31,23 +33,30 @@ class LFSFilter(Filter):
             return
         if self._smudge_buf is None:
             self._smudge_buf = io.BytesIO()
+        if self._smudge_src is None:
+            self._smudge_src = src
         self._smudge_buf.write(data)
 
     def close(self, write_next: Callable[[bytes], None]):
         if self._smudge_buf is not None:
-            self._smudge(write_next)
+            assert self._smudge_src
+            self._smudge(self._smudge_src, write_next)
 
-    def _smudge(self, write_next: Callable[[bytes], None]):
+    def _smudge(self, src: "FilterSource", write_next: Callable[[bytes], None]):
         from scmrepo.git import Git
         from scmrepo.git.lfs import smudge
 
         self._smudge_buf.seek(0)
-        scm = Git()
-        try:
-            with smudge(scm.lfs_storage, self._smudge_buf) as fobj:
-                data = fobj.read(io.DEFAULT_BUFFER_SIZE)
+        with Git(src.repo.workdir) as scm:
+            try:
+                url: Optional[str] = src.repo.remotes["origin"].url
+            except KeyError:
+                url = None
+            fobj = smudge(scm.lfs_storage, self._smudge_buf, url=url)
+            data = fobj.read(io.DEFAULT_BUFFER_SIZE)
+            try:
                 while data:
                     write_next(data)
                     data = fobj.read(io.DEFAULT_BUFFER_SIZE)
-        finally:
-            scm.close()
+            except KeyboardInterrupt:
+                return
