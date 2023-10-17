@@ -401,7 +401,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         return GitCommit(
             str(commit.id),
             commit.commit_time,
-            commit.commit_time_offset,
+            commit.commit_time_offset * 60,
             commit.message,
             [str(parent) for parent in commit.parent_ids],
             commit.committer.name,
@@ -409,7 +409,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             commit.author.name,
             commit.author.email,
             commit.author.time,
-            commit.author.offset,
+            commit.author.offset * 60,
         )
 
     def _get_stash(self, ref: str):
@@ -962,7 +962,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     tag.tagger.name,
                     tag.tagger.email,
                     tag.tagger.time,
-                    tag.tagger.offset,
+                    tag.tagger.offset * 60,
                     tag.message,
                 )
         except KeyError:
