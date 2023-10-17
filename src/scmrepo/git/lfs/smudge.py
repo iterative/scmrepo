@@ -1,6 +1,5 @@
 import io
 import logging
-from contextlib import contextmanager
 from typing import TYPE_CHECKING, BinaryIO, Optional
 
 from .pointer import ALLOWED_VERSIONS, Pointer
@@ -14,23 +13,26 @@ logger = logging.getLogger(__name__)
 _HEADERS = (b"version " + version.encode("utf-8") for version in ALLOWED_VERSIONS)
 
 
-@contextmanager
-def smudge(storage: "LFSStorage", fobj: BinaryIO) -> BinaryIO:
+def smudge(
+    storage: "LFSStorage", fobj: BinaryIO, url: Optional[str] = None
+) -> BinaryIO:
     """Wrap the specified binary IO stream and run LFS smudge if necessary."""
     reader = io.BufferedReader(fobj)
     data = reader.peek(100)
     if any(data.startswith(header) for header in _HEADERS):
+        # read the pointer data into memory since the raw stream is unseekable
+        # and we may need to return it in fallback case
+        data = reader.read()
         lfs_obj: Optional[BinaryIO] = None
         try:
-            pointer = Pointer.load(reader)
-            lfs_obj = storage.open(pointer.oid, mode="rb")
+            pointer = Pointer.load(io.BytesIO(data))
+            lfs_obj = storage.open(pointer, mode="rb", fetch_url=url)
         except (ValueError, OSError):
-            logger.warning("Could not open LFS object, falling back to pointer")
+            logger.warning("Could not open LFS object, falling back to raw pointer")
         if lfs_obj:
-            with lfs_obj:
-                yield lfs_obj
-            return
-    yield reader
+            return lfs_obj
+        return io.BytesIO(data)
+    return reader
 
 
 if __name__ == "__main__":
