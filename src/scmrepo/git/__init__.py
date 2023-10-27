@@ -397,6 +397,7 @@ class Git(Base):
     check_ref_format = partialmethod(_backend_func, "check_ref_format")
     get_tag = partialmethod(_backend_func, "get_tag")
     get_config = partialmethod(_backend_func, "get_config")
+    check_attr = partialmethod(_backend_func, "check_attr")
 
     get_tree_obj = partialmethod(_backend_func, "get_tree_obj")
 

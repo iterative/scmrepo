@@ -971,6 +971,14 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             return DulwichConfig(ConfigFile.from_path(path))
         return DulwichConfig(self.repo.get_config_stack())
 
+    def check_attr(
+        self,
+        path: str,
+        attr: str,
+        source: Optional[str] = None,
+    ) -> Optional[Union[bool, str]]:
+        raise NotImplementedError
+
 
 _IDENTITY_RE = re.compile(r"(?P<name>.+)\s+<(?P<email>.+)>")
 
