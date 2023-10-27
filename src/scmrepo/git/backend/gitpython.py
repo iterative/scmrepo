@@ -21,6 +21,7 @@ from funcy import ignore
 
 from scmrepo.exceptions import (
     CloneError,
+    InvalidRemote,
     MergeConflictError,
     RevError,
     SCMError,
@@ -713,6 +714,14 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def validate_git_remote(self, url: str, **kwargs):
         raise NotImplementedError
+
+    def get_remote_url(self, remote: str) -> str:
+        from git.exc import GitCommandError
+
+        try:
+            return self.repo.remotes[remote].url
+        except (KeyError, GitCommandError) as exc:
+            raise InvalidRemote(remote) from exc
 
     def check_ref_format(self, refname: str):
         raise NotImplementedError
