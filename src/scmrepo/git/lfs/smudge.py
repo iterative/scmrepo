@@ -2,15 +2,12 @@ import io
 import logging
 from typing import TYPE_CHECKING, BinaryIO, Optional
 
-from .pointer import ALLOWED_VERSIONS, Pointer
+from .pointer import HEADERS, Pointer
 
 if TYPE_CHECKING:
     from .storage import LFSStorage
 
 logger = logging.getLogger(__name__)
-
-
-_HEADERS = (b"version " + version.encode("utf-8") for version in ALLOWED_VERSIONS)
 
 
 def smudge(
@@ -19,7 +16,7 @@ def smudge(
     """Wrap the specified binary IO stream and run LFS smudge if necessary."""
     reader = io.BufferedReader(fobj)
     data = reader.peek(100)
-    if any(data.startswith(header) for header in _HEADERS):
+    if any(data.startswith(header) for header in HEADERS):
         # read the pointer data into memory since the raw stream is unseekable
         # and we may need to return it in fallback case
         data = reader.read()

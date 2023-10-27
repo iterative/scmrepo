@@ -22,6 +22,11 @@ class LFSStorage:
     def oid_to_path(self, oid: str):
         return os.path.join(self.path, "objects", oid[0:2], oid[2:4], oid)
 
+    def exists(self, obj: Union[Pointer, str]):
+        oid = obj if isinstance(obj, str) else obj.oid
+        path = self.oid_to_path(oid)
+        return os.path.exists(path)
+
     def open(
         self,
         obj: Union[Pointer, str],
@@ -38,7 +43,6 @@ class LFSStorage:
         try:
             self.fetch(fetch_url, [obj])
         except BaseException as exc:
-            print("fetch interrupted")
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), path
             ) from exc
