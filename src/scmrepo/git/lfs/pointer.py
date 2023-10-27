@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 LFS_VERSION = "https://git-lfs.github.com/spec/v1"
 LEGACY_LFS_VERSION = "https://hawser.github.com/spec/v1"
 ALLOWED_VERSIONS = (LFS_VERSION, LEGACY_LFS_VERSION)
+HEADERS = [(b"version " + version.encode("utf-8")) for version in ALLOWED_VERSIONS]
 
 
 def _get_kv(line: str) -> Tuple[str, str]:
@@ -25,6 +26,9 @@ class Pointer:
         self.oid = oid
         self.size = size
         self._dict = kwargs
+
+    def __hash__(self):
+        return hash(self.dump())
 
     @classmethod
     def build(cls, fobj: BinaryIO) -> "Pointer":
