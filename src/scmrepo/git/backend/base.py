@@ -432,3 +432,24 @@ class BaseGitBackend(ABC):
                 returned. By default, the standard Git system/global/repo config
                 stack object will be returned.
         """
+
+    @abstractmethod
+    def check_attr(
+        self,
+        path: str,
+        attr: str,
+        source: Optional[str] = None,
+    ) -> Optional[Union[bool, str]]:
+        """Return the value of the specified attribute for a pathname.
+
+        Args:
+            path: Pathname to check.
+            attr: Attribute to check.
+            source: Optional tree-ish source to check.
+
+        Returns:
+            None when the attribute is not defined for the path (unspecified).
+            True when the attribute is defined as true (set).
+            False when the attribute is defined as false (unset).
+            The value of the attribute when a value has been assigned.
+        """

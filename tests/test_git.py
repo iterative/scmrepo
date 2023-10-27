@@ -1142,3 +1142,19 @@ def test_config(tmp_dir, scm: Git, git: Git):
     config = git.get_config(".otherconfig")
     assert config.get(("test",), "foo") == "false"
     assert config.get_bool(("test",), "foo") is False
+
+
+@pytest.mark.skip_git_backend("dulwich")
+def test_check_attr(tmp_dir, scm: Git, git: Git):
+    tmp_dir.gen("foo.txt", "foo")
+    tmp_dir.gen(".gitattributes", "*.txt text")
+    scm.add_commit([".gitattributes", "foo"], message="init")
+    rev = scm.get_rev()
+    assert git.check_attr("foo.txt", "text") is True
+    assert git.check_attr("foo.txt", "filter") is None
+
+    tmp_dir.gen(".gitattributes", "*.txt -text filter=lfs")
+    assert git.check_attr("foo.txt", "text") is False
+    assert git.check_attr("foo.txt", "filter") == "lfs"
+    assert git.check_attr("foo.txt", "text", source=rev) is True
+    assert git.check_attr("foo.txt", "filter", source=rev) is None

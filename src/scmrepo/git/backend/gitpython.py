@@ -2,6 +2,7 @@ import io
 import locale
 import logging
 import os
+import re
 import sys
 from functools import partial, wraps
 from typing import (
@@ -764,3 +765,29 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def get_config(self, path: Optional[str] = None) -> "Config":
         raise NotImplementedError
+
+    def check_attr(
+        self,
+        path: str,
+        attr: str,
+        source: Optional[str] = None,
+    ) -> Optional[Union[bool, str]]:
+        from git.exc import GitCommandError
+
+        try:
+            result = self.git.check_attr(attr, "--", path, source=source)
+        except GitCommandError as exc:
+            raise SCMError("Failed to check attribute") from exc
+        escaped_path = re.escape(path)
+        escaped_attr = re.escape(attr)
+        m = re.match(f"{escaped_path}: {escaped_attr}: (?P<info>.*)", result)
+        if not m or not m.group("info"):
+            raise SCMError("Failed to check attribute")
+        info = m.group("info")
+        if info == "unspecified":
+            return None
+        if info == "set":
+            return True
+        if info == "unset":
+            return False
+        return info

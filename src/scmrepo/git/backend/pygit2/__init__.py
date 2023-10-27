@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from pygit2 import Oid, Signature
+    from pygit2 import Commit, Oid, Signature
     from pygit2.config import Config as _Pygit2Config
     from pygit2.remote import Remote  # type: ignore
     from pygit2.repository import Repository
@@ -1097,3 +1097,31 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         if path:
             return Pygit2Config(_Pygit2Config(path))
         return Pygit2Config(self.repo.config)
+
+    def check_attr(
+        self,
+        path: str,
+        attr: str,
+        source: Optional[str] = None,
+    ) -> Optional[Union[bool, str]]:
+        from pygit2 import (
+            GIT_ATTR_CHECK_FILE_THEN_INDEX,
+            GIT_ATTR_CHECK_INCLUDE_COMMIT,
+            GIT_ATTR_CHECK_INDEX_ONLY,
+            GitError,
+        )
+
+        commit: Optional["Commit"] = None
+        flags = GIT_ATTR_CHECK_FILE_THEN_INDEX
+        if source:
+            try:
+                commit, _ref = self._resolve_refish(source)
+                flags = GIT_ATTR_CHECK_INDEX_ONLY | GIT_ATTR_CHECK_INCLUDE_COMMIT
+            except (KeyError, GitError) as exc:
+                raise SCMError(f"Invalid commit '{source}'") from exc
+        try:
+            return self.repo.get_attr(
+                path, attr, flags=flags, commit=commit.id if commit else None
+            )
+        except GitError as exc:
+            raise SCMError("Failed to check attribute") from exc
