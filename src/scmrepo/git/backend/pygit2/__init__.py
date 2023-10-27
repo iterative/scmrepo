@@ -20,7 +20,13 @@ from urllib.parse import urlparse
 
 from funcy import cached_property, reraise
 
-from scmrepo.exceptions import CloneError, MergeConflictError, RevError, SCMError
+from scmrepo.exceptions import (
+    CloneError,
+    InvalidRemote,
+    MergeConflictError,
+    RevError,
+    SCMError,
+)
 from scmrepo.git.backend.base import BaseGitBackend, SyncStatus
 from scmrepo.git.objects import GitCommit, GitObject, GitTag
 from scmrepo.utils import relpath
@@ -967,6 +973,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def validate_git_remote(self, url: str, **kwargs):
         raise NotImplementedError
+
+    def get_remote_url(self, remote: str) -> str:
+        try:
+            return self.repo.remotes[remote].url
+        except KeyError as exc:
+            raise InvalidRemote(remote) from exc
 
     def check_ref_format(self, refname: str):
         raise NotImplementedError

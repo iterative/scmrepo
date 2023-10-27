@@ -383,6 +383,7 @@ class Git(Base):
     status = partialmethod(_backend_func, "status")
     merge = partialmethod(_backend_func, "merge")
     validate_git_remote = partialmethod(_backend_func, "validate_git_remote")
+    get_remote_url = partialmethod(_backend_func, "get_remote_url")
     check_ref_format = partialmethod(_backend_func, "check_ref_format")
     get_tag = partialmethod(_backend_func, "get_tag")
 
