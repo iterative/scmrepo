@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from pygit2 import Signature
+    from pygit2 import Oid, Signature
     from pygit2.remote import Remote  # type: ignore
     from pygit2.repository import Repository
 
@@ -551,7 +551,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         raise SCMError("Unknown merge analysis result")
 
     @contextmanager
-    def get_remote(self, url: str) -> Generator["Remote", None, None]:
+    def _get_remote(self, url: str) -> Generator["Remote", None, None]:
+        """Return a pygit2.Remote suitable for the specified Git URL or remote name."""
         try:
             remote = self.repo.remotes[url]
             url = remote.url
@@ -577,56 +578,83 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         progress: Callable[["GitProgressEvent"], None] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
+        import fnmatch
+
         from pygit2 import GitError
 
         from .callbacks import RemoteCallbacks
 
-        if isinstance(refspecs, str):
-            refspecs = [refspecs]
+        refspecs = self._refspecs_list(refspecs, force=force)
 
-        with self.get_remote(url) as remote:
-            fetch_refspecs: List[str] = []
-            for refspec in refspecs:
-                if ":" in refspec:
-                    lh, rh = refspec.split(":")
-                else:
-                    lh = rh = refspec
-                if not rh.startswith("refs/"):
-                    rh = f"refs/heads/{rh}"
-                if not lh.startswith("refs/"):
-                    lh = f"refs/heads/{lh}"
-                rh = rh[len("refs/") :]
-                refspec = f"+{lh}:refs/remotes/{remote.name}/{rh}"
-                fetch_refspecs.append(refspec)
+        # libgit2 rejects diverged refs but does not have a callback to notify
+        # when a ref was rejected so we have to determine whether no callback
+        # means up to date or rejected
+        def _default_status(
+            src: str, dst: str, remote_refs: Dict[str, "Oid"]
+        ) -> SyncStatus:
+            try:
+                if remote_refs[src] != self.repo.references[dst].target:
+                    return SyncStatus.DIVERGED
+            except KeyError:
+                # remote_refs lookup is skipped when force is set, refs cannot
+                # be diverged on force
+                pass
+            return SyncStatus.UP_TO_DATE
 
-            logger.debug("fetch_refspecs: %s", fetch_refspecs)
+        with self._get_remote(url) as remote:
             with reraise(
                 GitError,
                 SCMError(f"Git failed to fetch ref from '{url}'"),
             ):
                 with RemoteCallbacks(progress=progress) as cb:
+                    remote_refs: Dict[str, "Oid"] = (
+                        {
+                            head["name"]: head["oid"]
+                            for head in remote.ls_remotes(callbacks=cb)
+                        }
+                        if not force
+                        else {}
+                    )
                     remote.fetch(
-                        refspecs=fetch_refspecs,
+                        refspecs=refspecs,
                         callbacks=cb,
+                        message="fetch",
                     )
 
             result: Dict[str, "SyncStatus"] = {}
-            for refspec in fetch_refspecs:
-                _, rh = refspec.split(":")
-                if not rh.endswith("*"):
-                    refname = rh.split("/", 3)[-1]
-                    refname = f"refs/{refname}"
-                    result[refname] = self._merge_remote_branch(
-                        rh, refname, force, on_diverged
-                    )
-                    continue
-                rh = rh.rstrip("*").rstrip("/") + "/"
-                for branch in self.iter_refs(base=rh):
-                    refname = f"refs/{branch[len(rh):]}"
-                    result[refname] = self._merge_remote_branch(
-                        branch, refname, force, on_diverged
-                    )
+            for refspec in refspecs:
+                lh, rh = refspec.split(":")
+                if lh.endswith("*"):
+                    assert rh.endswith("*")
+                    lh_prefix = lh[:-1]
+                    rh_prefix = rh[:-1]
+                    for refname in remote_refs:
+                        if fnmatch.fnmatch(refname, lh):
+                            src = refname
+                            dst = f"{rh_prefix}{refname[len(lh_prefix):]}"
+                            result[dst] = cb.result.get(
+                                src, _default_status(src, dst, remote_refs)
+                            )
+                else:
+                    result[rh] = cb.result.get(lh, _default_status(lh, rh, remote_refs))
+
         return result
+
+    @staticmethod
+    def _refspecs_list(
+        refspecs: Union[str, Iterable[str]],
+        force: bool = False,
+    ) -> List[str]:
+        if isinstance(refspecs, str):
+            if force and not refspecs.startswith("+"):
+                refspecs = f"+{refspecs}"
+            return [refspecs]
+        if force:
+            return [
+                (refspec if refspec.startswith("+") else f"+{refspec}")
+                for refspec in refspecs
+            ]
+        return list(refspecs)
 
     def _stash_iter(self, ref: str):
         raise NotImplementedError

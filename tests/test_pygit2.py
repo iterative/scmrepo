@@ -74,7 +74,7 @@ def test_pygit_stash_apply_conflicts(
 def test_pygit_ssh_error(tmp_dir: TmpDir, scm: Git, url):
     backend = Pygit2Backend(tmp_dir)
     with pytest.raises(NotImplementedError):
-        with backend.get_remote(url):
+        with backend._get_remote(url):  # pylint: disable=protected-access
             pass
 
 

@@ -1,13 +1,15 @@
 from contextlib import AbstractContextManager
 from types import TracebackType
-from typing import TYPE_CHECKING, Callable, Optional, Type, Union
+from typing import TYPE_CHECKING, Callable, Dict, Optional, Type, Union
 
 from pygit2 import RemoteCallbacks as _RemoteCallbacks
 
+from scmrepo.git.backend.base import SyncStatus
 from scmrepo.git.credentials import Credential, CredentialNotFoundError
 from scmrepo.progress import GitProgressReporter
 
 if TYPE_CHECKING:
+    from pygit2 import Oid
     from pygit2.credentials import Keypair, Username, UserPass
 
     from scmrepo.progress import GitProgressEvent
@@ -27,6 +29,7 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
         self.progress = GitProgressReporter(progress) if progress else None
         self._store_credentials: Optional["Credential"] = None
         self._tried_credentials = False
+        self.result: Dict[str, SyncStatus] = {}
 
     def __exit__(
         self,
@@ -66,3 +69,9 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
     def _approve_credentials(self):
         if self._store_credentials:
             self._store_credentials.approve()
+
+    def update_tips(self, refname: str, old: "Oid", new: "Oid"):
+        if old == new:
+            self.result[refname] = SyncStatus.UP_TO_DATE
+        else:
+            self.result[refname] = SyncStatus.SUCCESS
