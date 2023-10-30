@@ -263,6 +263,9 @@ class BaseGitBackend(ABC):
                 returns True the local ref will be overwritten.
                 Callback will be of the form:
                     on_diverged(local_refname, remote_sha)
+
+        Returns:
+            Mapping of local_refname to sync status.
         """
 
     @abstractmethod
