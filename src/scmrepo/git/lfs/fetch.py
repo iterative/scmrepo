@@ -1,13 +1,15 @@
 import fnmatch
 import io
+import os
 from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional
 
-from scmrepo.exceptions import InvalidRemote
+from scmrepo.exceptions import InvalidRemote, SCMError
 
 from .pointer import HEADERS, Pointer
 
 if TYPE_CHECKING:
     from scmrepo.git import Git
+    from scmrepo.git.config import Config
 
 
 def fetch(
@@ -20,8 +22,6 @@ def fetch(
     # NOTE: This currently does not support fetching objects from the worktree
     if not revs:
         revs = ["HEAD"]
-    if not remote:
-        remote = "origin"
     objects = set()
     for rev in revs:
         objects.update(
@@ -29,12 +29,69 @@ def fetch(
             for pointer in _collect_objects(scm, rev, include, exclude)
             if not scm.lfs_storage.exists(pointer)
         )
+    if not objects:
+        return
     try:
-        url = scm.get_remote_url(remote)
+        url = get_fetch_url(scm, remote=remote)
     except InvalidRemote:
-        # treat remote as a raw git URL
-        url = remote
+        if remote:
+            # treat remote as a raw Git remote
+            url = remote
+        else:
+            raise
     scm.lfs_storage.fetch(url, objects)
+
+
+def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901
+    """Return LFS fetch URL for the specified repository."""
+    git_config = scm.get_config()
+
+    # check lfs.url (can be set in git config and .lfsconfig)
+    try:
+        return git_config.get(("lfs",), "url")
+    except KeyError:
+        pass
+    try:
+        lfs_config: Optional["Config"] = scm.get_config(
+            os.path.join(scm.root_dir, ".lfsconfig")
+        )
+    except FileNotFoundError:
+        lfs_config = None
+    if lfs_config:
+        try:
+            return lfs_config.get(("lfs",), "url")
+        except KeyError:
+            pass
+
+    # use:
+    #   current tracking-branch remote
+    #   or remote.lfsdefault  (can only be set in git config)
+    #   or "origin"
+    # in that order
+    if not remote:
+        try:
+            remote = scm.active_branch_remote()
+        except SCMError:
+            pass
+    if not remote:
+        try:
+            remote = git_config.get(("remote",), "lfsdefault")
+        except KeyError:
+            remote = "origin"
+
+    # check remote.*.lfsurl (can be set in git config and .lfsconfig)
+    try:
+        return git_config.get(("remote", remote), "lfsurl")
+    except KeyError:
+        pass
+    if lfs_config:
+        try:
+            return lfs_config.get(("remote", remote), "lfsurl")
+        except KeyError:
+            pass
+
+    # return default Git fetch URL for this remote
+    return scm.get_remote_url(remote)
 
 
 def _collect_objects(
