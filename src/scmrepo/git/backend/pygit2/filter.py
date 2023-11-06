@@ -43,14 +43,17 @@ class LFSFilter(Filter):
             self._smudge(self._smudge_src, write_next)
 
     def _smudge(self, src: "FilterSource", write_next: Callable[[bytes], None]):
+        from scmpreo.exceptions import InvalidRemote
+
         from scmrepo.git import Git
         from scmrepo.git.lfs import smudge
+        from scmrepo.git.lfs.fetch import get_fetch_url
 
         self._smudge_buf.seek(0)
         with Git(src.repo.workdir) as scm:
             try:
-                url: Optional[str] = src.repo.remotes["origin"].url
-            except KeyError:
+                url = get_fetch_url(scm)
+            except InvalidRemote:
                 url = None
             fobj = smudge(scm.lfs_storage, self._smudge_buf, url=url)
             data = fobj.read(io.DEFAULT_BUFFER_SIZE)
