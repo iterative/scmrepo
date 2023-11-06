@@ -10,6 +10,7 @@ from ..objects import GitObject
 if TYPE_CHECKING:
     from scmrepo.progress import GitProgressEvent
 
+    from ..config import Config
     from ..objects import GitCommit, GitTag
 
 
@@ -416,4 +417,14 @@ class BaseGitBackend(ABC):
             None if the specified tag does not exist.
             String SHA for the target object if the tag is a lightweight tag.
             GitTag object if the tag is an annotated tag.
+        """
+
+    @abstractmethod
+    def get_config(self, path: Optional[str] = None) -> "Config":
+        """Return a Git config object.
+
+        Args:
+            path: If set, a config object for the specified config file will be
+                returned. By default, the standard Git system/global/repo config
+                stack object will be returned.
         """

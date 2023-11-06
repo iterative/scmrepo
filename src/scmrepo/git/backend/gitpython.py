@@ -35,6 +35,8 @@ from .base import BaseGitBackend, SyncStatus
 if TYPE_CHECKING:
     from scmrepo.progress import GitProgressEvent
 
+    from ..config import Config
+
 
 logger = logging.getLogger(__name__)
 
@@ -745,3 +747,6 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except IndexError:
             pass
         return None
+
+    def get_config(self, path: Optional[str] = None) -> "Config":
+        raise NotImplementedError

@@ -10,6 +10,7 @@ from typing import (
     Dict,
     Generator,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Optional,
@@ -28,6 +29,7 @@ from scmrepo.exceptions import (
     SCMError,
 )
 from scmrepo.git.backend.base import BaseGitBackend, SyncStatus
+from scmrepo.git.config import Config
 from scmrepo.git.objects import GitCommit, GitObject, GitTag
 from scmrepo.utils import relpath
 
@@ -36,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from pygit2 import Oid, Signature
+    from pygit2.config import Config as _Pygit2Config
     from pygit2.remote import Remote  # type: ignore
     from pygit2.repository import Repository
 
@@ -81,6 +84,33 @@ class Pygit2Object(GitObject):
     def scandir(self) -> Iterable["Pygit2Object"]:
         for entry in self.obj:  # noqa: B301
             yield Pygit2Object(entry)
+
+
+class Pygit2Config(Config):
+    def __init__(self, config: "_Pygit2Config"):
+        self._config = config
+
+    def _key(self, section: Tuple[str], name: str) -> str:
+        return ".".join(section + (name,))
+
+    def get(self, section: Tuple[str], name: str) -> str:
+        return self._config[self._key(section, name)]
+
+    def get_bool(self, section: Tuple[str], name: str) -> bool:
+        from pygit2 import GitError
+
+        try:
+            return self._config.get_bool(self._key(section, name))
+        except GitError as exc:
+            raise ValueError("invalid boolean config entry") from exc
+
+    def get_multivar(self, section: Tuple[str], name: str) -> Iterator[str]:
+        from pygit2 import GitError
+
+        try:
+            yield from self._config.get_multivar(self._key(section, name))
+        except GitError as exc:
+            raise ValueError("invalid multivar config entry") from exc
 
 
 class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
@@ -1008,3 +1038,10 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         except KeyError:
             pass
         return str(ref.target)
+
+    def get_config(self, path: Optional[str] = None) -> "Config":
+        from pygit2.config import Config as _Pygit2Config
+
+        if path:
+            return Pygit2Config(_Pygit2Config(path))
+        return Pygit2Config(self.repo.config)

@@ -1129,3 +1129,16 @@ def test_get_tag(tmp_dir, scm: Git, git: Git):
     assert isinstance(tag, GitTag)
     assert tag.target == rev
     assert tag.message.strip() == "message"
+
+
+@pytest.mark.skip_git_backend("gitpython")
+def test_config(tmp_dir, scm: Git, git: Git):
+    tmp_dir.gen({".git": {"config": "[test]\nfoo = true\n"}})
+    tmp_dir.gen(".otherconfig", "[test]\nfoo = false\n")
+    config = git.get_config()
+    assert config.get(("test",), "foo") == "true"
+    assert config.get_bool(("test",), "foo") is True
+
+    config = git.get_config(".otherconfig")
+    assert config.get(("test",), "foo") == "false"
+    assert config.get_bool(("test",), "foo") is False
