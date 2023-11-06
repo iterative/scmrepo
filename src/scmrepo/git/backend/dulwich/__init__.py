@@ -27,11 +27,13 @@ from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, RevError, S
 from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
 
+from ...config import Config
 from ...objects import GitObject, GitTag
 from ..base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
     from dulwich.client import SSHVendor
+    from dulwich.config import ConfigFile, StackedConfig
     from dulwich.repo import Repo
 
     from scmrepo.progress import GitProgressEvent
@@ -128,6 +130,35 @@ def _get_ssh_vendor() -> "SSHVendor":
         )
         return SubprocessSSHVendor()
     return AsyncSSHVendor()
+
+
+class DulwichConfig(Config):
+    def __init__(self, config: Union["ConfigFile", "StackedConfig"]):
+        self._config = config
+
+    @property
+    def encoding(self) -> str:
+        from dulwich.config import ConfigFile
+
+        if isinstance(self._config, ConfigFile):
+            return self._config.encoding
+        return self._config.backends[0].encoding
+
+    def get(self, section: Tuple[str], name: str) -> str:
+        """Return the specified setting as a string."""
+        return self._config.get(section, name).decode(self.encoding)
+
+    def get_bool(self, section: Tuple[str], name: str) -> bool:
+        """Return the specified setting as a boolean."""
+        value = self._config.get_boolean(section, name)
+        if value is None:
+            raise ValueError("setting is not a valid boolean")
+        return value
+
+    def get_multivar(self, section: Tuple[str], name: str) -> Iterator[str]:
+        """Iterate over string values in the specified multivar setting."""
+        for value in self._config.get_multivar(section, name):
+            yield value.decode(self.encoding)
 
 
 class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
@@ -920,6 +951,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 tag.message.decode("utf-8"),
             )
         return os.fsdecode(ref)
+
+    def get_config(self, path: Optional[str] = None) -> "Config":
+        from dulwich.config import ConfigFile
+
+        if path:
+            return DulwichConfig(ConfigFile.from_path(path))
+        return DulwichConfig(self.repo.get_config_stack())
 
 
 _IDENTITY_RE = re.compile(r"(?P<name>.+)\s+<(?P<email>.+)>")
