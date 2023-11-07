@@ -137,6 +137,10 @@ class BaseGitBackend(ABC):
         pass
 
     @abstractmethod
+    def active_branch_remote(self) -> str:
+        """Return the fetch remote name for the current branch."""
+
+    @abstractmethod
     def list_branches(self) -> Iterable[str]:
         pass
 

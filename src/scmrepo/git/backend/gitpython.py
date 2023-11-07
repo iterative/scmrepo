@@ -344,6 +344,12 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except TypeError as exc:
             raise SCMError("No active branch") from exc
 
+    def active_branch_remote(self) -> str:
+        try:
+            return self.repo.active_branch.tracking_branch()
+        except (TypeError, ValueError) as exc:
+            raise SCMError("No active branch tracking remote") from exc
+
     def list_branches(self):
         return [h.name for h in self.repo.heads]
 

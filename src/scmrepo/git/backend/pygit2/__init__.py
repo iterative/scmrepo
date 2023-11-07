@@ -389,6 +389,15 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             return self.repo.references["HEAD"].target[11:]
         return self.repo.head.shorthand
 
+    def active_branch_remote(self) -> str:
+        try:
+            upstream = self.repo.branches[self.active_branch()].upstream
+            if upstream:
+                return upstream.remote_name
+        except (KeyError, ValueError):
+            pass
+        raise SCMError("No active branch tracking remote")
+
     def list_branches(self) -> Iterable[str]:
         base = "refs/heads/"
         return sorted(ref[len(base) :] for ref in self.iter_refs(base))
