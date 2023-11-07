@@ -174,9 +174,9 @@ class Git(Base):
     @cached_property
     def lfs_storage(self):
         from .lfs import LFSStorage
+        from .lfs.storage import get_storage_path
 
-        path = os.path.join(self._get_git_dir(self.root_dir), "lfs")
-        return LFSStorage(path)
+        return LFSStorage(get_storage_path(self))
 
     def _get_gitignore(self, path):
         ignore_file_dir = os.path.dirname(path)
