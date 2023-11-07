@@ -461,6 +461,9 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def active_branch(self) -> str:
         raise NotImplementedError
 
+    def active_branch_remote(self) -> str:
+        raise NotImplementedError
+
     def list_branches(self) -> Iterable[str]:
         base = "refs/heads/"
         return sorted(ref[len(base) :] for ref in self.iter_refs(base))
