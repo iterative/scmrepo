@@ -1,7 +1,7 @@
 import fnmatch
 import io
 import os
-from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Optional
 
 from scmrepo.exceptions import InvalidRemote, SCMError
 
@@ -10,6 +10,7 @@ from .pointer import HEADERS, Pointer
 if TYPE_CHECKING:
     from scmrepo.git import Git
     from scmrepo.git.config import Config
+    from scmrepo.progress import GitProgressEvent
 
 
 def fetch(
@@ -18,6 +19,7 @@ def fetch(
     remote: Optional[str] = None,
     include: Optional[List[str]] = None,
     exclude: Optional[List[str]] = None,
+    progress: Optional[Callable[["GitProgressEvent"], None]] = None,
 ):
     # NOTE: This currently does not support fetching objects from the worktree
     if not revs:
@@ -39,7 +41,7 @@ def fetch(
             url = remote
         else:
             raise
-    scm.lfs_storage.fetch(url, objects)
+    scm.lfs_storage.fetch(url, objects, progress=progress)
 
 
 def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901
