@@ -1,23 +1,28 @@
 import errno
 import os
-from typing import TYPE_CHECKING, BinaryIO, Collection, Optional, Union
-
-from dvc_objects.fs.callbacks import TqdmCallback
+from typing import TYPE_CHECKING, BinaryIO, Callable, Collection, Optional, Union
 
 from .pointer import Pointer
+from .progress import LFSCallback
 
 if TYPE_CHECKING:
     from scmrepo.git import Git
+    from scmrepo.progress import GitProgressEvent
 
 
 class LFSStorage:
     def __init__(self, path: str):
         self.path = path
 
-    def fetch(self, url: str, objects: Collection[Pointer]):
+    def fetch(
+        self,
+        url: str,
+        objects: Collection[Pointer],
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
+    ):
         from .client import LFSClient
 
-        with TqdmCallback(desc="Fetching LFS objects", unit="obj") as cb:
+        with LFSCallback.as_lfs_callback(progress) as cb:
             cb.set_size(len(objects))
             with LFSClient.from_git_url(url) as client:
                 client.download(self, objects, callback=cb)
