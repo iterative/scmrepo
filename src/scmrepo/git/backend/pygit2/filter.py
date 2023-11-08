@@ -15,13 +15,13 @@ class LFSFilter(Filter):
 
     def __init__(self, *args, **kwargs):
         self._smudge_buf: Optional[io.BytesIO] = None
-        self._smudge_src: Optional["FilterSource"] = None
+        self._smudge_git_dir: Optional[str] = None
 
     def check(self, src: "FilterSource", attr_values: List[str]):
         if attr_values[0] == "lfs":
             if src.mode != GIT_FILTER_CLEAN:
                 self._smudge_buf = io.BytesIO()
-                self._smudge_src = src
+                self._smudge_root = src.repo.workdir or src.repo.path
                 return
         raise Passthrough
 
@@ -33,24 +33,23 @@ class LFSFilter(Filter):
             return
         if self._smudge_buf is None:
             self._smudge_buf = io.BytesIO()
-        if self._smudge_src is None:
-            self._smudge_src = src
+        if self._smudge_root is None:
+            self._smudge_root = src.repo.workdir or src.repo.path
         self._smudge_buf.write(data)
 
     def close(self, write_next: Callable[[bytes], None]):
         if self._smudge_buf is not None:
-            assert self._smudge_src
-            self._smudge(self._smudge_src, write_next)
+            assert self._smudge_root
+            self._smudge(write_next)
 
-    def _smudge(self, src: "FilterSource", write_next: Callable[[bytes], None]):
-        from scmpreo.exceptions import InvalidRemote
-
+    def _smudge(self, write_next: Callable[[bytes], None]):
+        from scmrepo.exceptions import InvalidRemote
         from scmrepo.git import Git
         from scmrepo.git.lfs import smudge
         from scmrepo.git.lfs.fetch import get_fetch_url
 
         self._smudge_buf.seek(0)
-        with Git(src.repo.workdir) as scm:
+        with Git(self._smudge_root) as scm:
             try:
                 url = get_fetch_url(scm)
             except InvalidRemote:
