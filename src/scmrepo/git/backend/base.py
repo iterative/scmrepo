@@ -406,8 +406,9 @@ class BaseGitBackend(ABC):
     def get_remote_url(self, remote: str) -> str:
         """Return URL for the specified remote."""
 
+    @staticmethod
     @abstractmethod
-    def check_ref_format(self, refname: str) -> bool:
+    def check_ref_format(cls, refname: str) -> bool:
         """Check if a reference name is well formed."""
 
     @abstractmethod

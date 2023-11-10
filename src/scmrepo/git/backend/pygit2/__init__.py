@@ -35,7 +35,6 @@ from scmrepo.utils import relpath
 
 logger = logging.getLogger(__name__)
 
-
 if TYPE_CHECKING:
     from pygit2 import Oid, Signature
     from pygit2.config import Config as _Pygit2Config
@@ -1019,7 +1018,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         except KeyError as exc:
             raise InvalidRemote(remote) from exc
 
-    def check_ref_format(self, refname: str):
+    @classmethod
+    def check_ref_format(cls, refname: str):
         raise NotImplementedError
 
     def get_tag(self, name: str) -> Optional[Union[str, "GitTag"]]:

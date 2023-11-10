@@ -731,7 +731,8 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except (KeyError, GitCommandError) as exc:
             raise InvalidRemote(remote) from exc
 
-    def check_ref_format(self, refname: str):
+    @classmethod
+    def check_ref_format(cls, refname: str):
         raise NotImplementedError
 
     def get_tag(self, name: str) -> Optional[Union[str, "GitTag"]]:
