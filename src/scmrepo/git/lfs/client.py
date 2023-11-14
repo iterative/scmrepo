@@ -78,7 +78,7 @@ def _authed(f: Coroutine):
     async def wrapper(self, *args, **kwargs):
         try:
             return await f(self, *args, **kwargs)
-        except aiohttp.ClientReponseError as exc:
+        except aiohttp.ClientResponseError as exc:
             if exc.status != 401:
                 raise
             session = await self._set_session()
