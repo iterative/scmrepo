@@ -1,7 +1,7 @@
 import fnmatch
 import io
 import os
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Optional, Set
 
 from scmrepo.exceptions import InvalidRemote, SCMError
 
@@ -24,7 +24,7 @@ def fetch(
     # NOTE: This currently does not support fetching objects from the worktree
     if not revs:
         revs = ["HEAD"]
-    objects = set()
+    objects: Set[Pointer] = set()
     for rev in revs:
         objects.update(
             pointer
@@ -82,6 +82,7 @@ def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901
             remote = "origin"
 
     # check remote.*.lfsurl (can be set in git config and .lfsconfig)
+    assert remote is not None
     try:
         return git_config.get(("remote", remote), "lfsurl")
     except KeyError:
@@ -156,6 +157,6 @@ if __name__ == "__main__":
         help="Refs or commits to fetch. Defaults to 'HEAD'.",
     )
     args = parser.parse_args()
-    with Git(".") as scm:
+    with Git(".") as scm_:  # pylint: disable=E0601
         print("fetch: fetching reference", ", ".join(args.refs), file=sys.stderr)
-        fetch(scm, revs=args.refs, remote=args.remote)
+        fetch(scm_, revs=args.refs, remote=args.remote)

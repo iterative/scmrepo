@@ -35,13 +35,13 @@ class LFSCallback(Callback):
 
     def branch(
         self,
-        path_1: "Union[str, BinaryIO]",
+        path_1: Union[str, BinaryIO],
         path_2: str,
         kwargs: Dict[str, Any],
         child: Optional[Callback] = None,
     ):
         if child:
-            child = child
+            pass
         elif self.git_progress:
             child = TqdmCallback(
                 bytes=True, desc=path_1 if isinstance(path_1, str) else path_2

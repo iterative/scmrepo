@@ -1,7 +1,7 @@
 import logging
 from contextlib import AbstractContextManager
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Coroutine, Dict, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, Optional
 
 import aiohttp
 from dvc_http import HTTPFileSystem
@@ -27,9 +27,10 @@ logger = logging.getLogger(__name__)
 
 class _LFSClient(ReadOnlyRetryClient):
     async def _request(self, *args, **kwargs):
-        return await super()._request(*args, **kwargs)
+        return await super()._request(*args, **kwargs)  # pylint: disable=no-member
 
 
+# pylint: disable=abstract-method
 class _LFSFileSystem(HTTPFileSystem):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -71,10 +72,11 @@ class _LFSFileSystem(HTTPFileSystem):
         return ReadOnlyRetryClient(**kwargs)
 
 
-def _authed(f: Coroutine):
+def _authed(f: Callable[..., Awaitable]):
     """Set credentials and retry the given coroutine if needed."""
 
-    @wraps(f)
+    # pylint: disable=protected-access
+    @wraps(f)  # type: ignore[arg-type]
     async def wrapper(self, *args, **kwargs):
         try:
             return await f(self, *args, **kwargs)
@@ -110,7 +112,7 @@ class LFSClient(AbstractContextManager):
         """
         self.url = url
         self.git_url = git_url
-        self.headers = {}
+        self.headers: Dict[str, str] = headers or {}
 
     def __exit__(self, *args, **kwargs):
         self.close()

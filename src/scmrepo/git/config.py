@@ -10,7 +10,7 @@ class Config(ABC):
     """Read-only Git config."""
 
     @abstractmethod
-    def get(self, section: Tuple[str], name: str) -> str:
+    def get(self, section: Tuple[str, ...], name: str) -> str:
         """Return the specified setting as a string.
 
         Raises:
@@ -18,7 +18,7 @@ class Config(ABC):
         """
 
     @abstractmethod
-    def get_bool(self, section: Tuple[str], name: str) -> bool:
+    def get_bool(self, section: Tuple[str, ...], name: str) -> bool:
         """Return the specified setting as a boolean.
 
         Raises:
@@ -27,7 +27,7 @@ class Config(ABC):
         """
 
     @abstractmethod
-    def get_multivar(self, section: Tuple[str], name: str) -> Iterator[str]:
+    def get_multivar(self, section: Tuple[str, ...], name: str) -> Iterator[str]:
         """Iterate over string values in the specified multivar setting.
 
         Raises:

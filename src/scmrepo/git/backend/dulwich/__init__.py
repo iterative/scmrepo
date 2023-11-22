@@ -51,7 +51,7 @@ class DulwichObject(GitObject):
         self._mode = mode
         self._sha = sha
 
-    def open(
+    def open(  # pylint: disable=unused-argument
         self,
         mode: str = "r",
         encoding: Optional[str] = None,
@@ -153,18 +153,18 @@ class DulwichConfig(Config):
             return self._config.encoding
         return self._config.backends[0].encoding
 
-    def get(self, section: Tuple[str], name: str) -> str:
+    def get(self, section: Tuple[str, ...], name: str) -> str:
         """Return the specified setting as a string."""
         return self._config.get(section, name).decode(self.encoding)
 
-    def get_bool(self, section: Tuple[str], name: str) -> bool:
+    def get_bool(self, section: Tuple[str, ...], name: str) -> bool:
         """Return the specified setting as a boolean."""
         value = self._config.get_boolean(section, name)
         if value is None:
             raise ValueError("setting is not a valid boolean")
         return value
 
-    def get_multivar(self, section: Tuple[str], name: str) -> Iterator[str]:
+    def get_multivar(self, section: Tuple[str, ...], name: str) -> Iterator[str]:
         """Iterate over string values in the specified multivar setting."""
         for value in self._config.get_multivar(section, name):
             yield value.decode(self.encoding)
