@@ -4,28 +4,43 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 
-[tool.black]
-line-length = 88
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+[project]
+name = "scmrepo"
+description = "scmrepo"
+readme = "README.rst"
+license = {text = "Apache-2.0"}
+authors = [{ name = "Iterative", email = "support@dvc.org" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Development Status :: 4 - Beta",
+]
+requires-python = ">=3.8"
+dynamic = ["version"]
+dependencies = []
 
-[tool.isort]
-profile = "black"
-known_first_party = ["scmrepo"]
-line_length = 88
+[project.urls]
+Issues = "https://github.com/iterative/scmrepo/issues"
+Source = "https://github.com/iterative/scmrepo"
+
+[project.optional-dependencies]
+tests = [
+    "pytest==7.2.0",
+    "pytest-sugar==0.9.5",
+    "pytest-cov==3.0.0",
+    "pytest-mock==3.8.2",
+    "mypy==0.971",
+]
+dev = [
+    "scmrepo[tests]",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
 
 [tool.pytest.ini_options]
 addopts = "-ra"
@@ -83,27 +98,5 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.pylint.format]
-max-line-length = 88
-
-[tool.pylint.master]
-extension-pkg-whitelist = ["pygit2"]
-
-[tool.pylint.message_control]
-disable = [
-    "format", "refactoring", "design", "invalid-name", "duplicate-code",
-    "missing-function-docstring", "missing-module-docstring", "missing-class-docstring",
-    "raise-missing-from", "import-outside-toplevel", "cyclic-import", "fixme",
-]
-enable = ["c-extension-no-member", "no-else-return"]
-
-[tool.pylint.variables]
-dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_"
-ignored-argument-names = "_.*|^ignored_|^unused_|args|kwargs"
-
 [tool.codespell]
 ignore-words-list = "cachable, keypair"
-
-[tool.bandit]
-exclude_dirs = ["tests"]
-skips = ["B101"]
