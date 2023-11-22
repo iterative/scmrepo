@@ -292,7 +292,8 @@ def _input_tty(prompt: str = "Username: ") -> str:
     with ExitStack() as stack:
         try:
             fd = os.open(
-                "/dev/tty", os.O_RDWR | os.O_NOCTTY  # pylint: disable=no-member
+                "/dev/tty",
+                os.O_RDWR | os.O_NOCTTY,  # pylint: disable=no-member
             )
             tty = io.FileIO(fd, "w+")
             stack.enter_context(tty)

@@ -174,13 +174,11 @@ def test_get_matching_commands():
     from dulwich.config import ConfigFile
 
     config_file = io.BytesIO(
-        """
+        b"""
 [credential]
     helper = /usr/local/bin/my-helper
     UseHttpPath = true
-""".encode(
-            "ascii"
-        )
+"""
     )
     config_file.seek(0)
     config = ConfigFile.from_file(config_file)
@@ -189,12 +187,10 @@ def test_get_matching_commands():
     ) == [("/usr/local/bin/my-helper", True)]
 
     config_file = io.BytesIO(
-        """
+        b"""
 [credential]
     helper = /usr/local/bin/my-helper
-""".encode(
-            "ascii"
-        )
+"""
     )
     config_file.seek(0)
     config = ConfigFile.from_file(config_file)
@@ -203,12 +199,10 @@ def test_get_matching_commands():
     ) == [("/usr/local/bin/my-helper", False)]
 
     config_file = io.BytesIO(
-        """
+        b"""
 [credential]
     helper =
-""".encode(
-            "ascii"
-        )
+"""
     )
     config_file.seek(0)
     config = ConfigFile.from_file(config_file)
