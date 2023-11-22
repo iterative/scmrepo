@@ -22,19 +22,23 @@ def fixture_make_fs(scm: Git, git: Git):
     return _make_fs
 
 
-def test_open(tmp_dir: TmpDir, scm: Git, make_fs):
+@pytest.mark.parametrize("raw", [True, False])
+def test_open(tmp_dir: TmpDir, scm: Git, make_fs, raw: bool, git_backend: str):
+    if not raw and git_backend != "pygit2":
+        pytest.skip()
+
     files = tmp_dir.gen({"foo": "foo", "тест": "проверка", "data": {"lorem": "ipsum"}})
     scm.add_commit(files, message="add")
 
     fs = make_fs()
-    with fs.open("foo", mode="r", encoding="utf-8") as fobj:
+    with fs.open("foo", mode="r", encoding="utf-8", raw=raw) as fobj:
         assert fobj.read() == "foo"
-    with fs.open("тест", mode="r", encoding="utf-8") as fobj:
+    with fs.open("тест", mode="r", encoding="utf-8", raw=raw) as fobj:
         assert fobj.read() == "проверка"
     with pytest.raises(IOError):
-        fs.open("not-existing-file")
+        fs.open("not-existing-file", raw=raw)
     with pytest.raises(IOError):
-        fs.open("data")
+        fs.open("data", raw=raw)
 
 
 def test_exists(tmp_dir: TmpDir, scm: Git, make_fs):
