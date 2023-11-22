@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from io import BytesIO, StringIO, TextIOWrapper
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Dict,
     Generator,
@@ -55,7 +54,7 @@ class Pygit2Object(GitObject):
         self,
         mode: str = "r",
         encoding: str = None,
-        key: tuple = None,
+        key: Optional[Tuple[str, ...]] = None,
         raw: bool = True,
         rev: Optional[str] = None,
         **kwargs,
@@ -67,14 +66,16 @@ class Pygit2Object(GitObject):
         if self.backend is not None:
             try:
                 if rev:
+                    # pylint: disable-next=protected-access
                     commit, _ref = self.backend._resolve_refish(rev)
                 else:
                     pass
                 if raw:
                     blob_kwargs = {}
                 else:
+                    assert key is not None
                     path = "/".join(key)
-                    blob_kwargs: Dict[str, Any] = {
+                    blob_kwargs = {
                         "as_path": path,
                         "commit_id": commit.oid,
                     }
@@ -123,13 +124,13 @@ class Pygit2Config(Config):
     def __init__(self, config: "_Pygit2Config"):
         self._config = config
 
-    def _key(self, section: Tuple[str], name: str) -> str:
+    def _key(self, section: Tuple[str, ...], name: str) -> str:
         return ".".join(section + (name,))
 
-    def get(self, section: Tuple[str], name: str) -> str:
+    def get(self, section: Tuple[str, ...], name: str) -> str:
         return self._config[self._key(section, name)]
 
-    def get_bool(self, section: Tuple[str], name: str) -> bool:
+    def get_bool(self, section: Tuple[str, ...], name: str) -> bool:
         from pygit2 import GitError
 
         try:
@@ -137,7 +138,7 @@ class Pygit2Config(Config):
         except GitError as exc:
             raise ValueError("invalid boolean config entry") from exc
 
-    def get_multivar(self, section: Tuple[str], name: str) -> Iterator[str]:
+    def get_multivar(self, section: Tuple[str, ...], name: str) -> Iterator[str]:
         from pygit2 import GitError
 
         try:

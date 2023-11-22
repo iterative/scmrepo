@@ -15,7 +15,7 @@ class LFSFilter(Filter):
 
     def __init__(self, *args, **kwargs):
         self._smudge_buf: Optional[io.BytesIO] = None
-        self._smudge_git_dir: Optional[str] = None
+        self._smudge_root: Optional[str] = None
 
     def check(self, src: "FilterSource", attr_values: List[str]):
         if attr_values[0] == "lfs":
@@ -48,6 +48,7 @@ class LFSFilter(Filter):
         from scmrepo.git.lfs import smudge
         from scmrepo.git.lfs.fetch import get_fetch_url
 
+        assert self._smudge_buf is not None
         self._smudge_buf.seek(0)
         with Git(self._smudge_root) as scm:
             try:

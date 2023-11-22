@@ -44,7 +44,7 @@ class LFSStorage:
         oid = obj if isinstance(obj, str) else obj.oid
         path = self.oid_to_path(oid)
         try:
-            return open(path, **kwargs)
+            return open(path, **kwargs)  # pylint: disable=unspecified-encoding
         except FileNotFoundError:
             if not fetch_url or not isinstance(obj, Pointer):
                 raise
@@ -54,7 +54,7 @@ class LFSStorage:
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), path
             ) from exc
-        return open(path, **kwargs)
+        return open(path, **kwargs)  # pylint: disable=unspecified-encoding
 
     def close(self):
         pass

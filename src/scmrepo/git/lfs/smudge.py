@@ -14,7 +14,7 @@ def smudge(
     storage: "LFSStorage", fobj: BinaryIO, url: Optional[str] = None
 ) -> BinaryIO:
     """Wrap the specified binary IO stream and run LFS smudge if necessary."""
-    reader = io.BufferedReader(fobj)
+    reader = io.BufferedReader(fobj)  # type: ignore[arg-type]
     data = reader.peek(100)
     if any(data.startswith(header) for header in HEADERS):
         # read the pointer data into memory since the raw stream is unseekable
@@ -45,7 +45,7 @@ if __name__ == "__main__":
         )
     scm = Git()
     try:
-        with smudge(scm.lfs_storage, sys.stdin.buffer) as fobj:
-            sys.stdout.buffer.write(fobj.read())
+        with smudge(scm.lfs_storage, sys.stdin.buffer) as fobj_:
+            sys.stdout.buffer.write(fobj_.read())
     finally:
         scm.close()

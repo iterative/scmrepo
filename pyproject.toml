@@ -70,6 +70,7 @@ files = ["src", "tests"]
 [[tool.mypy.overrides]]
 module = [
     "pygtrie",
+    "dvc_http.*",
     "funcy",
     "git",
     "gitdb.*",

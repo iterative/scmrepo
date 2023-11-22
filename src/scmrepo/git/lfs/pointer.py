@@ -14,7 +14,8 @@ HEADERS = [(b"version " + version.encode("utf-8")) for version in ALLOWED_VERSIO
 
 
 def _get_kv(line: str) -> Tuple[str, str]:
-    return line.strip().split(maxsplit=1)
+    key, value = line.strip().split(maxsplit=1)
+    return key, value
 
 
 @dataclass
@@ -41,8 +42,9 @@ class Pointer:
     def load(cls, fobj: IO) -> "Pointer":
         """Load the specified pointer file."""
 
-        if isinstance(fobj, io.TextIOBase):
-            text_obj: TextIO = fobj
+        if isinstance(fobj, io.TextIOBase):  # type: ignore[unreachable]
+            text_obj: TextIO = fobj  # type: ignore[unreachable]
+
         else:
             text_obj = io.TextIOWrapper(fobj, encoding="utf-8")
 
@@ -102,6 +104,6 @@ if __name__ == "__main__":
         sys.exit("Nothing to do")
 
     print(f"Git LFS pointer for {args.file}\n", file=sys.stderr)
-    with open(args.file, mode="rb") as fobj:
-        p = Pointer.build(fobj)
+    with open(args.file, mode="rb") as fobj_:
+        p = Pointer.build(fobj_)
     print(p.dump(), end="")
