@@ -53,7 +53,7 @@ tests = [
     "paramiko==3.3.1",
     "types-certifi==2021.10.8.3",
     "types-mock==5.1.0.2",
-    "types-paramiko==3.3.0.0",
+    "types-paramiko==3.3.0.2",
 ]
 dev = [
     "scmrepo[tests]",
