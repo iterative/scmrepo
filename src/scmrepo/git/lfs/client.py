@@ -190,15 +190,10 @@ class LFSClient(AbstractContextManager):
         **kwargs,
     ):
         async def _get_one(from_path: str, to_path: str, **kwargs):
-            get_coro = callback.wrap_and_branch_coro(
-                self.httpfs._get_file  # pylint: disable=protected-access
-            )
             with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
-                return await get_coro(
-                    from_path,
-                    tmp_file,
-                    **kwargs,
-                )
+                with callback.branch(from_path, tmp_file, kwargs):
+                    await self.httpfs._get_file(from_path, tmp_file, **kwargs)  # pylint: disable=protected-access
+                    callback.relative_update()
 
         resp_data = await self._batch_request(objects, **kwargs)
         if resp_data.get("transfer") != "basic":
