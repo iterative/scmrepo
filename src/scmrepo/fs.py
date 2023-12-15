@@ -14,123 +14,6 @@ if TYPE_CHECKING:
     from scmrepo.git.objects import GitTrie
 
 
-class Path:
-    def __init__(self, sep, getcwd=None, realpath=None):
-        def _getcwd():
-            return ""
-
-        self.getcwd = getcwd or _getcwd
-        self.realpath = realpath or self.abspath
-
-        assert sep == posixpath.sep
-        self.flavour = posixpath
-
-    def chdir(self, path):
-        def _getcwd():
-            return path
-
-        self.getcwd = _getcwd
-
-    def join(self, *parts):
-        return self.flavour.join(*parts)
-
-    def split(self, path):
-        return self.flavour.split(path)
-
-    def normpath(self, path):
-        return self.flavour.normpath(path)
-
-    def isabs(self, path):
-        return self.flavour.isabs(path)
-
-    def abspath(self, path):
-        if not self.isabs(path):
-            path = self.join(self.getcwd(), path)
-        return self.normpath(path)
-
-    def commonprefix(self, path):
-        return self.flavour.commonprefix(path)
-
-    def parts(self, path):
-        drive, path = self.flavour.splitdrive(path.rstrip(self.flavour.sep))
-
-        ret = []
-        while True:
-            path, part = self.flavour.split(path)
-
-            if part:
-                ret.append(part)
-                continue
-
-            if path:
-                ret.append(path)
-
-            break
-
-        ret.reverse()
-
-        if drive:
-            ret = [drive] + ret
-
-        return tuple(ret)
-
-    def parent(self, path):
-        return self.flavour.dirname(path)
-
-    def dirname(self, path):
-        return self.parent(path)
-
-    def parents(self, path):
-        parts = self.parts(path)
-        return tuple(
-            self.join(*parts[:length]) for length in range(len(parts) - 1, 0, -1)
-        )
-
-    def name(self, path):
-        return self.parts(path)[-1]
-
-    def suffix(self, path):
-        name = self.name(path)
-        _, dot, suffix = name.partition(".")
-        return dot + suffix
-
-    def with_name(self, path, name):
-        parts = list(self.parts(path))
-        parts[-1] = name
-        return self.join(*parts)
-
-    def with_suffix(self, path, suffix):
-        parts = list(self.parts(path))
-        real_path, _, _ = parts[-1].partition(".")
-        parts[-1] = real_path + suffix
-        return self.join(*parts)
-
-    def isin(self, left, right):
-        left_parts = self.parts(left)
-        right_parts = self.parts(right)
-        left_len = len(left_parts)
-        right_len = len(right_parts)
-        return left_len > right_len and left_parts[:right_len] == right_parts
-
-    def isin_or_eq(self, left, right):
-        return left == right or self.isin(left, right)
-
-    def overlaps(self, left, right):
-        # pylint: disable=arguments-out-of-order
-        return self.isin_or_eq(left, right) or self.isin(right, left)
-
-    def relpath(self, path, start=None):
-        if start is None:
-            start = "."
-        return self.flavour.relpath(self.abspath(path), start=self.abspath(start))
-
-    def relparts(self, path, start=None):
-        return self.parts(self.relpath(path, start=start))
-
-    def as_posix(self, path):
-        return path.replace(self.flavour.sep, posixpath.sep)
-
-
 def bytesio_len(obj: "BytesIO") -> Optional[int]:
     try:
         offset = obj.tell()
@@ -169,13 +52,124 @@ class GitFileSystem(AbstractFileSystem):
         self.trie = trie
         self.rev = self.trie.rev
 
-        def _getcwd():
-            return self.root_marker
+    def getcwd(self):
+        return self.root_marker
 
-        self.path = Path(self.sep, getcwd=_getcwd)
+    def chdir(self, path):
+        raise NotImplementedError
+
+    @classmethod
+    def join(cls, *parts):
+        return posixpath.join(*parts)
+
+    @classmethod
+    def split(cls, path):
+        return posixpath.split(path)
+
+    def normpath(self, path):
+        return posixpath.normpath(path)
+
+    @classmethod
+    def isabs(cls, path):
+        return posixpath.isabs(path)
+
+    def abspath(self, path):
+        if not self.isabs(path):
+            path = self.join(self.getcwd(), path)
+        return self.normpath(path)
+
+    @classmethod
+    def commonprefix(cls, path):
+        return posixpath.commonprefix(path)
+
+    @classmethod
+    def parts(cls, path):
+        ret = []
+        while True:
+            path, part = cls.split(path)
+
+            if part:
+                ret.append(part)
+                continue
+
+            if path:
+                ret.append(path)
+
+            break
+
+        ret.reverse()
+
+        return tuple(ret)
+
+    @classmethod
+    def parent(cls, path):
+        return posixpath.dirname(path)
+
+    @classmethod
+    def dirname(cls, path):
+        return cls.parent(path)
+
+    @classmethod
+    def parents(cls, path):
+        parts = cls.parts(path)
+        return tuple(
+            cls.join(*parts[:length]) for length in range(len(parts) - 1, 0, -1)
+        )
+
+    @classmethod
+    def name(cls, path):
+        return cls.parts(path)[-1]
+
+    @classmethod
+    def suffix(cls, path):
+        name = cls.name(path)
+        _, dot, suffix = name.partition(".")
+        return dot + suffix
+
+    @classmethod
+    def with_name(cls, path, name):
+        parts = list(cls.parts(path))
+        parts[-1] = name
+        return cls.join(*parts)
+
+    @classmethod
+    def with_suffix(cls, path, suffix):
+        parts = list(cls.parts(path))
+        real_path, _, _ = parts[-1].partition(".")
+        parts[-1] = real_path + suffix
+        return cls.join(*parts)
+
+    @classmethod
+    def isin(cls, left, right):
+        left_parts = cls.parts(left)
+        right_parts = cls.parts(right)
+        left_len = len(left_parts)
+        right_len = len(right_parts)
+        return left_len > right_len and left_parts[:right_len] == right_parts
+
+    @classmethod
+    def isin_or_eq(cls, left, right):
+        return left == right or cls.isin(left, right)
+
+    @classmethod
+    def overlaps(cls, left, right):
+        # pylint: disable=arguments-out-of-order
+        return cls.isin_or_eq(left, right) or cls.isin(right, left)
+
+    def relpath(self, path, start=None):
+        if start is None:
+            start = "."
+        return self.relpath(self.abspath(path), start=self.abspath(start))
+
+    def relparts(self, path, start=None):
+        return self.parts(self.relpath(path, start=start))
+
+    @classmethod
+    def as_posix(cls, path):
+        return path
 
     def _get_key(self, path: str) -> Tuple[str, ...]:
-        path = self.path.abspath(path)
+        path = self.abspath(path)
         if path == self.root_marker:
             return ()
         relparts = path.split(self.sep)
