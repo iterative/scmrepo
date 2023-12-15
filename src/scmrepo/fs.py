@@ -160,7 +160,7 @@ class GitFileSystem(AbstractFileSystem):
     def relpath(self, path, start=None):
         if start is None:
             start = "."
-        return self.relpath(self.abspath(path), start=self.abspath(start))
+        return posixpath.relpath(self.abspath(path), start=self.abspath(start))
 
     def relparts(self, path, start=None):
         return self.parts(self.relpath(path, start=start))
