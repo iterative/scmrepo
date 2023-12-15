@@ -51,12 +51,13 @@ class GitFileSystem(AbstractFileSystem):
 
         self.trie = trie
         self.rev = self.trie.rev
+        self._cwd = self.root_marker
 
     def getcwd(self):
-        return self.root_marker
+        return self._cwd
 
     def chdir(self, path):
-        raise NotImplementedError
+        self._cwd = path
 
     @classmethod
     def join(cls, *parts):
