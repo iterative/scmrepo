@@ -25,11 +25,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class _LFSClient(ReadOnlyRetryClient):
-    async def _request(self, *args, **kwargs):
-        return await super()._request(*args, **kwargs)  # pylint: disable=no-member
-
-
 # pylint: disable=abstract-method
 class _LFSFileSystem(HTTPFileSystem):
     def __init__(self, *args, **kwargs):
