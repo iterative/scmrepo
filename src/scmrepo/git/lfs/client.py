@@ -196,7 +196,7 @@ class LFSClient(AbstractContextManager):
                     callback.relative_update()
 
         resp_data = await self._batch_request(objects, **kwargs)
-        if resp_data.get("transfer") != "basic":
+        if resp_data.get("transfer", "basic") != "basic":
             raise LFSError("Unsupported LFS transfer type")
         coros = []
         for data in resp_data.get("objects", []):
