@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, Opti
 
 import aiohttp
 from dvc_http import HTTPFileSystem
-from dvc_http.retry import ReadOnlyRetryClient
 from dvc_objects.executors import batch_coros
 from dvc_objects.fs import localfs
 from dvc_objects.fs.callbacks import DEFAULT_CALLBACK
@@ -32,39 +31,6 @@ class _LFSFileSystem(HTTPFileSystem):
 
     def _prepare_credentials(self, **config):
         return {}
-
-    async def get_client(self, **kwargs):
-        from aiohttp_retry import ExponentialRetry
-        from dvc_http import make_context
-
-        kwargs["retry_options"] = ExponentialRetry(
-            attempts=self.SESSION_RETRIES,
-            factor=self.SESSION_BACKOFF_FACTOR,
-            max_timeout=self.REQUEST_TIMEOUT,
-            exceptions={aiohttp.ClientError},
-        )
-
-        # The default total timeout for an aiohttp request is 300 seconds
-        # which is too low for DVC's interactions when dealing with large
-        # data blobs. We remove the total timeout, and only limit the time
-        # that is spent when connecting to the remote server and waiting
-        # for new data portions.
-        connect_timeout = kwargs.pop("connect_timeout")
-        kwargs["timeout"] = aiohttp.ClientTimeout(
-            total=None,
-            connect=connect_timeout,
-            sock_connect=connect_timeout,
-            sock_read=kwargs.pop("read_timeout"),
-        )
-
-        kwargs["connector"] = aiohttp.TCPConnector(
-            # Force cleanup of closed SSL transports.
-            # See https://github.com/iterative/dvc/issues/7414
-            enable_cleanup_closed=True,
-            ssl=make_context(kwargs.pop("ssl_verify", None)),
-        )
-
-        return ReadOnlyRetryClient(**kwargs)
 
 
 def _authed(f: Callable[..., Awaitable]):
