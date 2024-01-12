@@ -27,9 +27,6 @@ logger = logging.getLogger(__name__)
 
 # pylint: disable=abstract-method
 class _LFSFileSystem(HTTPFileSystem):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def _prepare_credentials(self, **config):
         return {}
 
