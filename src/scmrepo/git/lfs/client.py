@@ -130,6 +130,7 @@ class LFSClient(AbstractContextManager):
             body["ref"] = [{"name": ref}]
         session = await self._set_session()
         headers = dict(self.headers)
+        headers["Accept"] = self.JSON_CONTENT_TYPE
         headers["Content-Type"] = self.JSON_CONTENT_TYPE
         async with session.post(
             url,
