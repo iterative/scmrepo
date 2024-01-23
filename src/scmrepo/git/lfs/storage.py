@@ -44,17 +44,17 @@ class LFSStorage:
         oid = obj if isinstance(obj, str) else obj.oid
         path = self.oid_to_path(oid)
         try:
-            return open(path, **kwargs)  # pylint: disable=unspecified-encoding
+            return open(path, **kwargs)  # noqa: SIM115
         except FileNotFoundError:
             if not fetch_url or not isinstance(obj, Pointer):
                 raise
         try:
             self.fetch(fetch_url, [obj])
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: BLE001
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), path
             ) from exc
-        return open(path, **kwargs)  # pylint: disable=unspecified-encoding
+        return open(path, **kwargs)  # noqa: SIM115
 
     def close(self):
         pass

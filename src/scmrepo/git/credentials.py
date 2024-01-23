@@ -89,7 +89,7 @@ class CredentialHelper(ABC):
 
     @abstractmethod
     def erase(self, credential: "Credential", **kwargs):
-        """Remove a matching credential, if any, from the helper’s storage"""
+        """Remove a matching credential, if any, from the helper's storage"""
 
 
 class GitCredentialHelper(CredentialHelper):
@@ -138,8 +138,8 @@ class GitCredentialHelper(CredentialHelper):
         if not shutil.which(executable) and shutil.which("git"):
             # If the helper cannot be found in PATH, it might be
             # a C git helper in GIT_EXEC_PATH
-            git_exec_path = subprocess.check_output(  # nosec B603
-                ("git", "--exec-path"),
+            git_exec_path = subprocess.check_output(
+                ("git", "--exec-path"),  # noqa: S603
                 text=True,
             ).strip()
             if shutil.which(executable, path=git_exec_path):
@@ -160,8 +160,8 @@ class GitCredentialHelper(CredentialHelper):
         helper_input.append("")
 
         try:
-            res = subprocess.run(  # type: ignore # nosec B603 # breaks on 3.6
-                cmd,
+            res = subprocess.run(
+                cmd,  # noqa: S603
                 check=True,
                 capture_output=True,
                 input="\n".join(helper_input),
@@ -201,12 +201,13 @@ class GitCredentialHelper(CredentialHelper):
         helper_input.append("")
 
         try:
-            res = subprocess.run(  # type: ignore # nosec B603 # pylint: disable=W1510
-                cmd,
+            res = subprocess.run(
+                cmd,  # noqa: S603
                 capture_output=True,
                 input="\n".join(helper_input),
                 encoding=self._encoding,
                 **self._run_kwargs,
+                check=False,
             )
             if res.stderr:
                 logger.debug(res.stderr)
@@ -214,7 +215,7 @@ class GitCredentialHelper(CredentialHelper):
             logger.debug("Helper not found", exc_info=True)
 
     def erase(self, credential: "Credential", **kwargs):
-        """Remove a matching credential, if any, from the helper’s storage"""
+        """Remove a matching credential, if any, from the helper's storage"""
         cmd = self._prepare_command("erase")
         use_path = credential.protocol in ("http", "https") and self.use_http_path
         helper_input = [
@@ -225,12 +226,13 @@ class GitCredentialHelper(CredentialHelper):
         helper_input.append("")
 
         try:
-            res = subprocess.run(  # type: ignore # nosec B603 # pylint: disable=W1510
-                cmd,
+            res = subprocess.run(
+                cmd,  # noqa: S603
                 capture_output=True,
                 input="\n".join(helper_input),
                 encoding=self._encoding,
                 **self._run_kwargs,
+                check=False,
             )
             if res.stderr:
                 logger.debug(res.stderr)
@@ -375,7 +377,7 @@ class MemoryCredentialHelper(CredentialHelper):
             try:
                 if self.askpass:
                     return self._get_interactive(credential, self.askpass.input)
-                if not os.environ.get("GIT_TERMINAL_PROMPT") == "0":
+                if os.environ.get("GIT_TERMINAL_PROMPT") != "0":
                     return self._get_interactive(credential, _input_tty, getpass)
             except (EOFError, OSError):
                 pass
@@ -403,8 +405,8 @@ class MemoryCredentialHelper(CredentialHelper):
             if not new.password:
                 prompt = f"Password for '{new.describe()}': "
                 new.password = input_noecho(prompt)
-        except KeyboardInterrupt:
-            raise CredentialNotFoundError("User cancelled prompt")
+        except KeyboardInterrupt as exc:
+            raise CredentialNotFoundError("User cancelled prompt") from exc
         return new
 
     def store(self, credential: "Credential", **kwargs):
@@ -413,7 +415,7 @@ class MemoryCredentialHelper(CredentialHelper):
             self[credential] = credential
 
     def erase(self, credential: "Credential", **kwargs):
-        """Remove a matching credential, if any, from the helper’s storage"""
+        """Remove a matching credential, if any, from the helper's storage"""
         try:
             del self[credential]
         except KeyError:
@@ -425,7 +427,7 @@ class MemoryCredentialHelper(CredentialHelper):
 
     @staticmethod
     def get_askpass(
-        config: Optional[Union["ConfigDict", "StackedConfig"]] = None
+        config: Optional[Union["ConfigDict", "StackedConfig"]] = None,
     ) -> Optional["_AskpassCommand"]:
         askpass = os.environ.get("GIT_ASKPASS")
         if not askpass:
@@ -448,8 +450,8 @@ class _AskpassCommand:
     def input(self, prompt: str) -> str:
         argv = [self.command, prompt]
         try:
-            res = subprocess.run(  # type: ignore # nosec B603 # breaks on 3.6
-                argv,
+            res = subprocess.run(
+                argv,  # noqa: S603
                 check=True,
                 capture_output=True,
                 encoding=locale.getpreferredencoding(),
@@ -476,7 +478,7 @@ class Credential(Mapping[str, str]):
         >>> credential = generated.fill()
 
     3. Use the credential from (2) in Git operation
-    4. If the operation in (3) was successful, approve it for re-use in subsequent
+    4. If the operation in (3) was successful, approve it for reuse in subsequent
        operations
 
        >>> credential.approve()

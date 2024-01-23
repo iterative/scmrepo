@@ -35,7 +35,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True)
-def isolate(tmp_dir_factory: TempDirFactory, monkeypatch: pytest.MonkeyPatch) -> None:
+def _isolate(tmp_dir_factory: TempDirFactory, monkeypatch: pytest.MonkeyPatch) -> None:
     path = tmp_dir_factory.mktemp("mock")
     home_dir = path / "home"
     home_dir.mkdir()
@@ -117,7 +117,7 @@ def docker(request: pytest.FixtureRequest):
         pytest.skip("disabled for Windows on Github Actions")
 
     pytest.importorskip("pytest_docker")
-    yield request.getfixturevalue("docker_services")
+    return request.getfixturevalue("docker_services")
 
 
 @pytest.fixture
@@ -139,7 +139,7 @@ def ssh_conn_info(
                 assert result.returncode == 0
                 async with conn.start_sftp_client() as sftp:
                     assert await sftp.exists("/")
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # noqa: BLE001 # pylint: disable=broad-except
             return False
         return True
 

@@ -21,16 +21,12 @@ def test_subprocess_get(git_helper, mocker):
     run = mocker.patch(
         "subprocess.run",
         return_value=mocker.Mock(
-            stdout="\n".join(
-                ["protocol=https", "host=foo.com", "username=foo", "password=bar", ""]
-            )
+            stdout="protocol=https\nhost=foo.com\nusername=foo\npassword=bar\n"
         ),
     )
     creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))
     assert run.call_args.args[0] == ["git-credential-foo", "get"]
-    assert run.call_args.kwargs.get("input") == "\n".join(
-        ["protocol=https", "host=foo.com", ""]
-    )
+    assert run.call_args.kwargs.get("input") == "protocol=https\nhost=foo.com\n"
     assert creds == Credential(url="https://foo:bar@foo.com")
 
 
@@ -38,14 +34,13 @@ def test_subprocess_get_use_http_path(git_helper, mocker):
     git_helper.use_http_path = True
     run = mocker.patch(
         "subprocess.run",
-        return_value=mocker.Mock(
-            stdout="\n".join(["username=foo", "password=bar", ""])
-        ),
+        return_value=mocker.Mock(stdout="username=foo\npassword=bar\n"),
     )
     creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))
     assert run.call_args.args[0] == ["git-credential-foo", "get"]
-    assert run.call_args.kwargs.get("input") == "\n".join(
-        ["protocol=https", "host=foo.com", "path=foo.git", ""]
+    assert (
+        run.call_args.kwargs.get("input")
+        == "protocol=https\nhost=foo.com\npath=foo.git\n"
     )
     assert creds == Credential(username="foo", password="bar")
 
@@ -70,8 +65,9 @@ def test_subprocess_store(git_helper, mocker):
         Credential(protocol="https", host="foo.com", username="foo", password="bar")
     )
     assert run.call_args.args[0] == ["git-credential-foo", "store"]
-    assert run.call_args.kwargs.get("input") == "\n".join(
-        ["protocol=https", "host=foo.com", "username=foo", "password=bar", ""]
+    assert (
+        run.call_args.kwargs.get("input")
+        == "protocol=https\nhost=foo.com\nusername=foo\npassword=bar\n"
     )
 
 
@@ -79,9 +75,7 @@ def test_subprocess_erase(git_helper, mocker):
     run = mocker.patch("subprocess.run")
     git_helper.erase(Credential(protocol="https", host="foo.com"))
     assert run.call_args.args[0] == ["git-credential-foo", "erase"]
-    assert run.call_args.kwargs.get("input") == "\n".join(
-        ["protocol=https", "host=foo.com", ""]
-    )
+    assert run.call_args.kwargs.get("input") == "protocol=https\nhost=foo.com\n"
 
 
 def test_memory_helper_get(mocker):
@@ -149,7 +143,7 @@ def test_memory_helper_prompt_askpass(mocker):
         "subprocess.run",
         side_effect=[
             mocker.Mock(stdout="foo"),
-            mocker.Mock(stdout="\n".join(["bar", ""])),
+            mocker.Mock(stdout="bar\n"),
         ],
     )
     expected = Credential(

@@ -9,7 +9,7 @@ from pygtrie import Trie
 S_IFGITLINK = 0o160000
 
 
-def S_ISGITLINK(m: int) -> bool:
+def S_ISGITLINK(m: int) -> bool:  # noqa: N802
     return stat.S_IFMT(m) == S_IFGITLINK
 
 
@@ -20,7 +20,7 @@ def _to_datetime(time: int, offset: int) -> datetime.datetime:
 
 class GitObject(ABC):
     @abstractmethod
-    def open(self, mode: str = "r", encoding: str = None, **kwargs):
+    def open(self, mode: str = "r", encoding: Optional[str] = None, **kwargs):
         pass
 
     @property
@@ -71,7 +71,7 @@ class GitTrie:
 
     def _build(self, tree: GitObject, path: tuple):
         for obj in tree.scandir():
-            obj_path = path + (obj.name,)
+            obj_path = (*path, obj.name)
             self.trie[obj_path] = obj
 
             if obj.isdir:
@@ -127,7 +127,7 @@ class GitTrie:
         nondirs = []
 
         for name in self.ls(top):
-            info = self.info(top + (name,))
+            info = self.info((*top, name))
             if info["type"] == "directory":
                 dirs.append(name)
             else:
@@ -137,7 +137,7 @@ class GitTrie:
             yield top, dirs, nondirs
 
         for dname in dirs:
-            yield from self.walk(top + (dname,), topdown=topdown)
+            yield from self.walk((*top, dname), topdown=topdown)
 
         if not topdown:
             yield top, dirs, nondirs

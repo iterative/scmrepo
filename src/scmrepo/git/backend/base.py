@@ -4,14 +4,12 @@ from enum import Enum
 from typing import TYPE_CHECKING, Callable, Iterable, Mapping, Optional, Tuple, Union
 
 from scmrepo.exceptions import SCMError
-
-from ..objects import GitObject
+from scmrepo.git.objects import GitObject
 
 if TYPE_CHECKING:
+    from scmrepo.git.config import Config
+    from scmrepo.git.objects import GitCommit, GitTag
     from scmrepo.progress import GitProgressEvent
-
-    from ..config import Config
-    from ..objects import GitCommit, GitTag
 
 
 class NoGitBackendError(SCMError):
@@ -50,7 +48,7 @@ class BaseGitBackend(ABC):
         url: str,
         to_path: str,
         shallow_branch: Optional[str] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         bare: bool = False,
         mirror: bool = False,
     ):
@@ -229,7 +227,7 @@ class BaseGitBackend(ABC):
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         """Push refspec to a remote Git repo.
@@ -253,7 +251,7 @@ class BaseGitBackend(ABC):
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         """Fetch refspecs from a remote Git repo.
@@ -333,7 +331,7 @@ class BaseGitBackend(ABC):
         """Return the git diff for two commits."""
 
     @abstractmethod
-    def reset(self, hard: bool = False, paths: Iterable[str] = None):
+    def reset(self, hard: bool = False, paths: Optional[Iterable[str]] = None):
         """Reset current git HEAD."""
 
     @abstractmethod

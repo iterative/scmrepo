@@ -135,8 +135,52 @@ ignore = [
     "SIM108", # if-else-block-instead-of-if-exp
     "D203", # one blank line before class
     "D213", # multi-line-summary-second-line
+    "RET501", # unnecessary-return-none
+    "RET502", # implicit-return-value
+    "RET503", # implicit-return
+    "SIM117", # multiple-with-statements
+    "N818", # error-suffix-on-exception-name
 ]
-select = ["ALL"]
+select = [
+    "A", # flake8-buitlins
+    "ASYNC", # flake8-async
+    "B", # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "C4", # flake8-comprehensions
+    "C90", # mccabe
+    "DTZ", # flake8-datetimez
+    "E", # pycodestyle - Error
+    "EXE", # flake8-executable
+    "F", # pyflakes
+    "FLY", # flynt-rules
+    "G", # flake8-logging-format
+    "I", # isort
+    "ICN", # flake8-import-conventions
+    "INP", # flake8-no-pep420
+    "ISC", # flake8-implicit-str-concat
+    "N", # pep8-naming
+    "PERF101", # perflint
+    "PGH", # pygrep-hooks
+    "PIE", # flake8-pie
+    "PL", # pylint
+    "PT", # flake8-pytest-style
+    "PYI", # flake8-pyi
+    "Q", # flae8-quotes
+    "RET", # flake8-return
+    "RSE", # flake8-raise
+    "RUF", # ruff
+    "S", # flake8-bandit
+    "SIM", # flake8-simplify
+    "SLOT", # flake8-slots
+    "T10", # flake8-debugger
+    "T20", # flake8-print
+    "TCH", # flake8-type-checking
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "UP", # pyupgrade
+    "W", # pycodestyle - Warning
+    "YTT", # flake8-2020
+]
 show-source = true
 show-fixes = true
 
@@ -145,8 +189,16 @@ show-fixes = true
 "tests/**" = ["S", "ARG001", "ARG002", "ANN"]
 "docs/**" = ["INP"]
 
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+parametrize-names-type = "csv"
+
 [tool.ruff.lint.flake8-type-checking]
 strict = true
 
 [tool.ruff.lint.isort]
 known-first-party = ["scmrepo"]
+
+[tool.ruff.pylint]
+max-args = 10

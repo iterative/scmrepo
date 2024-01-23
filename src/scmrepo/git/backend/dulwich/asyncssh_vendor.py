@@ -129,7 +129,7 @@ def _process_public_key_ok_gh(self, _pkttype, _pktid, packet):
                 b"rsa-sha2-512",
             )
         )
-        or (algorithm != b"ssh-rsa" and algorithm != self._keypair.algorithm)
+        or (algorithm not in (b"ssh-rsa", self._keypair.algorithm))
         or key_data != self._keypair.public_data
     ):
         raise ProtocolError("Key mismatch")
@@ -141,7 +141,11 @@ def _process_public_key_ok_gh(self, _pkttype, _pktid, packet):
 class InteractiveSSHClient(SSHClient):
     _conn: Optional["SSHClientConnection"] = None
     _keys_to_try: Optional[List["FilePath"]] = None
-    _passphrases: Dict[str, str] = {}
+    _passphrases: Dict[str, str]
+
+    def __init__(self, *args, **kwargs):
+        super(*args, **kwargs)
+        _passphrases: Dict[str, str] = {}
 
     def connection_made(self, conn: "SSHClientConnection") -> None:
         self._conn = conn
@@ -150,7 +154,7 @@ class InteractiveSSHClient(SSHClient):
     def connection_lost(self, exc: Optional[Exception]) -> None:
         self._conn = None
 
-    async def public_key_auth_requested(  # pylint: disable=invalid-overridden-method
+    async def public_key_auth_requested(  # noqa: C901, PLR0912
         self,
     ) -> Optional["KeyPairListArg"]:
         from asyncssh.public_key import (
@@ -246,7 +250,7 @@ class InteractiveSSHClient(SSHClient):
             return getpass(prompt=prompt).rstrip()
 
         if instructions:
-            print(instructions)
+            pass
         loop = asyncio.get_running_loop()
         return [
             await loop.run_in_executor(

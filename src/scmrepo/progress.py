@@ -4,7 +4,7 @@ from funcy import compose
 
 
 def code2desc(op_code):
-    from git import RootUpdateProgress as OP
+    from git import RootUpdateProgress as OP  # noqa: N814
 
     ops = {
         OP.COUNTING: "Counting",

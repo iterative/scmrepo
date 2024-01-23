@@ -31,11 +31,11 @@ class GitFileSystem(AbstractFileSystem):
 
     def __init__(
         self,
-        path: str = None,
-        rev: str = None,
+        path: Optional[str] = None,
+        rev: Optional[str] = None,
         scm: "Git" = None,
         trie: "GitTrie" = None,
-        rev_resolver: Callable[["Git", str], str] = None,
+        rev_resolver: Optional[Callable[["Git", str], str]] = None,
         **kwargs,
     ):
         from scmrepo.git import Git
@@ -213,8 +213,10 @@ class GitFileSystem(AbstractFileSystem):
             ret = self.trie.info(key)
             ret["name"] = path
             return ret
-        except KeyError:
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
+        except KeyError as exc:
+            raise FileNotFoundError(
+                errno.ENOENT, os.strerror(errno.ENOENT), path
+            ) from exc
 
     def exists(self, path: str, **kwargs: Any) -> bool:
         key = self._get_key(path)
@@ -255,7 +257,7 @@ class GitFileSystem(AbstractFileSystem):
 
         with self.open(rpath, "rb", **kwargs) as f1:
             if outfile is None:
-                outfile = open(lpath, "wb")
+                outfile = open(lpath, "wb")  # noqa: SIM115
 
             try:
                 callback.set_size(getattr(f1, "size", None))

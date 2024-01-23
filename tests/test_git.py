@@ -8,7 +8,7 @@ from asyncssh.connection import SSHClientConnection
 from dulwich.client import LocalGitClient
 from git import Repo as GitPythonRepo
 from pygit2 import GitError
-from pygit2.remote import Remote  # type: ignore
+from pygit2.remote import Remote
 from pytest_mock import MockerFixture
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
@@ -31,7 +31,7 @@ def submodule_dir(tmp_dir: TmpDir, scm: Git):
     subrepo.create_submodule(subrepo_path, subrepo_path, subrepo.git_dir)
     subrepo.close()
 
-    yield tmp_dir / subrepo_path
+    return tmp_dir / subrepo_path
 
 
 def test_git_init(tmp_dir: TmpDir, git_backend: str):
@@ -362,9 +362,9 @@ def test_fetch_refspecs(
     }
     assert baz_rev == scm.get_ref("refs/foo/baz")
 
+    mocker.patch.object(LocalGitClient, "fetch", side_effect=KeyError)
+    mocker.patch.object(Remote, "fetch", side_effect=GitError)
     with pytest.raises(SCMError):
-        mocker.patch.object(LocalGitClient, "fetch", side_effect=KeyError)
-        mocker.patch.object(Remote, "fetch", side_effect=GitError)
         git.fetch_refspecs(remote, "refs/foo/bar:refs/foo/bar")
 
     assert len(scm.pygit2.repo.remotes) == 1
@@ -394,9 +394,9 @@ def test_iter_remote_refs(
     with pytest.raises(InvalidRemote):
         set(git.iter_remote_refs("bad-remote"))
 
+    tmp_directory = tmp_dir_factory.mktemp("not_a_git_repo")
+    remote = f"file://{tmp_directory.as_posix()}"
     with pytest.raises(InvalidRemote):
-        tmp_directory = tmp_dir_factory.mktemp("not_a_git_repo")
-        remote = f"file://{tmp_directory.as_posix()}"
         set(git.iter_remote_refs(remote))
 
     remote = url if use_url else "origin"
@@ -478,9 +478,9 @@ def test_merge(tmp_dir: TmpDir, scm: Git, git: Git, squash: bool):
 
     scm.checkout("master")
 
+    tmp_dir.gen("foo", "baz")
+    scm.add_commit("foo", message="baz")
     with pytest.raises(MergeConflictError):
-        tmp_dir.gen("foo", "baz")
-        scm.add_commit("foo", message="baz")
         git.merge(branch, commit=not squash, squash=squash, msg="merge")
 
     scm.gitpython.git.reset(init_rev, hard=True)

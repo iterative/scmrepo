@@ -15,9 +15,7 @@ class Base(AbstractContextManager):
         return self._root_dir
 
     def __repr__(self):
-        return "{class_name}: '{directory}'".format(
-            class_name=type(self).__name__, directory=self.dir
-        )
+        return f"{type(self).__name__}: '{self.dir}'"
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()

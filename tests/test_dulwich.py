@@ -2,7 +2,7 @@ import os
 import socket
 import threading
 from io import StringIO
-from typing import Any, Dict, Iterator
+from typing import Any, Dict
 from unittest.mock import AsyncMock
 
 import asyncssh
@@ -18,7 +18,7 @@ from scmrepo.git.backend.dulwich.asyncssh_vendor import AsyncSSHVendor
 
 
 @pytest.fixture
-def ssh_conn(request: pytest.FixtureRequest) -> Iterator[Dict[str, Any]]:
+def ssh_conn(request: pytest.FixtureRequest) -> Dict[str, Any]:
     server = Server([])
 
     socket.setdefaulttimeout(10)
@@ -27,10 +27,10 @@ def ssh_conn(request: pytest.FixtureRequest) -> Iterator[Dict[str, Any]]:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("127.0.0.1", 0))
     sock.listen(5)
-    request.addfinalizer(sock.close)
+    request.addfinalizer(sock.close)  # noqa: PT021
     port = sock.getsockname()[1]
 
-    conn_info = {"port": port, "server": server}
+    conn_info: Dict[str, Any] = {"port": port, "server": server}
 
     def _run_server():
         try:
@@ -45,7 +45,7 @@ def ssh_conn(request: pytest.FixtureRequest) -> Iterator[Dict[str, Any]]:
 
     thread = threading.Thread(target=_run_server)
     thread.start()
-    yield conn_info
+    return conn_info
 
 
 @pytest.fixture
@@ -150,9 +150,9 @@ def test_dulwich_github_compat(mocker: MockerFixture, algorithm: bytes):
     )
     packet = mocker.Mock()
 
+    strings = iter((b"ed21556", key_data))
+    packet.get_string = lambda: next(strings)
     with pytest.raises(ProtocolError):
-        strings = iter((b"ed21556", key_data))
-        packet.get_string = lambda: next(strings)
         _process_public_key_ok_gh(auth, None, None, packet)
 
     strings = iter((b"ssh-rsa", key_data))
