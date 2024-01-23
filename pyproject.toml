@@ -124,3 +124,29 @@ ignore_missing_imports = true
 
 [tool.codespell]
 ignore-words-list = "cachable, keypair"
+
+[tool.ruff]
+ignore = [
+    "S101", # assert
+    "PLR2004", # magic-value-comparison
+    "PLW2901", # redefined-loop-name
+    "ISC001", # single-line-implicit-string-concatenation
+    "SIM105", # suppressible-exception
+    "SIM108", # if-else-block-instead-of-if-exp
+    "D203", # one blank line before class
+    "D213", # multi-line-summary-second-line
+]
+select = ["ALL"]
+show-source = true
+show-fixes = true
+
+[tool.ruff.per-file-ignores]
+"noxfile.py" = ["D", "PTH"]
+"tests/**" = ["S", "ARG001", "ARG002", "ANN"]
+"docs/**" = ["INP"]
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["scmrepo"]

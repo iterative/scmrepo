@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/iterative/py-template",
-  "commit": "15ee26df315020399731c6291d61bef81a3fc5d3",
+  "commit": "454eb9a60092e980778877f1248072b45a92bb74",
   "context": {
     "cookiecutter": {
       "project_name": "scmrepo",
