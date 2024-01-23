@@ -35,9 +35,9 @@ def test_open(tmp_dir: TmpDir, scm: Git, make_fs, raw: bool, git_backend: str):
         assert fobj.read() == "foo"
     with fs.open("тест", mode="r", encoding="utf-8", raw=raw) as fobj:
         assert fobj.read() == "проверка"
-    with pytest.raises(IOError):
+    with pytest.raises(IOError):  # noqa: PT011
         fs.open("not-existing-file", raw=raw)
-    with pytest.raises(IOError):
+    with pytest.raises(IOError):  # noqa: PT011
         fs.open("data", raw=raw)
 
 

@@ -8,7 +8,17 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import partialmethod
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    ClassVar,
+    Dict,
+    Iterable,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from funcy import cached_property, first
 from pathspec.patterns import GitWildMatchPattern
@@ -41,7 +51,7 @@ _LOW_PRIO_BACKENDS = ("gitpython",)
 
 
 class GitBackends(Mapping):
-    DEFAULT: Dict[str, BackendCls] = {
+    DEFAULT: ClassVar[Dict[str, BackendCls]] = {
         "dulwich": DulwichBackend,
         "pygit2": Pygit2Backend,
         "gitpython": GitPythonBackend,
@@ -312,7 +322,9 @@ class Git(Base):
         return GitFileSystem(scm=self, rev=rev)
 
     @classmethod
-    def init(cls, path: str, bare: bool = False, _backend: str = None) -> "Git":
+    def init(
+        cls, path: str, bare: bool = False, _backend: Optional[str] = None
+    ) -> "Git":
         for name, backend in GitBackends.DEFAULT.items():
             if _backend and name != _backend:
                 continue

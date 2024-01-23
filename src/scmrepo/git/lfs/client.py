@@ -12,7 +12,8 @@ from dvc_objects.fs.utils import as_atomic
 from fsspec.asyn import sync_wrapper
 from funcy import cached_property
 
-from ..credentials import Credential, CredentialNotFoundError
+from scmrepo.git.credentials import Credential, CredentialNotFoundError
+
 from .exceptions import LFSError
 from .pointer import Pointer
 
@@ -137,8 +138,7 @@ class LFSClient(AbstractContextManager):
             headers=headers,
             json=body,
         ) as resp:
-            data = await resp.json()
-        return data
+            return await resp.json()
 
     @_authed
     async def _download(

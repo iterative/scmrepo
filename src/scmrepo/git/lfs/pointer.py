@@ -103,7 +103,5 @@ if __name__ == "__main__":
     if not args.file:
         sys.exit("Nothing to do")
 
-    print(f"Git LFS pointer for {args.file}\n", file=sys.stderr)
     with open(args.file, mode="rb") as fobj_:
         p = Pointer.build(fobj_)
-    print(p.dump(), end="")

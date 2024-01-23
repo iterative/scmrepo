@@ -90,7 +90,7 @@ def test_pygit_use_env_vars_for_signature(
     )
     git = Git.init(tmp_dir)
     with pytest.raises(SCMError):
-        git.pygit2.default_signature  # pylint: disable=W0104
+        _ = git.pygit2.default_signature  # pylint: disable=W0104
 
     # Make sure that the environment variables are not set to not interfere with
     # with the check below

@@ -24,21 +24,19 @@ from typing import (
 from funcy import cached_property, reraise
 
 from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, RevError, SCMError
+from scmrepo.git.backend.base import BaseGitBackend, SyncStatus
+from scmrepo.git.config import Config
+from scmrepo.git.objects import GitObject, GitTag
 from scmrepo.progress import GitProgressReporter
 from scmrepo.utils import relpath
-
-from ...config import Config
-from ...objects import GitObject, GitTag
-from ..base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
     from dulwich.client import SSHVendor
     from dulwich.config import ConfigFile, StackedConfig
     from dulwich.repo import Repo
 
+    from scmrepo.git.objects import GitCommit
     from scmrepo.progress import GitProgressEvent
-
-    from ...objects import GitCommit
 
 
 logger = logging.getLogger(__name__)
@@ -82,7 +80,7 @@ class DulwichObject(GitObject):
 
     def scandir(self) -> Iterable["DulwichObject"]:
         tree = self.repo[self._sha]
-        for entry in tree.iteritems():  # noqa: B301
+        for entry in tree.iteritems():
             yield DulwichObject(self.repo, entry.path.decode(), entry.mode, entry.sha)
 
     @cached_property
@@ -232,7 +230,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         url: str,
         to_path: str,
         shallow_branch: Optional[str] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         bare: bool = False,
         mirror: bool = False,
     ):
@@ -271,7 +269,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                     cls._set_mirror(repo, progress=progress)
                 else:
                     cls._set_default_tracking_branch(repo)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             raise CloneError(url, to_path) from exc
 
     @staticmethod
@@ -291,7 +289,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     @staticmethod
     def _set_mirror(
-        repo: "Repo", progress: Callable[["GitProgressEvent"], None] = None
+        repo: "Repo", progress: Optional[Callable[["GitProgressEvent"], None]] = None
     ):
         from dulwich.porcelain import NoneStream, fetch
 
@@ -458,10 +456,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def is_tracked(self, path: str) -> bool:
         rel = relpath(path, self.root_dir).replace(os.path.sep, "/").encode()
         rel_dir = rel + b"/"
-        for p in self.repo.open_index():
-            if p == rel or p.startswith(rel_dir):
-                return True
-        return False
+        return any(p == rel or p.startswith(rel_dir) for p in self.repo.open_index())
 
     def is_dirty(self, untracked_files: bool = False) -> bool:
         kwargs: Dict[str, Any] = {} if untracked_files else {"untracked_files": "no"}
@@ -590,7 +585,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             _remote, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             raise InvalidRemote(url) from exc
 
         try:
@@ -616,7 +611,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         from dulwich.client import HTTPUnauthorized, get_transport_and_path
@@ -627,7 +622,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             _remote, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
         change_result = {}
@@ -700,7 +695,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         from dulwich.client import get_transport_and_path
@@ -868,7 +863,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         write_tree_diff(buf, self.repo.object_store, commit_a.tree, commit_b.tree)
         return buf.getvalue().decode("utf-8")
 
-    def reset(self, hard: bool = False, paths: Iterable[str] = None):
+    def reset(self, hard: bool = False, paths: Optional[Iterable[str]] = None):
         raise NotImplementedError
 
     def checkout_index(
@@ -920,7 +915,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             _, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             raise InvalidRemote(url) from exc
         if isinstance(client, LocalGitClient) and not os.path.exists(
             os.path.join("", path)

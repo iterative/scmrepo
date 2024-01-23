@@ -44,7 +44,7 @@ def fetch(
     scm.lfs_storage.fetch(url, objects, progress=progress)
 
 
-def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901
+def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901,PLR0912
     """Return LFS fetch URL for the specified repository."""
     git_config = scm.get_config()
 
@@ -135,9 +135,8 @@ def _filter_paths(
 if __name__ == "__main__":
     # Minimal `git lfs fetch` CLI implementation
     import argparse
-    import sys
 
-    from scmrepo.git import Git  # noqa: F811
+    from scmrepo.git import Git
 
     parser = argparse.ArgumentParser(
         description=(
@@ -158,5 +157,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     with Git(".") as scm_:  # pylint: disable=E0601
-        print("fetch: fetching reference", ", ".join(args.refs), file=sys.stderr)
         fetch(scm_, revs=args.refs, remote=args.remote)

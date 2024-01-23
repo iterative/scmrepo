@@ -28,15 +28,14 @@ from scmrepo.exceptions import (
     SCMError,
     UnsupportedIndexFormat,
 )
+from scmrepo.git.objects import GitCommit, GitObject, GitTag
 from scmrepo.utils import relpath
 
-from ..objects import GitCommit, GitObject, GitTag
 from .base import BaseGitBackend, SyncStatus
 
 if TYPE_CHECKING:
+    from scmrepo.git.config import Config
     from scmrepo.progress import GitProgressEvent
-
-    from ..config import Config
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +63,7 @@ def is_binary() -> bool:
     return getattr(sys, "frozen", False)
 
 
-def fix_env(env: Dict[str, str] = None) -> Dict[str, str]:
+def fix_env(env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     if env is None:
         environ = os.environ.copy()
     else:
@@ -87,7 +86,7 @@ class GitPythonObject(GitObject):
     def open(
         self,
         mode: str = "r",
-        encoding: str = None,
+        encoding: Optional[str] = None,
         raw: bool = True,
         **kwargs,
     ):
@@ -142,9 +141,9 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo = git.Repo(
                 root_dir, search_parent_directories=search_parent_directories
             )
-        except InvalidGitRepositoryError:
+        except InvalidGitRepositoryError as exc:
             msg = "{} is not a git repository"
-            raise SCMError(msg.format(root_dir))
+            raise SCMError(msg.format(root_dir)) from exc
 
         # NOTE: fixing LD_LIBRARY_PATH for binary built by PyInstaller.
         # http://pyinstaller.readthedocs.io/en/stable/runtime-information.html
@@ -175,7 +174,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         url: str,
         to_path: str,
         shallow_branch: Optional[str] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         bare: bool = False,
         mirror: bool = False,
     ):
@@ -185,7 +184,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         ld_key = "LD_LIBRARY_PATH"
 
         env = fix_env()
-        if is_binary() and ld_key not in env.keys():
+        if is_binary() and ld_key not in env:
             # In fix_env, we delete LD_LIBRARY_PATH key if it was empty before
             # PyInstaller modified it. GitPython, in git.Repo.clone_from, uses
             # env to update its own internal state. When there is no key in
@@ -398,8 +397,8 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 except NotImplementedError:
                     # Fall back to `git rev-parse` for advanced features
                     return self.repo.git.rev_parse(name)
-                except ValueError:
-                    raise RevError(f"unknown Git revision '{name}'")
+                except ValueError as exc:
+                    raise RevError(f"unknown Git revision '{name}'") from exc
 
         # Resolve across local names
         sha = _resolve_rev(rev)
@@ -473,7 +472,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except GitCommandError as exc:
             raise SCMError(f"Failed to set ref '{name}'") from exc
 
-    def get_ref(self, name: str, follow: bool = True) -> Optional[str]:
+    def get_ref(self, name: str, follow: bool = True) -> Optional[str]:  # noqa: C901, PLR0911, PLR0912
         from git.exc import GitCommandError
 
         if name == "HEAD":
@@ -550,7 +549,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         raise NotImplementedError
@@ -561,7 +560,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         raise NotImplementedError
@@ -650,7 +649,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def diff(self, rev_a: str, rev_b: str, binary=False) -> str:
         raise NotImplementedError
 
-    def reset(self, hard: bool = False, paths: Iterable[str] = None):
+    def reset(self, hard: bool = False, paths: Optional[Iterable[str]] = None):
         if paths:
             paths_list: Optional[List[str]] = [
                 relpath(path, self.root_dir) for path in paths

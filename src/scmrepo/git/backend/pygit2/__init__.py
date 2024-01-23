@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from pygit2 import Commit, Oid, Signature
     from pygit2.config import Config as _Pygit2Config
-    from pygit2.remote import Remote  # type: ignore
+    from pygit2.remote import Remote
     from pygit2.repository import Repository
 
     from scmrepo.progress import GitProgressEvent
@@ -53,7 +53,7 @@ class Pygit2Object(GitObject):
     def open(
         self,
         mode: str = "r",
-        encoding: str = None,
+        encoding: Optional[str] = None,
         key: Optional[Tuple[str, ...]] = None,
         raw: bool = True,
         rev: Optional[str] = None,
@@ -116,7 +116,7 @@ class Pygit2Object(GitObject):
         return self.obj.hex
 
     def scandir(self) -> Iterable["Pygit2Object"]:
-        for entry in self.obj:  # noqa: B301
+        for entry in self.obj:
             yield Pygit2Object(entry, backend=self.backend)
 
 
@@ -125,7 +125,7 @@ class Pygit2Config(Config):
         self._config = config
 
     def _key(self, section: Tuple[str, ...], name: str) -> str:
-        return ".".join(section + (name,))
+        return ".".join((*section, name))
 
     def get(self, section: Tuple[str, ...], name: str) -> str:
         return self._config[self._key(section, name)]
@@ -280,7 +280,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         url: str,
         to_path: str,
         shallow_branch: Optional[str] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         bare: bool = False,
         mirror: bool = False,
     ):
@@ -303,7 +303,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     @staticmethod
     def _set_mirror(
         repo: "Repository",
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
     ):
         from .callbacks import RemoteCallbacks
 
@@ -361,8 +361,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     branch = "@{-1}"
                 try:
                     commit, ref = self._resolve_refish(branch)
-                except (KeyError, GitError):
-                    raise RevError(f"unknown Git revision '{branch}'")
+                except (KeyError, GitError) as exc:
+                    raise RevError(f"unknown Git revision '{branch}'") from exc
                 self.repo.checkout_tree(commit, strategy=strategy)
                 detach = kwargs.get("detach", False)
                 if ref and not detach:
@@ -477,7 +477,9 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         if len(shas) > 1:
             raise RevError(f"ambiguous Git revision '{rev}'")
         if len(shas) == 1:
-            return shas.pop()  # type: ignore
+            sha = shas.pop()
+            if sha is not None:
+                return sha
         raise RevError(f"unknown Git revision '{rev}'")
 
     def resolve_commit(self, rev: str) -> "GitCommit":
@@ -485,8 +487,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             commit, _ref = self._resolve_refish(rev)
-        except (KeyError, GitError):
-            raise SCMError(f"Invalid commit '{rev}'")
+        except (KeyError, GitError) as exc:
+            raise SCMError(f"Invalid commit '{rev}'") from exc
         return GitCommit(
             str(commit.id),
             commit.commit_time,
@@ -576,8 +578,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             search_commit, _ref = self._resolve_refish(rev)
-        except (KeyError, GitError):
-            raise SCMError(f"Invalid rev '{rev}'")
+        except (KeyError, GitError) as exc:
+            raise SCMError(f"Invalid rev '{rev}'") from exc
 
         if not pattern:
             yield from (
@@ -601,7 +603,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         raise NotImplementedError
@@ -647,8 +649,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             url = remote.url
         except ValueError:
             pass
-        except KeyError:
-            raise SCMError(f"'{url}' is not a valid Git remote or URL")
+        except KeyError as exc:
+            raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
         parsed = urlparse(url)
         if parsed.scheme in ("git", "git+ssh", "ssh") or url.startswith("git@"):
@@ -664,7 +666,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
         on_diverged: Optional[Callable[[str, str], bool]] = None,
-        progress: Callable[["GitProgressEvent"], None] = None,
+        progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         **kwargs,
     ) -> Mapping[str, SyncStatus]:
         import fnmatch
@@ -833,7 +835,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def diff(self, rev_a: str, rev_b: str, binary=False) -> str:
         raise NotImplementedError
 
-    def reset(self, hard: bool = False, paths: Iterable[str] = None):
+    def reset(self, hard: bool = False, paths: Optional[Iterable[str]] = None):
         from pygit2 import GIT_RESET_HARD, GIT_RESET_MIXED, IndexEntry
 
         self.repo.index.read(False)
@@ -963,7 +965,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def iter_remote_refs(self, url: str, base: Optional[str] = None, **kwargs):
         raise NotImplementedError
 
-    def merge(
+    def merge(  # noqa: C901
         self,
         rev: str,
         commit: bool = True,
