@@ -1,8 +1,7 @@
 import logging
-from collections.abc import Awaitable, Iterable
+from collections.abc import Iterable
 from contextlib import AbstractContextManager
-from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
 from dvc_http import HTTPFileSystem
@@ -30,29 +29,6 @@ logger = logging.getLogger(__name__)
 class _LFSFileSystem(HTTPFileSystem):
     def _prepare_credentials(self, **config):
         return {}
-
-
-def _authed(f: Callable[..., Awaitable]):
-    """Set credentials and retry the given coroutine if needed."""
-
-    # pylint: disable=protected-access
-    @wraps(f)  # type: ignore[arg-type]
-    async def wrapper(self, *args, **kwargs):
-        try:
-            return await f(self, *args, **kwargs)
-        except aiohttp.ClientResponseError as exc:
-            if exc.status != 401:
-                raise
-            session = await self._set_session()
-            if session.auth:
-                raise
-            auth = self._get_auth()
-            if auth is None:
-                raise
-            self._session._auth = auth
-        return await f(self, *args, **kwargs)
-
-    return wrapper
 
 
 class LFSClient(AbstractContextManager):
@@ -112,7 +88,6 @@ class LFSClient(AbstractContextManager):
     async def _set_session(self) -> aiohttp.ClientSession:
         return await self.fs.fs.set_session()
 
-    @_authed
     async def _batch_request(
         self,
         objects: Iterable[Pointer],
@@ -134,14 +109,30 @@ class LFSClient(AbstractContextManager):
         headers = dict(self.headers)
         headers["Accept"] = self.JSON_CONTENT_TYPE
         headers["Content-Type"] = self.JSON_CONTENT_TYPE
-        async with session.post(
-            url,
-            headers=headers,
-            json=body,
-        ) as resp:
-            return await resp.json()
+        try:
+            async with session.post(
+                url,
+                headers=headers,
+                json=body,
+                raise_for_status=True,
+            ) as resp:
+                data = await resp.json()
+        except aiohttp.ClientResponseError as exc:
+            if exc.status != 401:
+                raise
+            auth = self._get_auth()
+            if auth is None:
+                raise
+            async with session.post(
+                url,
+                auth=auth,
+                headers=headers,
+                json=body,
+                raise_for_status=True,
+            ) as resp:
+                data = await resp.json()
+        return data
 
-    @_authed
     async def _download(
         self,
         storage: "LFSStorage",
