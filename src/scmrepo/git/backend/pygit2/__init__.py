@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from pygit2 import Commit, Oid, Signature
     from pygit2.config import Config as _Pygit2Config
-    from pygit2.remote import Remote
+    from pygit2.remotes import Remote
     from pygit2.repository import Repository
 
     from scmrepo.progress import GitProgressEvent

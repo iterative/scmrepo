@@ -8,7 +8,7 @@ from asyncssh.connection import SSHClientConnection
 from dulwich.client import LocalGitClient
 from git import Repo as GitPythonRepo
 from pygit2 import GitError
-from pygit2.remote import Remote
+from pygit2.remotes import Remote
 from pytest_mock import MockerFixture
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
