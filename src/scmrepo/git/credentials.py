@@ -34,7 +34,7 @@ import shutil
 import subprocess  # nosec B404
 import sys
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterator, Mapping
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -52,6 +52,8 @@ from funcy import cached_property
 from scmrepo.exceptions import SCMError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from dulwich.config import ConfigDict
 
 logger = logging.getLogger(__name__)
