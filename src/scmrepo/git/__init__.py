@@ -5,18 +5,14 @@ import os
 import re
 import typing
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from functools import partialmethod
 from typing import (
     TYPE_CHECKING,
     Callable,
     ClassVar,
-    Dict,
-    Iterable,
     Optional,
-    Tuple,
-    Type,
     Union,
 )
 
@@ -44,14 +40,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-BackendCls = Type[BaseGitBackend]
+BackendCls = type[BaseGitBackend]
 
 
 _LOW_PRIO_BACKENDS = ("gitpython",)
 
 
 class GitBackends(Mapping):
-    DEFAULT: ClassVar[Dict[str, BackendCls]] = {
+    DEFAULT: ClassVar[dict[str, BackendCls]] = {
         "dulwich": DulwichBackend,
         "pygit2": Pygit2Backend,
         "gitpython": GitPythonBackend,
@@ -72,7 +68,7 @@ class GitBackends(Mapping):
         selected = selected or list(self.DEFAULT)
         self.backends = OrderedDict((key, self.DEFAULT[key]) for key in selected)
 
-        self.initialized: Dict[str, BaseGitBackend] = {}
+        self.initialized: dict[str, BaseGitBackend] = {}
 
         self.args = args
         self.kwargs = kwargs
@@ -169,7 +165,7 @@ class Git(Base):
         return rev and cls.RE_HEXSHA.search(rev)
 
     @classmethod
-    def split_ref_pattern(cls, ref: str) -> Tuple[str, str]:
+    def split_ref_pattern(cls, ref: str) -> tuple[str, str]:
         name = cls.BAD_REF_CHARS_RE.split(ref, maxsplit=1)[0]
         return name, ref[len(name) :]
 
@@ -492,8 +488,8 @@ class Git(Base):
         base: Optional[str] = None,
         match: Optional[str] = None,
         exclude: Optional[str] = None,
-    ) -> Dict[str, Optional[str]]:
-        results: Dict[str, Optional[str]] = {}
+    ) -> dict[str, Optional[str]]:
+        results: dict[str, Optional[str]] = {}
         remained_revs = set()
         if base == "refs/heads":
             current_rev = self.get_rev()

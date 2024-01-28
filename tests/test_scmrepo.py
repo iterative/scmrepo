@@ -1,4 +1,3 @@
-from typing import Type
 from unittest.mock import MagicMock
 
 from pytest_test_utils import TmpDir
@@ -8,7 +7,7 @@ from scmrepo.git import Git
 from scmrepo.progress import GitProgressEvent
 
 
-def test_clone(tmp_dir: TmpDir, matcher: Type[Matcher]):
+def test_clone(tmp_dir: TmpDir, matcher: type[Matcher]):
     progress = MagicMock()
     url = "https://github.com/iterative/dvcyaml-schema"
     rev = "cf279597596b54c5b0ce089eb4bda41ebbbb5db4"

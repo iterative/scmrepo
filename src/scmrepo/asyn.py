@@ -2,7 +2,7 @@
 import asyncio
 import os
 import threading
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from fsspec.asyn import (  # noqa: F401, pylint:disable=unused-import
     _selector_policy,
@@ -11,9 +11,9 @@ from fsspec.asyn import (  # noqa: F401, pylint:disable=unused-import
 )
 
 # dedicated async IO thread
-iothread: List[Optional[threading.Thread]] = [None]
+iothread: list[Optional[threading.Thread]] = [None]
 # global DVC event loop
-default_loop: List[Optional[asyncio.AbstractEventLoop]] = [None]
+default_loop: list[Optional[asyncio.AbstractEventLoop]] = [None]
 lock = threading.Lock()
 
 

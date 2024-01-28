@@ -2,7 +2,7 @@ import hashlib
 import io
 import logging
 from dataclasses import dataclass
-from typing import IO, BinaryIO, TextIO, Tuple
+from typing import IO, BinaryIO, TextIO
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ ALLOWED_VERSIONS = (LFS_VERSION, LEGACY_LFS_VERSION)
 HEADERS = [(b"version " + version.encode("utf-8")) for version in ALLOWED_VERSIONS]
 
 
-def _get_kv(line: str) -> Tuple[str, str]:
+def _get_kv(line: str) -> tuple[str, str]:
     key, value = line.strip().split(maxsplit=1)
     return key, value
 

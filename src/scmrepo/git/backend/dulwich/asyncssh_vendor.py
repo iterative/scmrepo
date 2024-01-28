@@ -1,15 +1,11 @@
 """asyncssh SSH vendor for Dulwich."""
 import asyncio
 import os
+from collections.abc import Coroutine, Iterator, Sequence
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Coroutine,
-    Dict,
-    Iterator,
-    List,
     Optional,
-    Sequence,
     cast,
 )
 
@@ -47,7 +43,7 @@ class _StderrWrapper:
         self.stderr = stderr
         self.loop = loop
 
-    async def _readlines(self) -> List[bytes]:
+    async def _readlines(self) -> list[bytes]:
         lines = []
         while True:
             line = await self.stderr.readline()
@@ -140,12 +136,12 @@ def _process_public_key_ok_gh(self, _pkttype, _pktid, packet):
 
 class InteractiveSSHClient(SSHClient):
     _conn: Optional["SSHClientConnection"] = None
-    _keys_to_try: Optional[List["FilePath"]] = None
-    _passphrases: Dict[str, str]
+    _keys_to_try: Optional[list["FilePath"]] = None
+    _passphrases: dict[str, str]
 
     def __init__(self, *args, **kwargs):
         super(*args, **kwargs)
-        _passphrases: Dict[str, str] = {}
+        _passphrases: dict[str, str] = {}
 
     def connection_made(self, conn: "SSHClientConnection") -> None:
         self._conn = conn
@@ -267,7 +263,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
     async def _run_command(
         self,
         host: str,
-        command: List[str],
+        command: list[str],
         username: Optional[str] = None,
         port: Optional[int] = None,
         password: Optional[str] = None,

@@ -2,7 +2,8 @@ import asyncio
 import os
 import subprocess
 import sys
-from typing import Any, AsyncIterator, Dict, Iterator
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 import asyncssh
 import pygit2
@@ -103,7 +104,7 @@ def remote_git_dir(tmp_dir_factory: TempDirFactory):
 
 @pytest.fixture(scope="session")
 def docker(request: pytest.FixtureRequest):
-    for cmd in [("docker", "ps"), ("docker-compose", "version")]:
+    for cmd in [("docker", "ps"), ("docker", "compose", "version")]:
         try:
             subprocess.check_call(
                 cmd,
@@ -123,7 +124,7 @@ def docker(request: pytest.FixtureRequest):
 @pytest.fixture
 def ssh_conn_info(
     docker,  # pylint: disable=unused-argument
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     conn_info = {
         "host": "127.0.0.1",
         "port": docker.port_for("git-server", 2222),
@@ -152,7 +153,7 @@ def ssh_conn_info(
 
 @pytest.fixture
 async def ssh_connection(
-    ssh_conn_info: Dict[str, Any],
+    ssh_conn_info: dict[str, Any],
 ) -> AsyncIterator[asyncssh.connection.SSHClientConnection]:
     async with asyncssh.connect(**ssh_conn_info) as conn:
         yield conn

@@ -1,7 +1,8 @@
 import fnmatch
 import io
 import os
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Optional, Set
+from collections.abc import Iterable, Iterator
+from typing import TYPE_CHECKING, Callable, Optional
 
 from scmrepo.exceptions import InvalidRemote, SCMError
 
@@ -15,16 +16,16 @@ if TYPE_CHECKING:
 
 def fetch(
     scm: "Git",
-    revs: Optional[List[str]] = None,
+    revs: Optional[list[str]] = None,
     remote: Optional[str] = None,
-    include: Optional[List[str]] = None,
-    exclude: Optional[List[str]] = None,
+    include: Optional[list[str]] = None,
+    exclude: Optional[list[str]] = None,
     progress: Optional[Callable[["GitProgressEvent"], None]] = None,
 ):
     # NOTE: This currently does not support fetching objects from the worktree
     if not revs:
         revs = ["HEAD"]
-    objects: Set[Pointer] = set()
+    objects: set[Pointer] = set()
     for rev in revs:
         objects.update(
             pointer
@@ -100,8 +101,8 @@ def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901,PLR09
 def _collect_objects(
     scm: "Git",
     rev: str,
-    include: Optional[List[str]],
-    exclude: Optional[List[str]],
+    include: Optional[list[str]],
+    exclude: Optional[list[str]],
 ) -> Iterator[Pointer]:
     fs = scm.get_fs(rev)
     for path in _filter_paths(fs.find("/"), include, exclude):
@@ -118,7 +119,7 @@ def _collect_objects(
 
 
 def _filter_paths(
-    paths: Iterable[str], include: Optional[List[str]], exclude: Optional[List[str]]
+    paths: Iterable[str], include: Optional[list[str]], exclude: Optional[list[str]]
 ) -> Iterator[str]:
     filtered = set()
     if include:
