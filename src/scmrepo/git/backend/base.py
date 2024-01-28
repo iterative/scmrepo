@@ -1,7 +1,8 @@
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, Mapping
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Iterable, Mapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from scmrepo.exceptions import SCMError
 from scmrepo.git.objects import GitObject
@@ -281,7 +282,7 @@ class BaseGitBackend(ABC):
         ref: str,
         message: Optional[str] = None,
         include_untracked: bool = False,
-    ) -> Tuple[Optional[str], bool]:
+    ) -> tuple[Optional[str], bool]:
         """Push a commit onto the specified stash.
 
         Returns a tuple of the form (rev, need_reset) where need_reset
@@ -347,7 +348,7 @@ class BaseGitBackend(ABC):
     @abstractmethod
     def status(
         self, ignored: bool = False, untracked_files: str = "all"
-    ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
+    ) -> tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         """Return tuple of (staged_files, unstaged_files, untracked_files).
 
         staged_files will be a dict mapping status (add, delete, modify) to a

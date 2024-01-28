@@ -2,19 +2,13 @@ import locale
 import logging
 import os
 import stat
+from collections.abc import Generator, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from io import BytesIO, StringIO, TextIOWrapper
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
     Optional,
-    Tuple,
     Union,
 )
 from urllib.parse import urlparse
@@ -54,7 +48,7 @@ class Pygit2Object(GitObject):
         self,
         mode: str = "r",
         encoding: Optional[str] = None,
-        key: Optional[Tuple[str, ...]] = None,
+        key: Optional[tuple[str, ...]] = None,
         raw: bool = True,
         rev: Optional[str] = None,
         **kwargs,
@@ -124,13 +118,13 @@ class Pygit2Config(Config):
     def __init__(self, config: "_Pygit2Config"):
         self._config = config
 
-    def _key(self, section: Tuple[str, ...], name: str) -> str:
+    def _key(self, section: tuple[str, ...], name: str) -> str:
         return ".".join((*section, name))
 
-    def get(self, section: Tuple[str, ...], name: str) -> str:
+    def get(self, section: tuple[str, ...], name: str) -> str:
         return self._config[self._key(section, name)]
 
-    def get_bool(self, section: Tuple[str, ...], name: str) -> bool:
+    def get_bool(self, section: tuple[str, ...], name: str) -> bool:
         from pygit2 import GitError
 
         try:
@@ -138,7 +132,7 @@ class Pygit2Config(Config):
         except GitError as exc:
             raise ValueError("invalid boolean config entry") from exc
 
-    def get_multivar(self, section: Tuple[str, ...], name: str) -> Iterator[str]:
+    def get_multivar(self, section: tuple[str, ...], name: str) -> Iterator[str]:
         from pygit2 import GitError
 
         try:
@@ -681,7 +675,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         # when a ref was rejected so we have to determine whether no callback
         # means up to date or rejected
         def _default_status(
-            src: str, dst: str, remote_refs: Dict[str, "Oid"]
+            src: str, dst: str, remote_refs: dict[str, "Oid"]
         ) -> SyncStatus:
             try:
                 if remote_refs[src] != self.repo.references[dst].target:
@@ -698,7 +692,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 SCMError(f"Git failed to fetch ref from '{url}'"),
             ):
                 with RemoteCallbacks(progress=progress) as cb:
-                    remote_refs: Dict[str, "Oid"] = (
+                    remote_refs: dict[str, "Oid"] = (
                         {
                             head["name"]: head["oid"]
                             for head in remote.ls_remotes(callbacks=cb)
@@ -712,7 +706,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                         message="fetch",
                     )
 
-            result: Dict[str, "SyncStatus"] = {}
+            result: dict[str, "SyncStatus"] = {}
             for refspec in refspecs:
                 lh, rh = refspec.split(":")
                 if lh.endswith("*"):
@@ -735,7 +729,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def _refspecs_list(
         refspecs: Union[str, Iterable[str]],
         force: bool = False,
-    ) -> List[str]:
+    ) -> list[str]:
         if isinstance(refspecs, str):
             if force and not refspecs.startswith("+"):
                 refspecs = f"+{refspecs}"
@@ -755,7 +749,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         ref: str,
         message: Optional[str] = None,
         include_untracked: bool = False,
-    ) -> Tuple[Optional[str], bool]:
+    ) -> tuple[Optional[str], bool]:
         from scmrepo.git import Stash
 
         try:
@@ -880,7 +874,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         index = self.repo.index
         if paths:
-            path_list: Optional[List[str]] = [
+            path_list: Optional[list[str]] = [
                 relpath(path, self.root_dir) for path in paths
             ]
             if os.name == "nt":
@@ -911,7 +905,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def status(
         self, ignored: bool = False, untracked_files: str = "all"
-    ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
+    ) -> tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         from pygit2 import (
             GIT_STATUS_IGNORED,
             GIT_STATUS_INDEX_DELETED,
@@ -925,13 +919,13 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             GIT_STATUS_WT_UNREADABLE,
         )
 
-        staged: Mapping[str, List[str]] = {
+        staged: Mapping[str, list[str]] = {
             "add": [],
             "delete": [],
             "modify": [],
         }
-        unstaged: List[str] = []
-        untracked: List[str] = []
+        unstaged: list[str] = []
+        untracked: list[str] = []
 
         states = {
             GIT_STATUS_WT_NEW: untracked,

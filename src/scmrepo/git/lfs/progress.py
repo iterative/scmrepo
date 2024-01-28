@@ -1,4 +1,4 @@
-from typing import Any, BinaryIO, Callable, Dict, Optional, Union
+from typing import Any, BinaryIO, Callable, Optional, Union
 
 from dvc_objects.fs.callbacks import DEFAULT_CALLBACK, Callback, TqdmCallback
 
@@ -37,7 +37,7 @@ class LFSCallback(Callback):
         self,
         path_1: Union[str, BinaryIO],
         path_2: str,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         child: Optional[Callback] = None,
     ):
         if child:

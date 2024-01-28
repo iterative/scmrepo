@@ -2,7 +2,7 @@ import os
 import socket
 import threading
 from io import StringIO
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import AsyncMock
 
 import asyncssh
@@ -18,7 +18,7 @@ from scmrepo.git.backend.dulwich.asyncssh_vendor import AsyncSSHVendor
 
 
 @pytest.fixture
-def ssh_conn(request: pytest.FixtureRequest) -> Dict[str, Any]:
+def ssh_conn(request: pytest.FixtureRequest) -> dict[str, Any]:
     server = Server([])
 
     socket.setdefaulttimeout(10)
@@ -30,7 +30,7 @@ def ssh_conn(request: pytest.FixtureRequest) -> Dict[str, Any]:
     request.addfinalizer(sock.close)  # noqa: PT021
     port = sock.getsockname()[1]
 
-    conn_info: Dict[str, Any] = {"port": port, "server": server}
+    conn_info: dict[str, Any] = {"port": port, "server": server}
 
     def _run_server():
         try:
@@ -49,12 +49,12 @@ def ssh_conn(request: pytest.FixtureRequest) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def ssh_port(ssh_conn: Dict[str, Any]) -> int:
+def ssh_port(ssh_conn: dict[str, Any]) -> int:
     return ssh_conn["port"]
 
 
 @pytest.fixture
-def server(ssh_conn: Dict[str, Any]) -> Server:
+def server(ssh_conn: dict[str, Any]) -> Server:
     return ssh_conn["server"]
 
 

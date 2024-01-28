@@ -34,18 +34,13 @@ import shutil
 import subprocess  # nosec B404
 import sys
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, Iterator, Mapping
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
     NamedTuple,
     Optional,
-    Tuple,
     Union,
 )
 from urllib.parse import urlparse, urlunparse
@@ -61,7 +56,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SectionLike = Union[bytes, str, Tuple[Union[bytes, str], ...]]
+SectionLike = Union[bytes, str, tuple[Union[bytes, str], ...]]
 
 
 class CredentialNotFoundError(SCMError):
@@ -110,14 +105,14 @@ class GitCredentialHelper(CredentialHelper):
     def __init__(self, command: str, use_http_path: bool = False):
         super().__init__()
         self._command = command
-        self._run_kwargs: Dict[str, Any] = {}
+        self._run_kwargs: dict[str, Any] = {}
         if self._command[0] == "!":
             # On Windows this will only work in git-bash and/or WSL2
             self._run_kwargs["shell"] = True
         self._encoding = locale.getpreferredencoding()
         self.use_http_path = use_http_path
 
-    def _prepare_command(self, action: Optional[str] = None) -> Union[str, List[str]]:
+    def _prepare_command(self, action: Optional[str] = None) -> Union[str, list[str]]:
         if self._command[0] == "!":
             return self._command[1:] + (f" {action}" if action else "")
 
@@ -242,7 +237,7 @@ class GitCredentialHelper(CredentialHelper):
     @staticmethod
     def get_matching_commands(
         base_url: str, config: Optional[Union["ConfigDict", "StackedConfig"]] = None
-    ) -> Iterator[Tuple[str, bool]]:
+    ) -> Iterator[tuple[str, bool]]:
         config = config or StackedConfig.default()
         if isinstance(config, StackedConfig):
             backends: Iterable["ConfigDict"] = config.backends
@@ -326,7 +321,7 @@ class MemoryCredentialHelper(CredentialHelper):
 
     def __init__(self):
         super().__init__()
-        self._credentials: Dict["_CredentialKey", "Credential"] = {}
+        self._credentials: dict["_CredentialKey", "Credential"] = {}
 
     def __getitem__(self, key: object) -> "Credential":
         if isinstance(key, _CredentialKey):
@@ -572,7 +567,7 @@ class Credential(Mapping[str, str]):
         return urlunparse((self.protocol or "", netloc, path, "", "", ""))
 
     @cached_property
-    def helpers(self) -> List["CredentialHelper"]:
+    def helpers(self) -> list["CredentialHelper"]:
         url = self.url
         return [
             GitCredentialHelper(command, use_http_path=use_http_path)

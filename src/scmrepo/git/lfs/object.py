@@ -1,5 +1,5 @@
 from dataclasses import dataclass, fields
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -11,5 +11,5 @@ class LFSObject:
         return self.oid
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "LFSObject":
+    def from_dict(cls, d: dict[str, Any]) -> "LFSObject":
         return cls(**{k: v for k, v in d.items() if k in fields(cls)})

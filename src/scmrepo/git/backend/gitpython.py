@@ -4,17 +4,13 @@ import logging
 import os
 import re
 import sys
+from collections.abc import Iterable, Mapping
 from functools import partial, wraps
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -63,7 +59,7 @@ def is_binary() -> bool:
     return getattr(sys, "frozen", False)
 
 
-def fix_env(env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+def fix_env(env: Optional[dict[str, str]] = None) -> dict[str, str]:
     if env is None:
         environ = os.environ.copy()
     else:
@@ -257,7 +253,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             if update or not force:
                 # NOTE: git-python index.add() defines force parameter but
                 # ignores it (index.add() behavior is always force=True)
-                kwargs: Dict[str, Any] = {}
+                kwargs: dict[str, Any] = {}
                 if update:
                     kwargs["update"] = True
                 if isinstance(paths, str):
@@ -573,7 +569,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         ref: str,
         message: Optional[str] = None,
         include_untracked: bool = False,
-    ) -> Tuple[Optional[str], bool]:
+    ) -> tuple[Optional[str], bool]:
         from scmrepo.git import Stash
 
         if not self.is_dirty(untracked_files=include_untracked):
@@ -651,7 +647,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def reset(self, hard: bool = False, paths: Optional[Iterable[str]] = None):
         if paths:
-            paths_list: Optional[List[str]] = [
+            paths_list: Optional[list[str]] = [
                 relpath(path, self.root_dir) for path in paths
             ]
             if os.name == "nt":
@@ -684,7 +680,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.git.checkout(*args)
         else:
             if paths:
-                paths_list: Optional[List[str]] = [
+                paths_list: Optional[list[str]] = [
                     relpath(path, self.root_dir) for path in paths
                 ]
                 if os.name == "nt":
@@ -698,7 +694,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def status(
         self, ignored: bool = False, untracked_files: str = "all"
-    ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
+    ) -> tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         raise NotImplementedError
 
     def merge(

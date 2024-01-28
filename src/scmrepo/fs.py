@@ -1,7 +1,7 @@
 import errno
 import os
 import posixpath
-from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Optional
 
 from fsspec.callbacks import _DEFAULT_CALLBACK
 from fsspec.spec import AbstractFileSystem
@@ -169,7 +169,7 @@ class GitFileSystem(AbstractFileSystem):
     def as_posix(cls, path):
         return path
 
-    def _get_key(self, path: str) -> Tuple[str, ...]:
+    def _get_key(self, path: str) -> tuple[str, ...]:
         path = self.abspath(path)
         if path == self.root_marker:
             return ()
@@ -184,7 +184,7 @@ class GitFileSystem(AbstractFileSystem):
         mode: str = "rb",
         block_size: Optional[int] = None,
         autocommit: bool = True,
-        cache_options: Optional[Dict] = None,
+        cache_options: Optional[dict] = None,
         raw: bool = False,
         **kwargs: Any,
     ) -> BinaryIO:
@@ -204,7 +204,7 @@ class GitFileSystem(AbstractFileSystem):
                 errno.EISDIR, os.strerror(errno.EISDIR), path
             ) from exc
 
-    def info(self, path: str, **kwargs: Any) -> Dict[str, Any]:
+    def info(self, path: str, **kwargs: Any) -> dict[str, Any]:
         key = self._get_key(path)
         try:
             # NOTE: to avoid wasting time computing object size, trie.info
