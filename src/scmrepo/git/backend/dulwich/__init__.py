@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import stat
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import closing
 from functools import partial
 from io import BytesIO, StringIO
@@ -11,13 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
     Optional,
-    Tuple,
     Union,
 )
 
@@ -151,18 +146,18 @@ class DulwichConfig(Config):
             return self._config.encoding
         return self._config.backends[0].encoding
 
-    def get(self, section: Tuple[str, ...], name: str) -> str:
+    def get(self, section: tuple[str, ...], name: str) -> str:
         """Return the specified setting as a string."""
         return self._config.get(section, name).decode(self.encoding)
 
-    def get_bool(self, section: Tuple[str, ...], name: str) -> bool:
+    def get_bool(self, section: tuple[str, ...], name: str) -> bool:
         """Return the specified setting as a boolean."""
         value = self._config.get_boolean(section, name)
         if value is None:
             raise ValueError("setting is not a valid boolean")
         return value
 
-    def get_multivar(self, section: Tuple[str, ...], name: str) -> Iterator[str]:
+    def get_multivar(self, section: tuple[str, ...], name: str) -> Iterator[str]:
         """Iterate over string values in the specified multivar setting."""
         for value in self._config.get_multivar(section, name):
             yield value.decode(self.encoding)
@@ -199,17 +194,17 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except NotGitRepository as exc:
             raise SCMError(f"{root_dir} is not a git repository") from exc
 
-        self._submodules: Dict[str, str] = self._find_submodules()
+        self._submodules: dict[str, str] = self._find_submodules()
         self._stashes: dict = {}
 
-    def _find_submodules(self) -> Dict[str, str]:
+    def _find_submodules(self) -> dict[str, str]:
         """Return dict mapping submodule names to submodule paths.
 
         Submodule paths will be relative to Git repo root.
         """
         from dulwich.config import ConfigFile, parse_submodules
 
-        submodules: Dict[str, str] = {}
+        submodules: dict[str, str] = {}
         config_path = os.path.join(self.root_dir, ".gitmodules")
         if os.path.isfile(config_path):
             config = ConfigFile.from_path(config_path)
@@ -332,7 +327,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.stage(list(self.repo.open_index()))
             return
 
-        files: List[bytes] = [
+        files: list[bytes] = [
             os.fsencode(fpath) for fpath in self._expand_paths(paths, force=force)
         ]
         if update:
@@ -348,7 +343,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         else:
             self.repo.stage(files)
 
-    def _expand_paths(self, paths: List[str], force: bool = False) -> Iterator[str]:
+    def _expand_paths(self, paths: list[str], force: bool = False) -> Iterator[str]:
         for path in paths:
             if not os.path.isabs(path) and self._submodules:
                 # NOTE: If path is inside a submodule, Dulwich expects the
@@ -459,7 +454,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return any(p == rel or p.startswith(rel_dir) for p in self.repo.open_index())
 
     def is_dirty(self, untracked_files: bool = False) -> bool:
-        kwargs: Dict[str, Any] = {} if untracked_files else {"untracked_files": "no"}
+        kwargs: dict[str, Any] = {} if untracked_files else {"untracked_files": "no"}
         return any(self.status(**kwargs))
 
     def active_branch(self) -> str:
@@ -707,9 +702,9 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         fetch_refs = []
 
         def determine_wants(
-            remote_refs: Dict[bytes, bytes],
+            remote_refs: dict[bytes, bytes],
             depth: Optional[int] = None,  # pylint: disable=unused-argument
-        ) -> List[bytes]:
+        ) -> list[bytes]:
             fetch_refs.extend(
                 parse_reftuples(
                     DictRefsContainer(remote_refs),
@@ -782,7 +777,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         ref: str,
         message: Optional[str] = None,
         include_untracked: bool = False,
-    ) -> Tuple[Optional[str], bool]:
+    ) -> tuple[Optional[str], bool]:
         from dulwich.repo import InvalidUserIdentity
 
         from scmrepo.git import Stash
@@ -836,8 +831,8 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     ) -> Mapping[str, Optional[str]]:
         if not base:
             base = "refs/tags"
-        rev_mapping: Dict[str, Optional[str]] = {}
-        results: Dict[str, Optional[str]] = {}
+        rev_mapping: dict[str, Optional[str]] = {}
+        results: dict[str, Optional[str]] = {}
         for ref in self.iter_refs(base=base):
             if (match and not fnmatch.fnmatch(ref, match)) or (
                 exclude and fnmatch.fnmatch(ref, exclude)
@@ -877,7 +872,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def status(
         self, ignored: bool = False, untracked_files: str = "all"
-    ) -> Tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
+    ) -> tuple[Mapping[str, Iterable[str]], Iterable[str], Iterable[str]]:
         from dulwich.porcelain import Error
         from dulwich.porcelain import status as git_status
 
@@ -978,7 +973,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 _IDENTITY_RE = re.compile(r"(?P<name>.+)\s+<(?P<email>.+)>")
 
 
-def _parse_identity(identity: str) -> Tuple[str, str]:
+def _parse_identity(identity: str) -> tuple[str, str]:
     m = _IDENTITY_RE.match(identity)
     if not m:
         raise SCMError("Could not parse tagger identity '{identity}'")

@@ -1,6 +1,7 @@
 import errno
 import os
-from typing import TYPE_CHECKING, BinaryIO, Callable, Collection, Optional, Union
+from collections.abc import Collection
+from typing import TYPE_CHECKING, BinaryIO, Callable, Optional, Union
 
 from .pointer import Pointer
 from .progress import LFSCallback

@@ -1,6 +1,6 @@
 from contextlib import AbstractContextManager
 from types import TracebackType
-from typing import TYPE_CHECKING, Callable, Dict, Optional, Type, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from pygit2 import RemoteCallbacks as _RemoteCallbacks
 
@@ -29,11 +29,11 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
         self.progress = GitProgressReporter(progress) if progress else None
         self._store_credentials: Optional["Credential"] = None
         self._tried_credentials = False
-        self.result: Dict[str, SyncStatus] = {}
+        self.result: dict[str, SyncStatus] = {}
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
     ):

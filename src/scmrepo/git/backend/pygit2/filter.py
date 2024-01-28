@@ -1,6 +1,6 @@
 import io
 import logging
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from pygit2 import GIT_FILTER_CLEAN, Filter, Passthrough
 
@@ -17,7 +17,7 @@ class LFSFilter(Filter):
         self._smudge_buf: Optional[io.BytesIO] = None
         self._smudge_root: Optional[str] = None
 
-    def check(self, src: "FilterSource", attr_values: List[str]):
+    def check(self, src: "FilterSource", attr_values: list[str]):
         if attr_values[0] == "lfs" and src.mode != GIT_FILTER_CLEAN:
             self._smudge_buf = io.BytesIO()
             self._smudge_root = src.repo.workdir or src.repo.path

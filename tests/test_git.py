@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional
 
 import pytest
 from asyncssh import SFTPClient
@@ -409,7 +409,7 @@ def test_iter_remote_refs(
 
 
 @pytest.mark.skip_git_backend("dulwich", "pygit2")
-def test_list_all_commits(tmp_dir: TmpDir, scm: Git, git: Git, matcher: Type[Matcher]):
+def test_list_all_commits(tmp_dir: TmpDir, scm: Git, git: Git, matcher: type[Matcher]):
     def _gen(s):
         tmp_dir.gen(s, s)
         scm.add_commit(s, message=s)
@@ -867,7 +867,7 @@ async def test_git_ssh(
     git: Git,
     sftp: SFTPClient,
     ssh_connection: SSHClientConnection,
-    ssh_conn_info: Dict[str, Any],
+    ssh_conn_info: dict[str, Any],
 ):
     host, port = ssh_conn_info["host"], ssh_conn_info["port"]
     key_filename = ssh_conn_info["client_keys"]
@@ -1089,7 +1089,7 @@ def test_is_dirty_untracked(
 def test_backend_func(
     tmp_dir: TmpDir,
     scm: Git,
-    backends: List[str],
+    backends: list[str],
     mocker: MockerFixture,
 ):
     from functools import partial

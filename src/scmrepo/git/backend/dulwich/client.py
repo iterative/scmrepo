@@ -1,4 +1,5 @@
-from typing import Dict, Iterator, List, Optional, Union
+from collections.abc import Iterator
+from typing import Optional, Union
 
 from dulwich.client import HTTPUnauthorized, Urllib3HttpGitClient
 
@@ -26,10 +27,10 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
     def _http_request(
         self,
         url: str,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
         data: Optional[Union[bytes, Iterator[bytes]]] = None,
     ):
-        cached_chunks: List[bytes] = []
+        cached_chunks: list[bytes] = []
 
         def _cached_data() -> Iterator[bytes]:
             assert data is not None
@@ -64,7 +65,7 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
             self._store_credentials.approve()
         return result
 
-    def _get_auth(self) -> Dict[str, str]:
+    def _get_auth(self) -> dict[str, str]:
         from urllib3.util import make_headers
 
         try:

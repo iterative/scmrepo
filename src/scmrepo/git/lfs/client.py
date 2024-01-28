@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Awaitable, Iterable
 from contextlib import AbstractContextManager
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import aiohttp
 from dvc_http import HTTPFileSystem
@@ -63,7 +64,7 @@ class LFSClient(AbstractContextManager):
         self,
         url: str,
         git_url: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Optional[dict[str, str]] = None,
     ):
         """
         Args:
@@ -71,7 +72,7 @@ class LFSClient(AbstractContextManager):
         """
         self.url = url
         self.git_url = git_url
-        self.headers: Dict[str, str] = headers or {}
+        self.headers: dict[str, str] = headers or {}
 
     def __exit__(self, *args, **kwargs):
         self.close()
@@ -118,10 +119,10 @@ class LFSClient(AbstractContextManager):
         upload: bool = False,
         ref: Optional[str] = None,
         hash_algo: str = "sha256",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send LFS API /objects/batch request."""
         url = f"{self.url}/objects/batch"
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "operation": "upload" if upload else "download",
             "transfers": ["basic"],
             "objects": [{"oid": obj.oid, "size": obj.size} for obj in objects],

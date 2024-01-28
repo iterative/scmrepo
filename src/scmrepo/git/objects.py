@@ -1,8 +1,9 @@
 import datetime
 import stat
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, List, Optional, cast
+from typing import Optional, cast
 
 from pygtrie import Trie
 
@@ -168,7 +169,7 @@ class GitCommit:
     commit_time: int
     commit_time_offset: int
     message: str
-    parents: List[str]
+    parents: list[str]
     committer_name: str
     committer_email: str
     author_name: str
