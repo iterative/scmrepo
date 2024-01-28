@@ -104,7 +104,7 @@ def remote_git_dir(tmp_dir_factory: TempDirFactory):
 
 @pytest.fixture(scope="session")
 def docker(request: pytest.FixtureRequest):
-    for cmd in [("docker", "ps"), ("docker-compose", "version")]:
+    for cmd in [("docker", "ps"), ("docker", "compose", "version")]:
         try:
             subprocess.check_call(
                 cmd,
