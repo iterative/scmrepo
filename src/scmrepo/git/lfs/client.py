@@ -1,15 +1,17 @@
 import logging
 from collections.abc import Iterable
 from contextlib import AbstractContextManager
+from multiprocessing import cpu_count
 from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
-from dvc_http import HTTPFileSystem
+from aiohttp_retry import ExponentialRetry, RetryClient
 from dvc_objects.executors import batch_coros
 from dvc_objects.fs import localfs
 from dvc_objects.fs.utils import as_atomic
 from fsspec.asyn import sync_wrapper
 from fsspec.callbacks import DEFAULT_CALLBACK
+from fsspec.implementations.http import HTTPFileSystem
 from funcy import cached_property
 
 from scmrepo.git.credentials import Credential, CredentialNotFoundError
@@ -25,16 +27,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=abstract-method
-class _LFSFileSystem(HTTPFileSystem):
-    def _prepare_credentials(self, **config):
-        return {}
-
-
 class LFSClient(AbstractContextManager):
     """Naive read-only LFS HTTP client."""
 
     JSON_CONTENT_TYPE = "application/vnd.git-lfs+json"
+
+    _JOBS = 4 * cpu_count()
+    _REQUEST_TIMEOUT = 60
+    _SESSION_RETRIES = 5
+    _SESSION_BACKOFF_FACTOR = 0.1
 
     def __init__(
         self,
@@ -54,16 +55,34 @@ class LFSClient(AbstractContextManager):
         self.close()
 
     @cached_property
-    def fs(self) -> "_LFSFileSystem":
-        return _LFSFileSystem()
+    def _fs(self) -> HTTPFileSystem:
+        async def get_client(**kwargs):
+            return RetryClient(
+                connector=aiohttp.TCPConnector(
+                    # Force cleanup of closed SSL transports.
+                    # See https://github.com/iterative/dvc/issues/7414
+                    enable_cleanup_closed=True,
+                ),
+                timeout=aiohttp.ClientTimeout(
+                    total=None,
+                    connect=self._REQUEST_TIMEOUT,
+                    sock_connect=self._REQUEST_TIMEOUT,
+                    sock_read=self._REQUEST_TIMEOUT,
+                ),
+                retry_options=ExponentialRetry(
+                    attempts=self._SESSION_RETRIES,
+                    factor=self._SESSION_BACKOFF_FACTOR,
+                    max_timeout=self._REQUEST_TIMEOUT,
+                    exceptions={aiohttp.ClientError},
+                ),
+                **kwargs,
+            )
 
-    @property
-    def httpfs(self) -> "HTTPFileSystem":
-        return self.fs.fs
+        return HTTPFileSystem(get_client=get_client)
 
     @property
     def loop(self):
-        return self.httpfs.loop
+        return self._fs.loop
 
     @classmethod
     def from_git_url(cls, git_url: str) -> "LFSClient":
@@ -85,9 +104,6 @@ class LFSClient(AbstractContextManager):
             pass
         return None
 
-    async def _set_session(self) -> aiohttp.ClientSession:
-        return await self.fs.fs.set_session()
-
     async def _batch_request(
         self,
         objects: Iterable[Pointer],
@@ -105,7 +121,7 @@ class LFSClient(AbstractContextManager):
         }
         if ref:
             body["ref"] = [{"name": ref}]
-        session = await self._set_session()
+        session = await self._fs.set_session()
         headers = dict(self.headers)
         headers["Accept"] = self.JSON_CONTENT_TYPE
         headers["Content-Type"] = self.JSON_CONTENT_TYPE
@@ -143,7 +159,7 @@ class LFSClient(AbstractContextManager):
         async def _get_one(from_path: str, to_path: str, **kwargs):
             with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
                 with callback.branched(from_path, tmp_file) as child:
-                    await self.httpfs._get_file(
+                    await self._fs._get_file(
                         from_path, tmp_file, callback=child, **kwargs
                     )  # pylint: disable=protected-access
                     callback.relative_update()
@@ -163,7 +179,7 @@ class LFSClient(AbstractContextManager):
             to_path = storage.oid_to_path(obj.oid)
             coros.append(_get_one(url, to_path, headers=headers))
         for result in await batch_coros(
-            coros, batch_size=self.fs.jobs, return_exceptions=True
+            coros, batch_size=self._JOBS, return_exceptions=True
         ):
             if isinstance(result, BaseException):
                 raise result
