@@ -646,13 +646,13 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         except KeyError as exc:
             raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
-        parsed = urlparse(url)
-        if parsed.scheme in ("git", "git+ssh", "ssh") or url.startswith("git@"):
-            raise NotImplementedError
         if os.name == "nt" and url.startswith("file://"):
             url = url[len("file://") :]
-
-        yield self.repo.remotes.create_anonymous(url)
+        remote = self.repo.remotes.create_anonymous(url)
+        parsed = urlparse(remote.url)
+        if parsed.scheme in ("git", "git+ssh", "ssh") or remote.url.startswith("git@"):
+            raise NotImplementedError
+        yield remote
 
     def fetch_refspecs(
         self,
