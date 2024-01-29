@@ -31,7 +31,7 @@ dependencies = [
     "funcy>=1.14",
     "shortuuid>=0.5.0",
     "dvc-objects>=4,<5",
-    "dvc-http>=2.29.0",
+    "aiohttp-retry>=2.5.0",
 ]
 
 [project.urls]
@@ -109,7 +109,6 @@ files = ["src", "tests"]
 [[tool.mypy.overrides]]
 module = [
     "pygtrie",
-    "dvc_http.*",
     "funcy",
     "git",
     "gitdb.*",
