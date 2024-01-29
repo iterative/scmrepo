@@ -11,6 +11,7 @@ from scmrepo.progress import GitProgressReporter
 if TYPE_CHECKING:
     from pygit2 import Oid
     from pygit2.credentials import Keypair, Username, UserPass
+    from pygit2.enums import CredentialType
 
     from scmrepo.progress import GitProgressEvent
 
@@ -45,16 +46,20 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
             self.progress(string)
 
     def credentials(
-        self, url: str, username_from_url: Optional[str], allowed_types: int
+        self,
+        url: str,
+        username_from_url: Optional[str],
+        allowed_types: "CredentialType",
     ) -> "_Pygit2Credential":
         from pygit2 import GitError, Passthrough
-        from pygit2.credentials import GIT_CREDENTIAL_USERPASS_PLAINTEXT, UserPass
+        from pygit2.credentials import UserPass
+        from pygit2.enums import CredentialType
 
         if self._tried_credentials:
             raise GitError(f"authentication failed for '{url}'")
         self._tried_credentials = True
 
-        if allowed_types & GIT_CREDENTIAL_USERPASS_PLAINTEXT:
+        if allowed_types & CredentialType.USERPASS_PLAINTEXT:
             try:
                 if self._store_credentials:
                     creds = self._store_credentials
