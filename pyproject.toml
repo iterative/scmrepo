@@ -25,12 +25,12 @@ dependencies = [
     "dulwich>=0.21.6",
     "pygit2>=1.14.0",
     "pygtrie>=2.3.2",
-    "fsspec>=2021.7.0",
+    "fsspec>=2024.2.0",
     "pathspec>=0.9.0",
     "asyncssh>=2.13.1,<3",
     "funcy>=1.14",
     "shortuuid>=0.5.0",
-    "dvc-objects>=3,<4",
+    "dvc-objects>=4,<5",
     "dvc-http>=2.29.0",
 ]
 
@@ -60,7 +60,7 @@ dev = [
 ]
 
 [tool.setuptools.package-data]
-dvc_objects = ["py.typed"]
+scmrepo = ["py.typed"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
