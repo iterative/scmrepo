@@ -1,6 +1,7 @@
-from typing import Any, BinaryIO, Callable, Optional, Union
+from typing import BinaryIO, Callable, Optional, Union
 
-from dvc_objects.fs.callbacks import DEFAULT_CALLBACK, Callback, TqdmCallback
+from dvc_objects.fs.callbacks import TqdmCallback
+from fsspec.callbacks import DEFAULT_CALLBACK, Callback
 
 from scmrepo.progress import GitProgressEvent
 
@@ -33,22 +34,12 @@ class LFSCallback(Callback):
         )
         self.git_progress(event)
 
-    def branch(
-        self,
-        path_1: Union[str, BinaryIO],
-        path_2: str,
-        kwargs: dict[str, Any],
-        child: Optional[Callback] = None,
-    ):
-        if child:
-            pass
-        elif self.git_progress:
-            child = TqdmCallback(
+    def branched(self, path_1: Union[str, BinaryIO], path_2: str, **kwargs):
+        if self.git_progress:
+            return TqdmCallback(
                 bytes=True, desc=path_1 if isinstance(path_1, str) else path_2
             )
-        else:
-            child = DEFAULT_CALLBACK
-        return super().branch(path_1, path_2, kwargs, child=child)
+        return DEFAULT_CALLBACK
 
     @classmethod
     def as_lfs_callback(

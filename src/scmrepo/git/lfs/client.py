@@ -7,9 +7,9 @@ import aiohttp
 from dvc_http import HTTPFileSystem
 from dvc_objects.executors import batch_coros
 from dvc_objects.fs import localfs
-from dvc_objects.fs.callbacks import DEFAULT_CALLBACK
 from dvc_objects.fs.utils import as_atomic
 from fsspec.asyn import sync_wrapper
+from fsspec.callbacks import DEFAULT_CALLBACK
 from funcy import cached_property
 
 from scmrepo.git.credentials import Credential, CredentialNotFoundError
@@ -18,7 +18,7 @@ from .exceptions import LFSError
 from .pointer import Pointer
 
 if TYPE_CHECKING:
-    from dvc_objects.fs.callbacks import Callback
+    from fsspec.callbacks import Callback
 
     from .storage import LFSStorage
 
@@ -142,8 +142,10 @@ class LFSClient(AbstractContextManager):
     ):
         async def _get_one(from_path: str, to_path: str, **kwargs):
             with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
-                with callback.branch(from_path, tmp_file, kwargs):
-                    await self.httpfs._get_file(from_path, tmp_file, **kwargs)  # pylint: disable=protected-access
+                with callback.branched(from_path, tmp_file) as child:
+                    await self.httpfs._get_file(
+                        from_path, tmp_file, callback=child, **kwargs
+                    )  # pylint: disable=protected-access
                     callback.relative_update()
 
         resp_data = await self._batch_request(objects, **kwargs)
