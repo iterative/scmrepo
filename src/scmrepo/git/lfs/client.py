@@ -1,13 +1,14 @@
 import logging
-from collections.abc import Iterable
-from contextlib import AbstractContextManager
+import os
+import shutil
+from collections.abc import Iterable, Iterator
+from contextlib import AbstractContextManager, contextmanager, suppress
 from multiprocessing import cpu_count
+from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
 from aiohttp_retry import ExponentialRetry, RetryClient
-from dvc_objects.fs import localfs
-from dvc_objects.fs.utils import as_atomic
 from fsspec.asyn import _run_coros_in_chunks, sync_wrapper
 from fsspec.callbacks import DEFAULT_CALLBACK
 from fsspec.implementations.http import HTTPFileSystem
@@ -156,11 +157,11 @@ class LFSClient(AbstractContextManager):
         **kwargs,
     ):
         async def _get_one(from_path: str, to_path: str, **kwargs):
-            with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
+            with _as_atomic(to_path, create_parents=True) as tmp_file:
                 with callback.branched(from_path, tmp_file) as child:
                     await self._fs._get_file(
                         from_path, tmp_file, callback=child, **kwargs
-                    )  # pylint: disable=protected-access
+                    )
                     callback.relative_update()
 
         resp_data = await self._batch_request(objects, **kwargs)
@@ -184,3 +185,21 @@ class LFSClient(AbstractContextManager):
                 raise result
 
     download = sync_wrapper(_download)
+
+
+@contextmanager
+def _as_atomic(to_info: str, create_parents: bool = False) -> Iterator[str]:
+    parent = os.path.dirname(to_info)
+    if create_parents:
+        os.makedirs(parent, exist_ok=True)
+
+    tmp_file = NamedTemporaryFile(dir=parent, delete=False)
+    tmp_file.close()
+    try:
+        yield tmp_file.name
+    except BaseException:
+        with suppress(FileNotFoundError):
+            os.unlink(tmp_file.name)
+        raise
+    else:
+        shutil.move(tmp_file.name, to_info)
