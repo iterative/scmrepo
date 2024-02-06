@@ -6,10 +6,9 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
 from aiohttp_retry import ExponentialRetry, RetryClient
-from dvc_objects.executors import batch_coros
 from dvc_objects.fs import localfs
 from dvc_objects.fs.utils import as_atomic
-from fsspec.asyn import sync_wrapper
+from fsspec.asyn import _run_coros_in_chunks, sync_wrapper
 from fsspec.callbacks import DEFAULT_CALLBACK
 from fsspec.implementations.http import HTTPFileSystem
 from funcy import cached_property
@@ -178,7 +177,7 @@ class LFSClient(AbstractContextManager):
             headers = download.get("header", {})
             to_path = storage.oid_to_path(obj.oid)
             coros.append(_get_one(url, to_path, headers=headers))
-        for result in await batch_coros(
+        for result in await _run_coros_in_chunks(
             coros, batch_size=self._JOBS, return_exceptions=True
         ):
             if isinstance(result, BaseException):
