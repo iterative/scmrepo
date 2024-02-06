@@ -3,7 +3,6 @@ import os
 import shutil
 from collections.abc import Iterable, Iterator
 from contextlib import AbstractContextManager, contextmanager, suppress
-from multiprocessing import cpu_count
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -32,7 +31,6 @@ class LFSClient(AbstractContextManager):
 
     JSON_CONTENT_TYPE = "application/vnd.git-lfs+json"
 
-    _JOBS = 4 * cpu_count()
     _REQUEST_TIMEOUT = 60
     _SESSION_RETRIES = 5
     _SESSION_BACKOFF_FACTOR = 0.1
@@ -154,6 +152,7 @@ class LFSClient(AbstractContextManager):
         storage: "LFSStorage",
         objects: Iterable[Pointer],
         callback: "Callback" = DEFAULT_CALLBACK,
+        batch_size: Optional[int] = None,
         **kwargs,
     ):
         async def _get_one(from_path: str, to_path: str, **kwargs):
@@ -179,7 +178,7 @@ class LFSClient(AbstractContextManager):
             to_path = storage.oid_to_path(obj.oid)
             coros.append(_get_one(url, to_path, headers=headers))
         for result in await _run_coros_in_chunks(
-            coros, batch_size=self._JOBS, return_exceptions=True
+            coros, batch_size=batch_size, return_exceptions=True
         ):
             if isinstance(result, BaseException):
                 raise result

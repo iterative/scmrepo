@@ -20,13 +20,14 @@ class LFSStorage:
         url: str,
         objects: Collection[Pointer],
         progress: Optional[Callable[["GitProgressEvent"], None]] = None,
+        batch_size: Optional[int] = None,
     ):
         from .client import LFSClient
 
         with LFSCallback.as_lfs_callback(progress) as cb:
             cb.set_size(len(objects))
             with LFSClient.from_git_url(url) as client:
-                client.download(self, objects, callback=cb)
+                client.download(self, objects, callback=cb, batch_size=batch_size)
 
     def oid_to_path(self, oid: str):
         return os.path.join(self.path, "objects", oid[0:2], oid[2:4], oid)
@@ -40,6 +41,7 @@ class LFSStorage:
         self,
         obj: Union[Pointer, str],
         fetch_url: Optional[str] = None,
+        batch_size: Optional[int] = None,
         **kwargs,
     ) -> BinaryIO:
         oid = obj if isinstance(obj, str) else obj.oid
@@ -50,7 +52,7 @@ class LFSStorage:
             if not fetch_url or not isinstance(obj, Pointer):
                 raise
         try:
-            self.fetch(fetch_url, [obj])
+            self.fetch(fetch_url, [obj], batch_size=batch_size)
         except BaseException as exc:  # noqa: BLE001
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), path
