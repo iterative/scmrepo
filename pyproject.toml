@@ -25,13 +25,12 @@ dependencies = [
     "dulwich>=0.21.6",
     "pygit2>=1.14.0",
     "pygtrie>=2.3.2",
-    "fsspec>=2024.2.0",
+    "fsspec[tqdm]>=2024.2.0",
     "pathspec>=0.9.0",
     "asyncssh>=2.13.1,<3",
     "funcy>=1.14",
-    "shortuuid>=0.5.0",
-    "dvc-objects>=4,<5",
     "aiohttp-retry>=2.5.0",
+    "tqdm",
 ]
 
 [project.urls]
@@ -54,6 +53,7 @@ tests = [
     "types-certifi==2021.10.8.3",
     "types-mock==5.1.0.2",
     "types-paramiko==3.4.0.20240120",
+    "types-tqdm",
 ]
 dev = [
     "scmrepo[tests]",
