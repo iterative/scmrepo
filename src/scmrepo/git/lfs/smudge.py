@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 def smudge(
-    storage: "LFSStorage", fobj: BinaryIO, url: Optional[str] = None
+    storage: "LFSStorage",
+    fobj: BinaryIO,
+    url: Optional[str] = None,
+    batch_size: Optional[int] = None,
 ) -> BinaryIO:
     """Wrap the specified binary IO stream and run LFS smudge if necessary."""
     reader = io.BufferedReader(fobj)  # type: ignore[arg-type]
