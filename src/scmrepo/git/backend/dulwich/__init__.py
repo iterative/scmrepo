@@ -978,3 +978,16 @@ def _parse_identity(identity: str) -> tuple[str, str]:
     if not m:
         raise SCMError("Could not parse tagger identity '{identity}'")
     return m.group("name"), m.group("email")
+
+
+def ls_remote(url: str) -> dict[str, str]:
+    from dulwich import porcelain
+    from dulwich.client import HTTPUnauthorized
+
+    try:
+        refs = porcelain.ls_remote(url)
+        return {os.fsdecode(ref): sha.decode("ascii") for ref, sha in refs.items()}
+    except HTTPUnauthorized as exc:
+        raise AuthError(url) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise InvalidRemote(url) from exc
