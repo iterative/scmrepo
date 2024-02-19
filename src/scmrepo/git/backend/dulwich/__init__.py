@@ -842,7 +842,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             if revision and revision not in rev_mapping:
                 rev_mapping[revision] = ref
         for rev in revs:
-            results[rev] = rev_mapping.get(rev, None)
+            results[rev] = rev_mapping.get(rev)
         return results
 
     def diff(self, rev_a: str, rev_b: str, binary=False) -> str:
