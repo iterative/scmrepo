@@ -8,6 +8,7 @@ from typing import Any
 import asyncssh
 import pygit2
 import pytest
+import pytest_asyncio
 from pytest_test_utils import TempDirFactory, TmpDir
 
 from scmrepo.git import Git
@@ -151,7 +152,7 @@ def ssh_conn_info(
     return conn_info
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def ssh_connection(
     ssh_conn_info: dict[str, Any],
 ) -> AsyncIterator[asyncssh.connection.SSHClientConnection]:
@@ -159,7 +160,7 @@ async def ssh_connection(
         yield conn
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sftp(
     ssh_connection: asyncssh.connection.SSHClientConnection,
 ) -> AsyncIterator[asyncssh.SFTPClient]:
