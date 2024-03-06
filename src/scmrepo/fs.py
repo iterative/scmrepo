@@ -33,8 +33,8 @@ class GitFileSystem(AbstractFileSystem):
         self,
         path: Optional[str] = None,
         rev: Optional[str] = None,
-        scm: "Git" = None,
-        trie: "GitTrie" = None,
+        scm: Optional["Git"] = None,
+        trie: Optional["GitTrie"] = None,
         rev_resolver: Optional[Callable[["Git", str], str]] = None,
         **kwargs,
     ):
