@@ -272,7 +272,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def clone(
         cls,
         url: str,
-        to_path: str,
+        to_path: Union[str, os.PathLike[str]],
         shallow_branch: Optional[str] = None,
         progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         bare: bool = False,
@@ -292,7 +292,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 if mirror:
                     cls._set_mirror(repo, progress=progress)
         except GitError as exc:
-            raise CloneError(url, to_path) from exc
+            raise CloneError(url, os.fsdecode(to_path)) from exc
 
     @staticmethod
     def _set_mirror(

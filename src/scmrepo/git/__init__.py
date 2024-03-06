@@ -142,7 +142,7 @@ class Git(Base):
     def clone(
         cls,
         url: str,
-        to_path: str,
+        to_path: Union[str, os.PathLike[str]],
         rev: Optional[str] = None,
         bare: bool = False,
         mirror: bool = False,
@@ -319,13 +319,16 @@ class Git(Base):
 
     @classmethod
     def init(
-        cls, path: str, bare: bool = False, _backend: Optional[str] = None
+        cls,
+        path: Union[str, os.PathLike[str]],
+        bare: bool = False,
+        _backend: Optional[str] = None,
     ) -> "Git":
         for name, backend in GitBackends.DEFAULT.items():
             if _backend and name != _backend:
                 continue
             try:
-                backend.init(path, bare=bare)
+                backend.init(os.fsdecode(path), bare=bare)
                 # TODO: reuse created object instead of initializing a new one.
                 return cls(path)
             except NotImplementedError:

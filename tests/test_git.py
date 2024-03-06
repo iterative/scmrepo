@@ -947,7 +947,7 @@ def test_fetch(tmp_dir: TmpDir, scm: Git, git: Git, tmp_dir_factory: TempDirFact
     scm.add_commit("foo", message="init")
 
     target_dir = tmp_dir_factory.mktemp("git-clone")
-    git.clone(str(tmp_dir), (target_dir))
+    git.clone(str(tmp_dir), target_dir)
     target = Git(str(target_dir))
 
     scm.add_commit("bar", message="update")

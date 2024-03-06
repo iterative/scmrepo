@@ -168,7 +168,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
     @requires_git
     def clone(
         url: str,
-        to_path: str,
+        to_path: Union[str, os.PathLike[str]],
         shallow_branch: Optional[str] = None,
         progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         bare: bool = False,
@@ -214,7 +214,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 tmp_repo = clone_from(branch=shallow_branch, depth=1)
             tmp_repo.close()
         except GitCommandError as exc:  # pylint: disable=no-member
-            raise CloneError(url, to_path) from exc
+            raise CloneError(url, os.fsdecode(to_path)) from exc
 
     @staticmethod
     @requires_git
