@@ -47,7 +47,7 @@ class BaseGitBackend(ABC):
     @abstractmethod
     def clone(
         url: str,
-        to_path: str,
+        to_path: Union[str, os.PathLike[str]],
         shallow_branch: Optional[str] = None,
         progress: Optional[Callable[["GitProgressEvent"], None]] = None,
         bare: bool = False,

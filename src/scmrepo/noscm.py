@@ -1,4 +1,5 @@
-from typing import Optional
+import os
+from typing import Union
 
 from .base import Base
 
@@ -8,7 +9,7 @@ from .base import Base
 class NoSCM(Base):
     def __init__(
         self,
-        root_dir: Optional[str] = None,
+        root_dir: Union[str, os.PathLike[str], None] = None,
         _raise_not_implemented_as=NotImplementedError,
     ):
         super().__init__(root_dir=root_dir)

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class LFSStorage:
-    def __init__(self, path: str):
+    def __init__(self, path: Union[str, os.PathLike[str]]):
         self.path = path
 
     def fetch(
