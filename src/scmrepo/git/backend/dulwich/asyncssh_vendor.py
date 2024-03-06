@@ -4,6 +4,7 @@ import os
 from collections.abc import Coroutine, Iterator, Sequence
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Optional,
     cast,
@@ -303,7 +304,9 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
                 encoding=None,
                 client_factory=InteractiveSSHClient,
             )
-            proc = await conn.create_process(command, encoding=None)
+            proc: SSHClientProcess[Any] = await conn.create_process(
+                command, encoding=None
+            )
         except asyncssh.misc.PermissionDenied as exc:
             raise AuthError(f"{username}@{host}:{port or 22}") from exc
         return AsyncSSHWrapper(conn, proc)
