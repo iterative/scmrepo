@@ -46,13 +46,12 @@ tests = [
     "mypy==0.971",
     "pytest-test-utils==0.0.8",
     "pytest-asyncio==0.23.5",
-    # https://github.com/docker/docker-py/issues/2902
-    "pytest-docker==2.2.0; python_version < '3.10' and implementation_name != 'pypy'",
+    "pytest-docker==3.1.1",
     "mock==5.1.0",
     "paramiko==3.4.0",
     "types-certifi==2021.10.8.3",
     "types-mock==5.1.0.20240106",
-    "types-paramiko==3.4.0.20240120",
+    "types-paramiko==3.4.0.20240205",
     "types-tqdm",
 ]
 dev = [
