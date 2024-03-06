@@ -71,6 +71,7 @@ markers = [
     "skip_git_backend: skip tests for given backend",
     "slow: mark test as slow to run",
 ]
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 branch = true
