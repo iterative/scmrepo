@@ -50,7 +50,7 @@ tests = [
     "mock==5.1.0",
     "paramiko==3.4.0",
     "types-certifi==2021.10.8.3",
-    "types-mock==5.1.0.20240106",
+    "types-mock==5.1.0.20240311",
     "types-paramiko==3.4.0.20240205",
     "types-tqdm",
 ]
