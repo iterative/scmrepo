@@ -1,4 +1,5 @@
 """asyncssh SSH vendor for Dulwich."""
+
 import asyncio
 import os
 from collections.abc import Coroutine, Iterator, Sequence
@@ -288,9 +289,9 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
         from asyncssh.auth import MSG_USERAUTH_PK_OK, _ClientPublicKeyAuth
 
         # pylint: disable=protected-access
-        _ClientPublicKeyAuth._packet_handlers[
-            MSG_USERAUTH_PK_OK
-        ] = _process_public_key_ok_gh
+        _ClientPublicKeyAuth._packet_handlers[MSG_USERAUTH_PK_OK] = (
+            _process_public_key_ok_gh
+        )
 
         try:
             conn = await asyncssh.connect(

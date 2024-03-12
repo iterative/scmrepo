@@ -26,6 +26,7 @@ https://git-scm.com/book/en/v2/Git-Tools-Credential-Storage
 Currently Dulwich supports only the `get` operation
 
 """
+
 import locale
 import logging
 import os
