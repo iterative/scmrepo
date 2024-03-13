@@ -91,8 +91,7 @@ class LFSClient(AbstractContextManager):
         pass
 
     @abstractmethod
-    def _get_auth_header(self, *, upload: bool) -> dict:
-        ...
+    def _get_auth_header(self, *, upload: bool) -> dict: ...
 
     async def _batch_request(
         self,

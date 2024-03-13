@@ -1,4 +1,5 @@
 """git config convenience wrapper."""
+
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
