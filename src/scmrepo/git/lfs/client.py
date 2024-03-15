@@ -6,7 +6,9 @@ import shutil
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from contextlib import AbstractContextManager, contextmanager, suppress
+from http import HTTPStatus
 from tempfile import NamedTemporaryFile
+from time import time
 from typing import TYPE_CHECKING, Any, Optional
 
 import aiohttp
@@ -64,11 +66,12 @@ class LFSClient(AbstractContextManager):
                     sock_connect=self._REQUEST_TIMEOUT,
                     sock_read=self._REQUEST_TIMEOUT,
                 ),
-                retry_options=ExponentialRetry(
+                retry_options=_ExponentialRetry(
                     attempts=self._SESSION_RETRIES,
                     factor=self._SESSION_BACKOFF_FACTOR,
                     max_timeout=self._REQUEST_TIMEOUT,
                     exceptions={aiohttp.ClientError},
+                    statuses={HTTPStatus.TOO_MANY_REQUESTS},
                 ),
                 **kwargs,
             )
@@ -272,3 +275,18 @@ def _as_atomic(to_info: str, create_parents: bool = False) -> Iterator[str]:
         raise
     else:
         shutil.move(tmp_file.name, to_info)
+
+
+class _ExponentialRetry(ExponentialRetry):
+    def get_timeout(
+        self, attempt: int, response: Optional[aiohttp.ClientResponse] = None
+    ) -> float:
+        if response is not None and response.status == HTTPStatus.TOO_MANY_REQUESTS:
+            if "Retry-After" in response.headers:
+                with suppress(ValueError):
+                    return float(response.headers["Retry-After"])
+            for k in ["RateLimit-Reset", "X-RateLimit-Reset"]:
+                if k in response.headers:
+                    with suppress(ValueError):
+                        return float(response.headers[k]) - time()
+        return super().get_timeout(attempt, response)
