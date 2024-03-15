@@ -86,7 +86,7 @@ class LFSClient(AbstractContextManager):
     def from_git_url(cls, git_url: str) -> "LFSClient":
         if git_url.startswith(("ssh://", "git@")):
             return _SSHLFSClient.from_git_url(git_url)
-        if git_url.startswith("https://"):
+        if git_url.startswith(("http://", "https://")):
             return _HTTPLFSClient.from_git_url(git_url)
         raise NotImplementedError(f"Unsupported Git URL: {git_url}")
 
