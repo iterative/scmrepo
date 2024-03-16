@@ -102,36 +102,26 @@ class CallbackResultRecorder:
         return self._results[url]
 
 
-@pytest.mark.parametrize(
-    "rate_limit_header",
-    [
-        lambda: {"Retry-After": "1"},
-        lambda: {"RateLimit-Reset": f"{int(time()) + 1}"},
-        lambda: {"X-RateLimit-Reset": f"{int(time()) + 1}"},
-    ],
-)
-def test_rate_limit_retry(
-    storage: LFSStorage, rate_limit_header: Callable[[], dict[str, str]]
-):
-    client = LFSClient.from_git_url("http://git.example.com/namespace/project.git")
-    lfs_batch_url = f"{client.url}/objects/batch"
-    lfs_object_url = f"http://git-lfs.example.com/{FOO_OID}"
-    recorder = CallbackResultRecorder()
+class LFSServerMock:
+    def __init__(
+        self,
+        mocker: aioresponses,
+        recorder: CallbackResultRecorder,
+        batch_url: str,
+        objects_url: str,
+    ) -> None:
+        self._mocker = mocker
+        self._recorder = recorder
+        self.batch_url = batch_url
+        self.objects_url = objects_url
 
-    with aioresponses() as m:
-        m.post(
-            lfs_batch_url,
-            callback=recorder.record(
-                CallbackResult(
-                    status=HTTPStatus.TOO_MANY_REQUESTS,
-                    headers=rate_limit_header(),
-                    reason="Too many requests",
-                )
-            ),
-        )
-        m.post(
-            lfs_batch_url,
-            callback=recorder.record(
+    def get_object_url(self, oid: str) -> str:
+        return f"{self.objects_url}/{oid}"
+
+    def mock_batch_200(self, pointer: Pointer) -> None:
+        self._mocker.post(
+            self.batch_url,
+            callback=self._recorder.record(
                 CallbackResult(
                     status=HTTPStatus.OK,
                     headers={"Content-Type": "application/vnd.git-lfs+json"},
@@ -139,12 +129,12 @@ def test_rate_limit_retry(
                         "transfer": "basic",
                         "objects": [
                             {
-                                "oid": FOO_OID,
-                                "size": FOO_SIZE,
+                                "oid": pointer.oid,
+                                "size": pointer.size,
                                 "authenticated": True,
                                 "actions": {
                                     "download": {
-                                        "href": lfs_object_url,
+                                        "href": self.get_object_url(pointer.oid),
                                     }
                                 },
                             }
@@ -154,128 +144,141 @@ def test_rate_limit_retry(
                 )
             ),
         )
-        m.get(
-            lfs_object_url,
-            callback=recorder.record(
+
+    def mock_batch_429(
+        self, header: str, value: Callable[[], str], *, repeat: bool = False
+    ) -> None:
+        self._mocker.post(
+            self.batch_url,
+            callback=self._recorder.record(
                 CallbackResult(
                     status=HTTPStatus.TOO_MANY_REQUESTS,
-                    headers=rate_limit_header(),
+                    headers={header: value()},
                     reason="Too many requests",
                 )
             ),
+            repeat=repeat,
         )
-        m.get(
-            lfs_object_url,
-            callback=recorder.record(
+
+    def mock_object_200(self, oid: str) -> None:
+        self._mocker.get(
+            self.get_object_url(oid),
+            callback=self._recorder.record(
                 CallbackResult(
                     status=HTTPStatus.OK,
-                    body="lfs data",
+                    body=f"object {oid} data",
                 )
             ),
         )
 
-        client.download(storage, [Pointer(oid=FOO_OID, size=FOO_SIZE)])
-
-        results = recorder[lfs_batch_url]
-        assert [r.status for r in results] == [429, 200]
-
-        results = recorder[lfs_object_url]
-        assert [r.status for r in results] == [429, 200]
+    def mock_object_429(
+        self,
+        oid: str,
+        header: str,
+        value: Callable[[], str],
+        *,
+        repeat: bool = False,
+    ) -> None:
+        self._mocker.get(
+            self.get_object_url(oid),
+            callback=self._recorder.record(
+                CallbackResult(
+                    status=HTTPStatus.TOO_MANY_REQUESTS,
+                    headers={header: value()},
+                    reason="Too many requests",
+                )
+            ),
+            repeat=repeat,
+        )
 
 
 @pytest.mark.parametrize(
-    "rate_limit_header",
+    "rate_limit_header, rate_limit_value",
     [
-        lambda: {"Retry-After": "1"},
-        lambda: {"RateLimit-Reset": f"{int(time()) + 1}"},
-        lambda: {"X-RateLimit-Reset": f"{int(time()) + 1}"},
+        ("Retry-After", lambda: "1"),
+        ("RateLimit-Reset", lambda: f"{int(time()) + 1}"),
+        ("X-RateLimit-Reset", lambda: f"{int(time()) + 1}"),
     ],
 )
-def test_rate_limit_max_retries_batch(
-    storage: LFSStorage, rate_limit_header: Callable[[], dict[str, str]]
+def test_rate_limit_retry(
+    storage: LFSStorage, rate_limit_header: str, rate_limit_value: Callable[[], str]
 ):
     client = LFSClient.from_git_url("http://git.example.com/namespace/project.git")
     recorder = CallbackResultRecorder()
 
     with aioresponses() as m:
-        m.post(
-            f"{client.url}/objects/batch",
-            callback=recorder.record(
-                CallbackResult(
-                    status=HTTPStatus.TOO_MANY_REQUESTS,
-                    headers=rate_limit_header(),
-                    reason="Too many requests",
-                )
-            ),
-            repeat=True,
+        lfs_server = LFSServerMock(
+            m, recorder, f"{client.url}/objects/batch", "http://git-lfs.example.com"
         )
+        lfs_server.mock_batch_429(rate_limit_header, rate_limit_value)
+        lfs_server.mock_batch_200(Pointer(FOO_OID, FOO_SIZE))
+        lfs_server.mock_object_429(FOO_OID, rate_limit_header, rate_limit_value)
+        lfs_server.mock_object_200(FOO_OID)
+
+        client.download(storage, [Pointer(oid=FOO_OID, size=FOO_SIZE)])
+
+        results = recorder[lfs_server.batch_url]
+        assert [r.status for r in results] == [429, 200]
+
+        results = recorder[lfs_server.get_object_url(FOO_OID)]
+        assert [r.status for r in results] == [429, 200]
+
+
+@pytest.mark.parametrize(
+    "rate_limit_header, rate_limit_value",
+    [
+        ("Retry-After", lambda: "1"),
+        ("RateLimit-Reset", lambda: f"{int(time()) + 1}"),
+        ("X-RateLimit-Reset", lambda: f"{int(time()) + 1}"),
+    ],
+)
+def test_rate_limit_max_retries_batch(
+    storage: LFSStorage, rate_limit_header: str, rate_limit_value: Callable[[], str]
+):
+    client = LFSClient.from_git_url("http://git.example.com/namespace/project.git")
+    recorder = CallbackResultRecorder()
+
+    with aioresponses() as m:
+        lfs_server = LFSServerMock(
+            m, recorder, f"{client.url}/objects/batch", "http://git-lfs.example.com"
+        )
+        lfs_server.mock_batch_429(rate_limit_header, rate_limit_value, repeat=True)
 
         with pytest.raises(ClientResponseError, match="Too many requests"):
             client.download(storage, [Pointer(oid=FOO_OID, size=FOO_SIZE)])
 
-        results = recorder[f"{client.url}/objects/batch"]
+        results = recorder[lfs_server.batch_url]
         assert [r.status for r in results] == [429] * 5
 
 
 @pytest.mark.parametrize(
-    "rate_limit_header",
+    "rate_limit_header, rate_limit_value",
     [
-        lambda: {"Retry-After": "1"},
-        lambda: {"RateLimit-Reset": f"{int(time()) + 1}"},
-        lambda: {"X-RateLimit-Reset": f"{int(time()) + 1}"},
+        ("Retry-After", lambda: "1"),
+        ("RateLimit-Reset", lambda: f"{int(time()) + 1}"),
+        ("X-RateLimit-Reset", lambda: f"{int(time()) + 1}"),
     ],
 )
 def test_rate_limit_max_retries_objects(
-    storage: LFSStorage, rate_limit_header: Callable[[], dict[str, str]]
+    storage: LFSStorage, rate_limit_header: str, rate_limit_value: Callable[[], str]
 ):
     client = LFSClient.from_git_url("http://git.example.com/namespace/project.git")
-    lfs_batch_url = f"{client.url}/objects/batch"
-    lfs_object_url = f"http://git-lfs.example.com/{FOO_OID}"
     recorder = CallbackResultRecorder()
 
     with aioresponses() as m:
-        m.post(
-            lfs_batch_url,
-            callback=recorder.record(
-                CallbackResult(
-                    status=HTTPStatus.OK,
-                    headers={"Content-Type": "application/vnd.git-lfs+json"},
-                    payload={
-                        "transfer": "basic",
-                        "objects": [
-                            {
-                                "oid": FOO_OID,
-                                "size": FOO_SIZE,
-                                "authenticated": True,
-                                "actions": {
-                                    "download": {
-                                        "href": lfs_object_url,
-                                    }
-                                },
-                            }
-                        ],
-                        "hash_algo": "sha256",
-                    },
-                )
-            ),
+        lfs_server = LFSServerMock(
+            m, recorder, f"{client.url}/objects/batch", "http://git-lfs.example.com"
         )
-        m.get(
-            lfs_object_url,
-            callback=recorder.record(
-                CallbackResult(
-                    status=HTTPStatus.TOO_MANY_REQUESTS,
-                    headers=rate_limit_header(),
-                    reason="Too many requests",
-                ),
-            ),
-            repeat=True,
+        lfs_server.mock_batch_200(Pointer(FOO_OID, FOO_SIZE))
+        lfs_server.mock_object_429(
+            FOO_OID, rate_limit_header, rate_limit_value, repeat=True
         )
 
         with pytest.raises(ClientResponseError, match="Too many requests"):
             client.download(storage, [Pointer(oid=FOO_OID, size=FOO_SIZE)])
 
-        results = recorder[lfs_batch_url]
+        results = recorder[lfs_server.batch_url]
         assert [r.status for r in results] == [200]
 
-        results = recorder[lfs_object_url]
+        results = recorder[lfs_server.get_object_url(FOO_OID)]
         assert [r.status for r in results] == [429] * 5
