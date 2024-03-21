@@ -2,7 +2,7 @@ import locale
 import logging
 import os
 import stat
-from collections.abc import Generator, Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from io import BytesIO, StringIO, TextIOWrapper
 from typing import (
@@ -25,6 +25,7 @@ from scmrepo.exceptions import (
 from scmrepo.git.backend.base import BaseGitBackend, SyncStatus
 from scmrepo.git.config import Config
 from scmrepo.git.objects import GitCommit, GitObject, GitTag
+from scmrepo.urls import is_scp_style_url
 from scmrepo.utils import relpath
 
 logger = logging.getLogger(__name__)
@@ -636,7 +637,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         raise SCMError("Unknown merge analysis result")
 
     @contextmanager
-    def _get_remote(self, url: str) -> Generator["Remote", None, None]:
+    def _get_remote(self, url: str) -> Iterator["Remote"]:
         """Return a pygit2.Remote suitable for the specified Git URL or remote name."""
         try:
             remote = self.repo.remotes[url]
@@ -646,11 +647,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         except KeyError as exc:
             raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
-        if os.name == "nt" and url.startswith("file://"):
-            url = url[len("file://") :]
+        if os.name == "nt":
+            url = url.removeprefix("file://")
         remote = self.repo.remotes.create_anonymous(url)
         parsed = urlparse(remote.url)
-        if parsed.scheme in ("git", "git+ssh", "ssh") or remote.url.startswith("git@"):
+        if parsed.scheme in ("git", "git+ssh", "ssh") or is_scp_style_url(remote.url):
             raise NotImplementedError
         yield remote
 
