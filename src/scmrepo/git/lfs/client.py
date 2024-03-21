@@ -242,11 +242,13 @@ class _SSHLFSClient(LFSClient):
             raise ValueError(f"Invalid Git SSH URL: {git_url}")
 
         host = parsed.hostname
+        port = parsed.port or 22
         path = parsed.path.lstrip("/")
         username = parsed.username
-        port = parsed.port
-        url = f"https://{host}/{path}/info/lfs"
-        return cls(url, host, port or 22, username, path)
+
+        url_path = path.removesuffix(".git") + ".git/info/lfs"
+        url = f"https://{host}/{url_path}"
+        return cls(url, host, port, username, path)
 
     def _get_auth_header(self, *, upload: bool) -> dict:
         return self._git_lfs_authenticate(
