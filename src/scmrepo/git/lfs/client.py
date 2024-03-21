@@ -235,7 +235,7 @@ class _SSHLFSClient(LFSClient):
     def from_git_url(cls, git_url: str) -> "_SSHLFSClient":
         if scp_match := SCP_REGEX.match(git_url):
             # Add an ssh:// prefix and replace the ':' with a '/'.
-            git_url = scp_match.expand("ssh://\1\2/\3")
+            git_url = scp_match.expand(r"ssh://\1\2/\3")
 
         parsed = urlparse(git_url)
         if parsed.scheme != "ssh" or not parsed.hostname:
