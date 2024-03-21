@@ -245,7 +245,7 @@ class _SSHLFSClient(LFSClient):
         path = parsed.path.lstrip("/")
         username = parsed.username
         port = parsed.port
-        url = f"https://{host}/{path}.git/info/lfs"
+        url = f"https://{host}/{path}/info/lfs"
         return cls(url, host, port or 22, username, path)
 
     def _get_auth_header(self, *, upload: bool) -> dict:
