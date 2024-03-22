@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import shutil
 from abc import abstractmethod
 from collections.abc import Iterable, Iterator
@@ -10,6 +9,7 @@ from http import HTTPStatus
 from tempfile import NamedTemporaryFile
 from time import time
 from typing import TYPE_CHECKING, Any, Optional
+from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp_retry import ExponentialRetry, RetryClient
@@ -20,6 +20,7 @@ from funcy import cached_property
 
 from scmrepo.git.backend.dulwich import _get_ssh_vendor
 from scmrepo.git.credentials import Credential, CredentialNotFoundError
+from scmrepo.urls import SCP_REGEX, is_scp_style_url
 
 from .exceptions import LFSError
 from .pointer import Pointer
@@ -84,7 +85,7 @@ class LFSClient(AbstractContextManager):
 
     @classmethod
     def from_git_url(cls, git_url: str) -> "LFSClient":
-        if git_url.startswith(("ssh://", "git@")):
+        if git_url.startswith("ssh://") or is_scp_style_url(git_url):
             return _SSHLFSClient.from_git_url(git_url)
         if git_url.startswith(("http://", "https://")):
             return _HTTPLFSClient.from_git_url(git_url)
@@ -213,11 +214,9 @@ class _HTTPLFSClient(LFSClient):
 
 
 class _SSHLFSClient(LFSClient):
-    _URL_PATTERN = re.compile(
-        r"(?:ssh://)?git@(?P<host>\S+?)(?::(?P<port>\d+))?(?:[:/])(?P<path>\S+?)\.git"
-    )
-
-    def __init__(self, url: str, host: str, port: int, path: str):
+    def __init__(
+        self, url: str, host: str, port: int, username: Optional[str], path: str
+    ):
         """
         Args:
             url: LFS server URL.
@@ -228,25 +227,42 @@ class _SSHLFSClient(LFSClient):
         super().__init__(url)
         self.host = host
         self.port = port
+        self.username = username
         self.path = path
         self._ssh = _get_ssh_vendor()
 
     @classmethod
     def from_git_url(cls, git_url: str) -> "_SSHLFSClient":
-        result = cls._URL_PATTERN.match(git_url)
-        if not result:
+        if scp_match := SCP_REGEX.match(git_url):
+            # Add an ssh:// prefix and replace the ':' with a '/'.
+            git_url = scp_match.expand(r"ssh://\1\2/\3")
+
+        parsed = urlparse(git_url)
+        if parsed.scheme != "ssh" or not parsed.hostname:
             raise ValueError(f"Invalid Git SSH URL: {git_url}")
-        host, port, path = result.group("host", "port", "path")
-        url = f"https://{host}/{path}.git/info/lfs"
-        return cls(url, host, int(port or 22), path)
+
+        host = parsed.hostname
+        port = parsed.port or 22
+        path = parsed.path.lstrip("/")
+        username = parsed.username
+
+        url_path = path.removesuffix(".git") + ".git/info/lfs"
+        url = f"https://{host}/{url_path}"
+        return cls(url, host, port, username, path)
 
     def _get_auth_header(self, *, upload: bool) -> dict:
         return self._git_lfs_authenticate(
-            self.host, self.port, f"{self.path}.git", upload=upload
+            self.host, self.port, self.username, self.path, upload=upload
         ).get("header", {})
 
     def _git_lfs_authenticate(
-        self, host: str, port: int, path: str, *, upload: bool = False
+        self,
+        host: str,
+        port: int,
+        username: Optional[str],
+        path: str,
+        *,
+        upload: bool = False,
     ) -> dict:
         action = "upload" if upload else "download"
         return json.loads(
@@ -254,7 +270,7 @@ class _SSHLFSClient(LFSClient):
                 command=f"git-lfs-authenticate {path} {action}",
                 host=host,
                 port=port,
-                username="git",
+                username=username,
             ).read()
         )
 
