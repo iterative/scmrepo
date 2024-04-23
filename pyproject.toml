@@ -22,7 +22,7 @@ requires-python = ">=3.9"
 dynamic = ["version"]
 dependencies = [
     "gitpython>3",
-    "dulwich>=0.21.6",
+    "dulwich>=0.22.1",
     "pygit2>=1.14.0",
     "pygtrie>=2.3.2",
     "fsspec[tqdm]>=2024.2.0",
