@@ -8,11 +8,17 @@ from unittest.mock import AsyncMock
 import asyncssh
 import paramiko
 import pytest
-from dulwich.contrib.test_paramiko_vendor import CLIENT_KEY, PASSWORD, USER, Server
 from pytest_mock import MockerFixture
 from pytest_test_utils.waiters import wait_until
 
 from scmrepo.git.backend.dulwich.asyncssh_vendor import AsyncSSHVendor
+
+from .vendor.test_paramiko_vendor import (
+    CLIENT_KEY,
+    PASSWORD,
+    USER,
+    Server,
+)
 
 # pylint: disable=redefined-outer-name
 
