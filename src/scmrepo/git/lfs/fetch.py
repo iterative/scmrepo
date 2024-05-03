@@ -1,6 +1,7 @@
 import fnmatch
 import io
 import os
+import re
 from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING, Callable, Optional
 
@@ -98,6 +99,9 @@ def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901,PLR09
     return scm.get_remote_url(remote)
 
 
+_ROOT_PATH_PREFIX_REGEX = re.compile(r"^(?P<prefix>[^*?\[]*(?:/|$))")
+
+
 def _collect_objects(
     scm: "Git",
     rev: str,
@@ -105,7 +109,25 @@ def _collect_objects(
     exclude: Optional[list[str]],
 ) -> Iterator[Pointer]:
     fs = scm.get_fs(rev)
-    for path in _filter_paths(fs.find("/"), include, exclude):
+    # Optimize path filtering if the `include` list contains exactly one path.
+    # First, determine the root directory wherein to initiate the file search.
+    # If the `include` path is a Unix filename pattern, determine the static
+    # path prefix and set it as the root directory. Second, if the path and the
+    # root are identical or the Unix filename pattern matches *any* (i.e., `**`)
+    # file under the root directory, unset `include` to avoid unnecessary
+    # filtering work.
+    if (
+        include
+        and len(include) == 1
+        and (result := _ROOT_PATH_PREFIX_REGEX.match(path := include[0]))
+    ):
+        root = result.group("prefix")
+        if path in {root, f'{root.rstrip("/")}/**'}:
+            include = []
+    else:
+        root = "/"
+
+    for path in _filter_paths(fs.find(root), include, exclude):
         check_path = path.lstrip("/")
         if scm.check_attr(check_path, "filter", source=rev) == "lfs":
             try:
