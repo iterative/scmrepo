@@ -143,16 +143,13 @@ def _collect_objects(
 def _filter_paths(
     paths: Iterable[str], include: Optional[list[str]], exclude: Optional[list[str]]
 ) -> Iterator[str]:
-    filtered = set()
     if include:
-        for pattern in include:
-            filtered.update(fnmatch.filter(paths, pattern))
-    else:
-        filtered.update(paths)
+        include_match = re.compile(r"|".join(map(fnmatch.translate, include))).match
+        paths = (path for path in paths if include_match(path) is not None)
     if exclude:
-        for pattern in exclude:
-            filtered.difference_update(fnmatch.filter(paths, pattern))
-    yield from filtered
+        exclude_match = re.compile(r"|".join(map(fnmatch.translate, exclude))).match
+        paths = (path for path in paths if exclude_match(path) is None)
+    yield from paths
 
 
 if __name__ == "__main__":
