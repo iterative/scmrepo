@@ -53,7 +53,7 @@ class LFSStorage:
                 raise
         try:
             self.fetch(fetch_url, [obj], batch_size=batch_size)
-        except BaseException as exc:  # noqa: BLE001
+        except BaseException as exc:
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), path
             ) from exc
