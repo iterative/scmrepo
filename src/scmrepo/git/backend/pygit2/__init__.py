@@ -72,7 +72,7 @@ class Pygit2Object(GitObject):
                     path = "/".join(key)
                     blob_kwargs = {
                         "as_path": path,
-                        "commit_id": commit.oid,
+                        "commit_id": commit.id,
                     }
                 blobio = BlobIO(self.obj, **blob_kwargs)
                 if mode == "rb":
@@ -108,7 +108,7 @@ class Pygit2Object(GitObject):
 
     @property
     def sha(self) -> str:
-        return self.obj.hex
+        return str(self.obj.id)
 
     def scandir(self) -> Iterable["Pygit2Object"]:
         for entry in self.obj:
@@ -528,8 +528,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.create_reference_direct(name, new_ref, True, message=message)
 
     def get_ref(self, name, follow: bool = True) -> Optional[str]:
-        from pygit2 import GIT_REF_SYMBOLIC, InvalidSpecError, Tag
-        from pygit2.enums import ObjectType
+        from pygit2 import InvalidSpecError, Tag
+        from pygit2.enums import ObjectType, ReferenceType
 
         try:
             ref = self.repo.references.get(name)
@@ -537,7 +537,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             return None
         if not ref:
             return None
-        if follow and ref.type == GIT_REF_SYMBOLIC:
+        if follow and ref.type == ReferenceType.SYMBOLIC:
             ref = ref.resolve()
         try:
             obj = self.repo[ref.target]
