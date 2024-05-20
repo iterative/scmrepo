@@ -844,7 +844,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 if os.name == "nt":
                     rel = rel.replace("\\", "/")
                 obj = tree[rel]
-                self.repo.index.add(IndexEntry(rel, obj.oid, obj.filemode))
+                self.repo.index.add(IndexEntry(rel, obj.id, obj.filemode))
             self.repo.index.write()
         elif hard:
             self.repo.reset(self.repo.head.target, GIT_RESET_HARD)
@@ -1080,7 +1080,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             if isinstance(tag, Tag):
                 return GitTag(
                     tag.name,
-                    str(tag.oid),
+                    str(tag.id),
                     str(tag.target),
                     tag.tagger.name,
                     tag.tagger.email,
