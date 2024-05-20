@@ -72,7 +72,7 @@ class Pygit2Object(GitObject):
                     path = "/".join(key)
                     blob_kwargs = {
                         "as_path": path,
-                        "commit_id": commit.oid,
+                        "commit_id": commit.id,
                     }
                 blobio = BlobIO(self.obj, **blob_kwargs)
                 if mode == "rb":
@@ -108,7 +108,7 @@ class Pygit2Object(GitObject):
 
     @property
     def sha(self) -> str:
-        return self.obj.hex
+        return str(self.obj.id)
 
     def scandir(self) -> Iterable["Pygit2Object"]:
         for entry in self.obj:
@@ -190,12 +190,13 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         return RefdbFsBackend(self.repo)
 
     def _resolve_refish(self, refish: str):
-        from pygit2 import GIT_OBJ_COMMIT, Tag
+        from pygit2 import Tag
+        from pygit2.enums import ObjectType
 
         commit, ref = self.repo.resolve_refish(refish)
         if isinstance(commit, Tag):
             ref = commit
-            commit = commit.peel(GIT_OBJ_COMMIT)
+            commit = commit.peel(ObjectType.COMMIT)
         return commit, ref
 
     @property
@@ -395,7 +396,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         annotated: bool = False,
         message: Optional[str] = None,
     ):
-        from pygit2 import GIT_OBJ_COMMIT, GitError
+        from pygit2 import GitError
+        from pygit2.enums import ObjectType
 
         if annotated and not message:
             raise SCMError("message is required for annotated tag")
@@ -404,7 +406,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.create_tag(
                 tag,
                 target_obj.id,
-                GIT_OBJ_COMMIT,
+                ObjectType.COMMIT,
                 self.committer,
                 message or "",
             )
@@ -526,7 +528,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             self.repo.create_reference_direct(name, new_ref, True, message=message)
 
     def get_ref(self, name, follow: bool = True) -> Optional[str]:
-        from pygit2 import GIT_OBJ_COMMIT, GIT_REF_SYMBOLIC, InvalidSpecError, Tag
+        from pygit2 import InvalidSpecError, Tag
+        from pygit2.enums import ObjectType, ReferenceType
 
         try:
             ref = self.repo.references.get(name)
@@ -534,12 +537,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             return None
         if not ref:
             return None
-        if follow and ref.type == GIT_REF_SYMBOLIC:
+        if follow and ref.type == ReferenceType.SYMBOLIC:
             ref = ref.resolve()
         try:
             obj = self.repo[ref.target]
             if isinstance(obj, Tag):
-                return str(obj.peel(GIT_OBJ_COMMIT).id)
+                return str(obj.peel(ObjectType.COMMIT).id)
         except ValueError:
             pass
 
@@ -841,7 +844,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 if os.name == "nt":
                     rel = rel.replace("\\", "/")
                 obj = tree[rel]
-                self.repo.index.add(IndexEntry(rel, obj.oid, obj.filemode))
+                self.repo.index.add(IndexEntry(rel, obj.id, obj.filemode))
             self.repo.index.write()
         elif hard:
             self.repo.reset(self.repo.head.target, GIT_RESET_HARD)
@@ -1077,7 +1080,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             if isinstance(tag, Tag):
                 return GitTag(
                     tag.name,
-                    str(tag.oid),
+                    str(tag.id),
                     str(tag.target),
                     tag.tagger.name,
                     tag.tagger.email,

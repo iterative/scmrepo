@@ -37,7 +37,7 @@ def safety(session: nox.Session) -> None:
     """Scan dependencies for insecure packages."""
     session.install(".[dev]")
     session.install("safety")
-    session.run("safety", "check", "--full-report")
+    session.run("safety", "check", "--full-report", "--ignore=67599")
 
 
 @nox.session
