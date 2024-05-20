@@ -951,7 +951,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def iter_remote_refs(self, url: str, base: Optional[str] = None, **kwargs):
         raise NotImplementedError
 
-    def merge(  # noqa: C901
+    def merge(  # noqa: C901, PLR0912
         self,
         rev: str,
         commit: bool = True,
