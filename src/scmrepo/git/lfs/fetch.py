@@ -46,7 +46,7 @@ def fetch(
     scm.lfs_storage.fetch(url, objects, progress=progress)
 
 
-def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901,PLR0912
+def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901
     """Return LFS fetch URL for the specified repository."""
     git_config = scm.get_config()
 
@@ -56,7 +56,7 @@ def get_fetch_url(scm: "Git", remote: Optional[str] = None):  # noqa: C901,PLR09
     except KeyError:
         pass
     try:
-        lfs_config: Optional["Config"] = scm.get_config(
+        lfs_config: Optional[Config] = scm.get_config(
             os.path.join(scm.root_dir, ".lfsconfig")
         )
     except FileNotFoundError:

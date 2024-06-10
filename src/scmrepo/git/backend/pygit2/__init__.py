@@ -698,7 +698,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 SCMError(f"Git failed to fetch ref from '{url}'"),
             ):
                 with RemoteCallbacks(progress=progress) as cb:
-                    remote_refs: dict[str, "Oid"] = (
+                    remote_refs: dict[str, Oid] = (
                         {
                             head["name"]: head["oid"]
                             for head in remote.ls_remotes(callbacks=cb)
@@ -712,7 +712,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                         message="fetch",
                     )
 
-            result: dict[str, "SyncStatus"] = {}
+            result: dict[str, SyncStatus] = {}
             for refspec in refspecs:
                 lh, rh = refspec.split(":")
                 if lh.endswith("*"):
@@ -951,7 +951,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def iter_remote_refs(self, url: str, base: Optional[str] = None, **kwargs):
         raise NotImplementedError
 
-    def merge(  # noqa: C901, PLR0912
+    def merge(  # noqa: C901
         self,
         rev: str,
         commit: bool = True,
@@ -1089,7 +1089,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         from pygit2 import GitError
         from pygit2.enums import AttrCheck
 
-        commit: Optional["Commit"] = None
+        commit: Optional[Commit] = None
         flags = AttrCheck.FILE_THEN_INDEX
         if source:
             try:

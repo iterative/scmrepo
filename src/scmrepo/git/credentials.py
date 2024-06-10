@@ -243,7 +243,7 @@ class GitCredentialHelper(CredentialHelper):
     ) -> Iterator[tuple[str, bool]]:
         config = config or StackedConfig.default()
         if isinstance(config, StackedConfig):
-            backends: Iterable["ConfigDict"] = config.backends
+            backends: Iterable[ConfigDict] = config.backends
         else:
             backends = [config]
 
@@ -324,7 +324,7 @@ class MemoryCredentialHelper(CredentialHelper):
 
     def __init__(self):
         super().__init__()
-        self._credentials: dict["_CredentialKey", "Credential"] = {}
+        self._credentials: dict[_CredentialKey, Credential] = {}
 
     def __getitem__(self, key: object) -> "Credential":
         if isinstance(key, _CredentialKey):

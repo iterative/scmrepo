@@ -28,7 +28,7 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
     ):
         super().__init__(*args, **kwargs)
         self.progress = GitProgressReporter(progress) if progress else None
-        self._store_credentials: Optional["Credential"] = None
+        self._store_credentials: Optional[Credential] = None
         self._tried_credentials = False
         self.result: dict[str, SyncStatus] = {}
 
