@@ -22,7 +22,7 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
             config=config,
             **kwargs,
         )
-        self._store_credentials: Optional["Credential"] = None
+        self._store_credentials: Optional[Credential] = None
 
     def _http_request(
         self,

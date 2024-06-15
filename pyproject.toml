@@ -123,6 +123,7 @@ ignore_missing_imports = true
 
 [tool.codespell]
 ignore-words-list = "cachable, keypair"
+skip = "CODE_OF_CONDUCT.rst"
 
 [tool.ruff]
 output-format = "full"

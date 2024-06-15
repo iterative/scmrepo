@@ -468,7 +468,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         except GitCommandError as exc:
             raise SCMError(f"Failed to set ref '{name}'") from exc
 
-    def get_ref(self, name: str, follow: bool = True) -> Optional[str]:  # noqa: C901, PLR0911, PLR0912
+    def get_ref(self, name: str, follow: bool = True) -> Optional[str]:  # noqa: C901, PLR0911
         from git.exc import GitCommandError
 
         if name == "HEAD":
