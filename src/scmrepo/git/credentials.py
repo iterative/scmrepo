@@ -137,7 +137,7 @@ class GitCredentialHelper(CredentialHelper):
             # If the helper cannot be found in PATH, it might be
             # a C git helper in GIT_EXEC_PATH
             git_exec_path = subprocess.check_output(
-                ("git", "--exec-path"),  # noqa: S603
+                ("git", "--exec-path"),
                 text=True,
             ).strip()
             if shutil.which(executable, path=git_exec_path):
@@ -159,7 +159,7 @@ class GitCredentialHelper(CredentialHelper):
 
         try:
             res = subprocess.run(
-                cmd,  # noqa: S603
+                cmd,
                 check=True,
                 capture_output=True,
                 input="\n".join(helper_input),
@@ -200,7 +200,7 @@ class GitCredentialHelper(CredentialHelper):
 
         try:
             res = subprocess.run(
-                cmd,  # noqa: S603
+                cmd,
                 capture_output=True,
                 input="\n".join(helper_input),
                 encoding=self._encoding,
@@ -225,7 +225,7 @@ class GitCredentialHelper(CredentialHelper):
 
         try:
             res = subprocess.run(
-                cmd,  # noqa: S603
+                cmd,
                 capture_output=True,
                 input="\n".join(helper_input),
                 encoding=self._encoding,
@@ -449,7 +449,7 @@ class _AskpassCommand:
         argv = [self.command, prompt]
         try:
             res = subprocess.run(
-                argv,  # noqa: S603
+                argv,
                 check=True,
                 capture_output=True,
                 encoding=locale.getpreferredencoding(),
