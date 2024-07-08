@@ -53,7 +53,7 @@ class Stash:
         rev = self.scm.resolve_rev(ref)
         try:
             self.apply(rev, **kwargs)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise SCMError("Could not apply stash commit") from exc
         self.drop()
         return rev

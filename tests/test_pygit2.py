@@ -68,6 +68,8 @@ def test_pygit_stash_apply_conflicts(
     "url",
     [
         "git@github.com:iterative/scmrepo.git",
+        "github.com:iterative/scmrepo.git",
+        "user@github.com:iterative/scmrepo.git",
         "ssh://login@server.com:12345/repository.git",
     ],
 )

@@ -1,4 +1,5 @@
 """Automation using nox."""
+
 import glob
 import os
 
@@ -29,14 +30,6 @@ def lint(session: nox.Session) -> None:
     args = *(session.posargs or ("--show-diff-on-failure",)), "--all-files"
     session.run("pre-commit", "run", *args)
     session.run("python", "-m", "mypy")
-
-
-@nox.session
-def safety(session: nox.Session) -> None:
-    """Scan dependencies for insecure packages."""
-    session.install(".[dev]")
-    session.install("safety")
-    session.run("safety", "check", "--full-report")
 
 
 @nox.session

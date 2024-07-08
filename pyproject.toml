@@ -22,7 +22,7 @@ requires-python = ">=3.9"
 dynamic = ["version"]
 dependencies = [
     "gitpython>3",
-    "dulwich>=0.21.6",
+    "dulwich>=0.22.1",
     "pygit2>=1.14.0",
     "pygtrie>=2.3.2",
     "fsspec[tqdm]>=2024.2.0",
@@ -39,23 +39,23 @@ Source = "https://github.com/iterative/scmrepo"
 
 [project.optional-dependencies]
 tests = [
-    "pytest==8.0.2",
-    "pytest-sugar==0.9.5",
-    "pytest-cov==3.0.0",
-    "pytest-mock==3.12.0",
-    "mypy==1.8.0",
-    "pytest-test-utils==0.1.0",
-    "pytest-asyncio==0.23.5",
-    "pytest-docker==3.1.1",
-    "mock==5.1.0",
-    "paramiko==3.4.0",
-    "types-certifi==2021.10.8.3",
-    "types-mock==5.1.0.20240106",
-    "types-paramiko==3.4.0.20240205",
-    "types-tqdm",
+    "aioresponses>=0.7,<0.8",
+    "paramiko>=3.4.0,<4",
+    "pytest>=7,<9",
+    "pytest-asyncio>=0.23.2,<1",
+    "pytest-cov>=4.1.0",
+    "pytest-docker>=1,<4",
+    "pytest-mock",
+    "pytest-sugar",
+    "pytest-test-utils>=0.1.0,<0.2",
 ]
 dev = [
+    "mypy==1.10.1",
     "scmrepo[tests]",
+    "types-certifi",
+    "types-mock",
+    "types-paramiko",
+    "types-tqdm",
 ]
 
 [tool.setuptools.package-data]
@@ -123,8 +123,13 @@ ignore_missing_imports = true
 
 [tool.codespell]
 ignore-words-list = "cachable, keypair"
+skip = "CODE_OF_CONDUCT.rst"
 
 [tool.ruff]
+output-format = "full"
+show-fixes = true
+
+[tool.ruff.lint]
 ignore = [
     "S101", # assert
     "PLR2004", # magic-value-comparison
@@ -180,10 +185,8 @@ select = [
     "W", # pycodestyle - Warning
     "YTT", # flake8-2020
 ]
-show-source = true
-show-fixes = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "noxfile.py" = ["D", "PTH"]
 "tests/**" = ["S", "ARG001", "ARG002", "ANN"]
 "docs/**" = ["INP"]
@@ -199,5 +202,5 @@ strict = true
 [tool.ruff.lint.isort]
 known-first-party = ["scmrepo"]
 
-[tool.ruff.pylint]
+[tool.ruff.lint.pylint]
 max-args = 10

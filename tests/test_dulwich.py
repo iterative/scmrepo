@@ -19,8 +19,7 @@ from scmrepo.git.backend.dulwich.asyncssh_vendor import AsyncSSHVendor
 
 USER = "testuser"
 PASSWORD = "test"
-CLIENT_KEY = """\
------BEGIN RSA PRIVATE KEY-----
+CLIENT_KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAxvREKSElPOm/0z/nPO+j5rk2tjdgGcGc7We1QZ6TRXYLu7nN
 GeEFIL4p8N1i6dmB+Eydt7xqCU79MWD6Yy4prFe1+/K1wCDUxIbFMxqQcX5zjJzd
 i8j8PbcaUlVhP/OkjtkSxrXaGDO1BzfdV4iEBtTV/2l3zmLKJlt3jnOHLczP24CB

@@ -264,7 +264,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                     cls._set_mirror(repo, progress=progress)
                 else:
                     cls._set_default_tracking_branch(repo)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise CloneError(url, os.fsdecode(to_path)) from exc
 
     @staticmethod
@@ -580,7 +580,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             _remote, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise InvalidRemote(url) from exc
 
         try:
@@ -617,7 +617,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             _remote, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
         change_result = {}
@@ -910,7 +910,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             _, location = get_remote_repo(self.repo, url)
             client, path = get_transport_and_path(location, **kwargs)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise InvalidRemote(url) from exc
         if isinstance(client, LocalGitClient) and not os.path.exists(
             os.path.join("", path)
@@ -989,5 +989,5 @@ def ls_remote(url: str) -> dict[str, str]:
         return {os.fsdecode(ref): sha.decode("ascii") for ref, sha in refs.items()}
     except HTTPUnauthorized as exc:
         raise AuthError(url) from exc
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise InvalidRemote(url) from exc

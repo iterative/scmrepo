@@ -1,4 +1,5 @@
 """asyncssh SSH vendor for Dulwich."""
+
 import asyncio
 import os
 from collections.abc import Coroutine, Iterator, Sequence
@@ -65,8 +66,8 @@ class _StderrWrapper:
 class AsyncSSHWrapper(BaseAsyncObject):
     def __init__(self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs):
         super().__init__(**kwargs)
-        self.conn: "SSHClientConnection" = conn
-        self.proc: "SSHClientProcess" = proc
+        self.conn: SSHClientConnection = conn
+        self.proc: SSHClientProcess = proc
         self.stderr = _StderrWrapper(proc.stderr, self.loop)
 
     def can_read(self) -> bool:
@@ -151,7 +152,7 @@ class InteractiveSSHClient(SSHClient):
     def connection_lost(self, exc: Optional[Exception]) -> None:
         self._conn = None
 
-    async def public_key_auth_requested(  # noqa: C901, PLR0912
+    async def public_key_auth_requested(  # noqa: C901
         self,
     ) -> Optional["KeyPairListArg"]:
         from asyncssh.public_key import (
@@ -288,9 +289,9 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
         from asyncssh.auth import MSG_USERAUTH_PK_OK, _ClientPublicKeyAuth
 
         # pylint: disable=protected-access
-        _ClientPublicKeyAuth._packet_handlers[
-            MSG_USERAUTH_PK_OK
-        ] = _process_public_key_ok_gh
+        _ClientPublicKeyAuth._packet_handlers[MSG_USERAUTH_PK_OK] = (
+            _process_public_key_ok_gh
+        )
 
         try:
             conn = await asyncssh.connect(
@@ -319,7 +320,7 @@ def get_unsupported_opts(config_paths: "ConfigPaths") -> Iterator[str]:
 
     if config_paths:
         if isinstance(config_paths, (str, PurePath)):
-            paths: Sequence["FilePath"] = [config_paths]
+            paths: Sequence[FilePath] = [config_paths]
         else:
             paths = config_paths
 
