@@ -297,7 +297,7 @@ class AsyncSSHVendor(BaseAsyncObject, SSHVendor):
                 host,
                 port=port if port is not None else (),
                 username=username if username is not None else (),
-                password=password if password is not None else (),
+                password=password,
                 client_keys=[key_filename] if key_filename else (),
                 ignore_encrypted=not key_filename,
                 known_hosts=None,
