@@ -143,7 +143,7 @@ class InteractiveSSHClient(SSHClient):
 
     def __init__(self, *args, **kwargs):
         super(*args, **kwargs)
-        _passphrases: dict[str, str] = {}
+        self._passphrases: dict[str, str] = {}
 
     def connection_made(self, conn: "SSHClientConnection") -> None:
         self._conn = conn
