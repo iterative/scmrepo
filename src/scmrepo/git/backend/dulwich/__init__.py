@@ -16,6 +16,7 @@ from typing import (
     Union,
 )
 
+from dulwich.config import ConfigFile, StackedConfig
 from funcy import cached_property, reraise
 
 from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, RevError, SCMError
@@ -27,7 +28,7 @@ from scmrepo.utils import relpath
 
 if TYPE_CHECKING:
     from dulwich.client import SSHVendor
-    from dulwich.config import ConfigFile, StackedConfig
+    from dulwich.config import ConfigFile
     from dulwich.repo import Repo
 
     from scmrepo.git.objects import GitCommit
@@ -579,7 +580,8 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             _remote, location = get_remote_repo(self.repo, url)
-            client, path = get_transport_and_path(location, **kwargs)
+            _config = kwargs.pop("config", StackedConfig.default())
+            client, path = get_transport_and_path(location, config=_config, **kwargs)
         except Exception as exc:
             raise InvalidRemote(url) from exc
 
