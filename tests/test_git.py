@@ -965,7 +965,6 @@ def proxy_server():
     _ProxyServer.tearDownClass()
 
 
-@pytest.mark.allow_hosts(["127.0.0.1", "::1"])
 def test_clone_proxy_server(proxy_server: str, scm: Git, git: Git, tmp_dir: TmpDir):
     url = "https://github.com/iterative/dvcyaml-schema"
 
@@ -984,7 +983,6 @@ proxy = {proxy_server}
     git.clone(url, "dir")
 
 
-@pytest.mark.allow_hosts(["127.0.0.1", "::1"])
 def test_iter_remote_refs_proxy_server(proxy_server: str, scm: Git, tmp_dir: TmpDir):
     url = "https://github.com/iterative/dvcyaml-schema"
     git = GitBackends.DEFAULT["dulwich"](".")
