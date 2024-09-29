@@ -968,7 +968,10 @@ def proxy_server():
 def test_clone_proxy_server(proxy_server: str, scm: Git, git: Git, tmp_dir: TmpDir):
     url = "https://github.com/iterative/dvcyaml-schema"
 
-    p = Path(os.environ["HOME"]) / ".gitconfig"
+    p = (
+        Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])
+        / ".gitconfig"
+    )
     p.write_text(BAD_PROXY_CONFIG)
     with pytest.raises(Exception):  # noqa: PT011, B017
         git.clone(url, "dir")
@@ -987,12 +990,10 @@ def test_iter_remote_refs_proxy_server(proxy_server: str, scm: Git, tmp_dir: Tmp
     url = "https://github.com/iterative/dvcyaml-schema"
     git = GitBackends.DEFAULT["dulwich"](".")
 
-    import sys
-
-    if sys.platform == "win32":
-        p = Path(os.environ["USERPROFILE"]) / ".gitconfig"
-    else:
-        p = Path(os.environ["HOME"]) / ".gitconfig"
+    p = (
+        Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])
+        / ".gitconfig"
+    )
     p.write_text(BAD_PROXY_CONFIG)
     with pytest.raises(Exception):  # noqa: PT011, B017
         list(git.iter_remote_refs(url))
@@ -1014,7 +1015,10 @@ def test_fetch_refspecs_proxy_server(
 ):
     url = "https://github.com/iterative/dvcyaml-schema"
 
-    p = Path(os.environ["HOME"]) / ".gitconfig"
+    p = (
+        Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])
+        / ".gitconfig"
+    )
     p.write_text(BAD_PROXY_CONFIG)
     with pytest.raises(Exception):  # noqa: PT011, B017
         git.fetch_refspecs(url, ["refs/heads/master:refs/heads/master"])
