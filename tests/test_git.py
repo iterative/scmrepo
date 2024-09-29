@@ -989,7 +989,12 @@ def test_iter_remote_refs_proxy_server(proxy_server: str, scm: Git, tmp_dir: Tmp
     url = "https://github.com/iterative/dvcyaml-schema"
     git = GitBackends.DEFAULT["dulwich"](".")
 
-    p = Path(os.environ["HOME"]) / ".gitconfig"
+    import sys
+
+    if sys.platform == "win32":
+        p = Path(os.environ["USERPROFILE"]) / ".gitconfig"
+    else:
+        p = Path(os.environ["HOME"]) / ".gitconfig"
     p.write_text(BAD_PROXY_CONFIG)
     with pytest.raises(Exception):  # noqa: PT011, B017
         list(git.iter_remote_refs(url))
@@ -1006,7 +1011,6 @@ proxy = {proxy_server}
 
 
 @pytest.mark.skip_git_backend("gitpython")
-@pytest.mark.allow_hosts(["127.0.0.1", "::1"])
 def test_fetch_refspecs_proxy_server(
     proxy_server: str, scm: Git, git: Git, tmp_dir: TmpDir
 ):
