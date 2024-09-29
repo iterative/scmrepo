@@ -48,6 +48,8 @@ tests = [
     "pytest-mock",
     "pytest-sugar",
     "pytest-test-utils>=0.1.0,<0.2",
+    "proxy.py",
+    "pytest-socket",
 ]
 dev = [
     "mypy==1.11.2",
@@ -66,12 +68,13 @@ where = ["src"]
 namespaces = false
 
 [tool.pytest.ini_options]
-addopts = "-ra"
+addopts = "-ra --allow-unix-socket"
 markers = [
     "skip_git_backend: skip tests for given backend",
     "slow: mark test as slow to run",
 ]
 asyncio_mode = "auto"
+
 
 [tool.coverage.run]
 branch = true
