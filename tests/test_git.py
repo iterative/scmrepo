@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 from typing import Any, Optional
 
 import pytest
@@ -7,19 +8,32 @@ from asyncssh import SFTPClient
 from asyncssh.connection import SSHClientConnection
 from dulwich.client import LocalGitClient
 from git import Repo as GitPythonRepo
+from proxy import TestCase as ProxyTestCase
 from pygit2 import GitError
 from pygit2.remotes import Remote
 from pytest_mock import MockerFixture
 from pytest_test_utils import TempDirFactory, TmpDir
 from pytest_test_utils.matchers import Matcher
 
-from scmrepo.exceptions import InvalidRemote, MergeConflictError, RevError, SCMError
-from scmrepo.git import Git
+from scmrepo.exceptions import (
+    InvalidRemote,
+    MergeConflictError,
+    RevError,
+    SCMError,
+)
+from scmrepo.git import Git, GitBackends
 from scmrepo.git.objects import GitTag
 
 from .conftest import backends
 
 # pylint: disable=redefined-outer-name,unused-argument,protected-access
+
+
+BAD_PROXY_CONFIG = """[http]
+proxy = "http://bad-proxy.dvc.org"
+[https]
+proxy = "http://bad-proxy.dvc.org"
+"""
 
 
 @pytest.fixture
@@ -939,6 +953,84 @@ def test_clone(
     fs = target.get_fs(rev)
     with fs.open("foo", mode="r") as fobj:
         assert fobj.read().strip() == "foo"
+
+
+@pytest.fixture
+def proxy_server():
+    class _ProxyServer(ProxyTestCase):
+        pass
+
+    _ProxyServer.setUpClass()
+    yield f"http://{_ProxyServer.PROXY.flags.hostname}:{_ProxyServer.PROXY.flags.port}"
+    _ProxyServer.tearDownClass()
+
+
+def test_clone_proxy_server(proxy_server: str, scm: Git, git: Git, tmp_dir: TmpDir):
+    url = "https://github.com/iterative/dvcyaml-schema"
+
+    p = (
+        Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])
+        / ".gitconfig"
+    )
+    p.write_text(BAD_PROXY_CONFIG)
+    with pytest.raises(Exception):  # noqa: PT011, B017
+        git.clone(url, "dir")
+
+    mock_config_content = f"""[http]\n
+proxy = {proxy_server}
+[https]
+proxy = {proxy_server}
+"""
+
+    p.write_text(mock_config_content)
+    git.clone(url, "dir")
+
+
+def test_iter_remote_refs_proxy_server(proxy_server: str, scm: Git, tmp_dir: TmpDir):
+    url = "https://github.com/iterative/dvcyaml-schema"
+    git = GitBackends.DEFAULT["dulwich"](".")
+
+    p = (
+        Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])
+        / ".gitconfig"
+    )
+    p.write_text(BAD_PROXY_CONFIG)
+    with pytest.raises(Exception):  # noqa: PT011, B017
+        list(git.iter_remote_refs(url))
+
+    mock_config_content = f"""[http]
+proxy = {proxy_server}
+[https]
+proxy = {proxy_server}
+"""
+
+    p.write_text(mock_config_content)
+    res = list(git.iter_remote_refs(url))
+    assert res
+
+
+@pytest.mark.skip_git_backend("gitpython")
+def test_fetch_refspecs_proxy_server(
+    proxy_server: str, scm: Git, git: Git, tmp_dir: TmpDir
+):
+    url = "https://github.com/iterative/dvcyaml-schema"
+
+    p = (
+        Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])
+        / ".gitconfig"
+    )
+    p.write_text(BAD_PROXY_CONFIG)
+    with pytest.raises(Exception):  # noqa: PT011, B017
+        git.fetch_refspecs(url, ["refs/heads/master:refs/heads/master"])
+
+    mock_config_content = f"""[http]
+proxy = {proxy_server}
+[https]
+proxy = {proxy_server}
+"""
+
+    p.write_text(mock_config_content)
+    git.fetch_refspecs(url, "refs/heads/master:refs/heads/master")
 
 
 @pytest.mark.skip_git_backend("pygit2")

@@ -48,6 +48,7 @@ tests = [
     "pytest-mock",
     "pytest-sugar",
     "pytest-test-utils>=0.1.0,<0.2",
+    "proxy.py",
 ]
 dev = [
     "mypy==1.11.2",
@@ -72,6 +73,7 @@ markers = [
     "slow: mark test as slow to run",
 ]
 asyncio_mode = "auto"
+
 
 [tool.coverage.run]
 branch = true

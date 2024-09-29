@@ -701,15 +701,13 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     remote_refs: dict[str, Oid] = (
                         {
                             head["name"]: head["oid"]
-                            for head in remote.ls_remotes(callbacks=cb)
+                            for head in remote.ls_remotes(callbacks=cb, proxy=True)
                         }
                         if not force
                         else {}
                     )
                     remote.fetch(
-                        refspecs=refspecs,
-                        callbacks=cb,
-                        message="fetch",
+                        refspecs=refspecs, callbacks=cb, message="fetch", proxy=True
                     )
 
             result: dict[str, SyncStatus] = {}

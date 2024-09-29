@@ -16,6 +16,7 @@ from typing import (
     Union,
 )
 
+from dulwich.config import ConfigFile, StackedConfig
 from funcy import cached_property, reraise
 
 from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, RevError, SCMError
@@ -27,7 +28,7 @@ from scmrepo.utils import relpath
 
 if TYPE_CHECKING:
     from dulwich.client import SSHVendor
-    from dulwich.config import ConfigFile, StackedConfig
+    from dulwich.config import ConfigFile
     from dulwich.repo import Repo
 
     from scmrepo.git.objects import GitCommit
@@ -579,7 +580,8 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             _remote, location = get_remote_repo(self.repo, url)
-            client, path = get_transport_and_path(location, **kwargs)
+            _config = kwargs.pop("config", StackedConfig.default())
+            client, path = get_transport_and_path(location, config=_config, **kwargs)
         except Exception as exc:
             raise InvalidRemote(url) from exc
 
@@ -616,7 +618,8 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             _remote, location = get_remote_repo(self.repo, url)
-            client, path = get_transport_and_path(location, **kwargs)
+            _config = kwargs.pop("config", StackedConfig.default())
+            client, path = get_transport_and_path(location, config=_config, **kwargs)
         except Exception as exc:
             raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
@@ -723,7 +726,8 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         with reraise(Exception, SCMError(f"'{url}' is not a valid Git remote or URL")):
             _remote, location = get_remote_repo(self.repo, url)
-            client, path = get_transport_and_path(location, **kwargs)
+            _config = kwargs.pop("config", StackedConfig.default())
+            client, path = get_transport_and_path(location, config=_config, **kwargs)
 
         with reraise(
             (NotGitRepository, KeyError),
@@ -909,6 +913,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             _, location = get_remote_repo(self.repo, url)
+            _config = kwargs.pop("config", StackedConfig.default())
             client, path = get_transport_and_path(location, **kwargs)
         except Exception as exc:
             raise InvalidRemote(url) from exc
