@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Callable, Optional
 from pygit2 import GIT_FILTER_CLEAN, Filter, Passthrough  # type: ignore[attr-defined]
 
 if TYPE_CHECKING:
-    from pygit2 import FilterSource
+    from pygit2 import FilterSource  # type: ignore[attr-defined]
 
 logger = logging.getLogger(__name__)
 
