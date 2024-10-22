@@ -39,7 +39,7 @@ def test_pygit_resolve_refish(tmp_dir: TmpDir, scm: Git, use_sha: str):
 def test_pygit_stash_apply_conflicts(
     tmp_dir: TmpDir, scm: Git, skip_conflicts: bool, mocker: MockerFixture
 ):
-    from pygit2 import GIT_CHECKOUT_ALLOW_CONFLICTS
+    from pygit2 import GIT_CHECKOUT_ALLOW_CONFLICTS  # type: ignore[attr-defined]
 
     tmp_dir.gen("foo", "foo")
     scm.add_commit("foo", message="foo")
