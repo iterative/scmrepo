@@ -281,7 +281,7 @@ def _as_atomic(to_info: str, create_parents: bool = False) -> Iterator[str]:
     if create_parents:
         os.makedirs(parent, exist_ok=True)
 
-    tmp_file = NamedTemporaryFile(dir=parent, delete=False)
+    tmp_file = NamedTemporaryFile(dir=parent, delete=False)  # noqa: SIM115
     tmp_file.close()
     try:
         yield tmp_file.name
