@@ -173,7 +173,7 @@ class GitCredentialHelper(CredentialHelper):
         if res.stderr:
             logger.debug(res.stderr)
 
-        credentials = {}
+        credentials: dict[str, Any] = {}
         for line in res.stdout.splitlines():
             try:
                 key, value = line.split("=", maxsplit=1)
