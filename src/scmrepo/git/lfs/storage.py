@@ -47,7 +47,7 @@ class LFSStorage:
         oid = obj if isinstance(obj, str) else obj.oid
         path = self.oid_to_path(oid)
         try:
-            return open(path, **kwargs)  # noqa: SIM115
+            return open(path, **kwargs)
         except FileNotFoundError:
             if not fetch_url or not isinstance(obj, Pointer):
                 raise
@@ -57,7 +57,7 @@ class LFSStorage:
             raise FileNotFoundError(
                 errno.ENOENT, os.strerror(errno.ENOENT), path
             ) from exc
-        return open(path, **kwargs)  # noqa: SIM115
+        return open(path, **kwargs)
 
     def close(self):
         pass
