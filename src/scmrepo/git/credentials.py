@@ -173,11 +173,29 @@ class GitCredentialHelper(CredentialHelper):
         if res.stderr:
             logger.debug(res.stderr)
 
-        credentials = {}
+        credentials: dict[str, Any] = {}
         for line in res.stdout.splitlines():
             try:
                 key, value = line.split("=", maxsplit=1)
-                credentials[key] = value
+                # Only include credential values that are used in the Credential
+                # constructor.
+                # Other values may be returned by the subprocess, but they must be
+                # ignored.
+                # e.g. osxkeychain credential helper >= 2.46.0 can return
+                # `capability[]` and `state`)
+                if key in [
+                    "protocol",
+                    "host",
+                    "path",
+                    "username",
+                    "password",
+                    "password_expiry_utc",
+                    "url",
+                ]:
+                    # Garbage bytes were output from git-credential-osxkeychain from
+                    # 2.45.0 to 2.47.0:
+                    # https://github.com/git/git/commit/6c3c451fb6e1c3ca83f74e63079d4d0af01b2d69
+                    credentials[key] = _strip_garbage_bytes(value)
             except ValueError:
                 continue
         if not credentials:
@@ -263,6 +281,19 @@ class GitCredentialHelper(CredentialHelper):
                     command.decode(conf.encoding or sys.getdefaultencoding()),
                     use_http_path,
                 )
+
+
+def _strip_garbage_bytes(s: str) -> str:
+    """
+    Garbage (random) bytes were output from git-credential-osxkeychain from
+    2.45.0 to 2.47.0 so must be removed.
+    https://github.com/git/git/commit/6c3c451fb6e1c3ca83f74e63079d4d0af01b2d69
+    :param s: string that might contain garbage/random bytes
+    :return str: The string with the garbage bytes removed
+    """
+    # Assume that any garbage bytes begin with a 0-byte
+    zero = s.find(chr(0))
+    return s[0:zero] if zero >= 0 else s
 
 
 class _CredentialKey(NamedTuple):
