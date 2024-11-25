@@ -1,5 +1,6 @@
 import io
 import os
+import random
 
 import pytest
 
@@ -35,6 +36,45 @@ def test_subprocess_get_use_http_path(git_helper, mocker):
     run = mocker.patch(
         "subprocess.run",
         return_value=mocker.Mock(stdout="username=foo\npassword=bar\n"),
+    )
+    creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))
+    assert run.call_args.args[0] == ["git-credential-foo", "get"]
+    assert (
+        run.call_args.kwargs.get("input")
+        == "protocol=https\nhost=foo.com\npath=foo.git\n"
+    )
+    assert creds == Credential(username="foo", password="bar")
+
+
+def test_subprocess_ignore_unexpected_credential_keys(git_helper, mocker):
+    git_helper.use_http_path = True
+    run = mocker.patch(
+        "subprocess.run",
+        # Simulate git-credential-osxkeychain (version >=2.45)
+        return_value=mocker.Mock(
+            stdout="username=foo\npassword=bar\ncapability[]=state\nstate[]=osxkeychain:seen=1"
+        ),
+    )
+    creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))
+    assert run.call_args.args[0] == ["git-credential-foo", "get"]
+    assert (
+        run.call_args.kwargs.get("input")
+        == "protocol=https\nhost=foo.com\npath=foo.git\n"
+    )
+    assert creds == Credential(username="foo", password="bar")
+
+
+def test_subprocess_strip_trailing_garbage_bytes(git_helper, mocker):
+    """Garbage bytes were output from git-credential-osxkeychain from 2.45.0 to 2.47.0
+    so must be removed
+    https://github.com/git/git/commit/6c3c451fb6e1c3ca83f74e63079d4d0af01b2d69"""
+    git_helper.use_http_path = True
+    run = mocker.patch(
+        "subprocess.run",
+        # Simulate git-credential-osxkeychain (version 2.45), assuming initial 0-byte
+        return_value=mocker.Mock(
+            stdout=f"username=foo\npassword=bar{chr(0)}{random.randbytes(15)}"
+        ),
     )
     creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))
     assert run.call_args.args[0] == ["git-credential-foo", "get"]
