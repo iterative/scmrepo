@@ -32,7 +32,7 @@ def storage(tmp_dir_factory: TempDirFactory) -> LFSStorage:
 
 
 @pytest.fixture
-def lfs(tmp_dir: TmpDir, scm: Git) -> None:  # noqa: PT004
+def lfs(tmp_dir: TmpDir, scm: Git) -> None:
     tmp_dir.gen(".gitattributes", "*.lfs filter=lfs diff=lfs merge=lfs -text")
     scm.add([".gitattributes"])
     scm.commit("init lfs attributes")
