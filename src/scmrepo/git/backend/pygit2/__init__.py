@@ -720,7 +720,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     for refname in remote_refs:
                         if fnmatch.fnmatch(refname, lh):
                             src = refname
-                            dst = f"{rh_prefix}{refname[len(lh_prefix):]}"
+                            dst = f"{rh_prefix}{refname[len(lh_prefix) :]}"
                             result[dst] = cb.result.get(
                                 src, _default_status(src, dst, remote_refs)
                             )

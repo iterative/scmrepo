@@ -258,7 +258,7 @@ class Git(Base):
         self.hooks_dir.mkdir(exist_ok=True)
         hook = self.hooks_dir / name
 
-        directive = f"#!{shutil.which(interpreter) or '/bin/sh' }"
+        directive = f"#!{shutil.which(interpreter) or '/bin/sh'}"
         hook.write_text(f"{directive}\n{script}\n", encoding="utf-8")
         hook.chmod(0o777)
 
