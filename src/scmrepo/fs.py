@@ -3,9 +3,7 @@ import os
 import posixpath
 from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Optional
 
-from fsspec.callbacks import _DEFAULT_CALLBACK
 from fsspec.spec import AbstractFileSystem
-from fsspec.utils import isfilelike
 
 if TYPE_CHECKING:
     from io import BytesIO
