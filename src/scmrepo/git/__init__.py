@@ -287,7 +287,7 @@ class Git(Base):
     def no_commits(self):
         return not bool(self.get_ref("HEAD"))
 
-    # Prefer re-using the most recently used backend when possible. When
+    # Prefer reusing the most recently used backend when possible. When
     # changing backends (due to unimplemented calls), we close the previous
     # backend to release any open git files/contexts that may cause conflicts
     # with the new backend.
