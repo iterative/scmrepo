@@ -242,32 +242,3 @@ class GitFileSystem(AbstractFileSystem):
             return paths
 
         return [self.info(_path) for _path in paths]
-
-    def get_file(
-        self, rpath, lpath, callback=_DEFAULT_CALLBACK, outfile=None, **kwargs
-    ):
-        # NOTE: temporary workaround while waiting for
-        # https://github.com/fsspec/filesystem_spec/pull/1191
-
-        if isfilelike(lpath):
-            outfile = lpath
-        elif self.isdir(rpath):
-            os.makedirs(lpath, exist_ok=True)
-            return None
-
-        with self.open(rpath, "rb", **kwargs) as f1:
-            if outfile is None:
-                outfile = open(lpath, "wb")  # noqa: SIM115
-
-            try:
-                callback.set_size(getattr(f1, "size", None))
-                data = True
-                while data:
-                    data = f1.read(self.blocksize)
-                    segment_len = outfile.write(data)
-                    if segment_len is None:
-                        segment_len = len(data)
-                    callback.relative_update(segment_len)
-            finally:
-                if not isfilelike(lpath):
-                    outfile.close()
