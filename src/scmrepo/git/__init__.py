@@ -258,7 +258,7 @@ class Git(Base):
         self.hooks_dir.mkdir(exist_ok=True)
         hook = self.hooks_dir / name
 
-        directive = f"#!{shutil.which(interpreter) or '/bin/sh' }"
+        directive = f"#!{shutil.which(interpreter) or '/bin/sh'}"
         hook.write_text(f"{directive}\n{script}\n", encoding="utf-8")
         hook.chmod(0o777)
 
@@ -287,7 +287,7 @@ class Git(Base):
     def no_commits(self):
         return not bool(self.get_ref("HEAD"))
 
-    # Prefer re-using the most recently used backend when possible. When
+    # Prefer reusing the most recently used backend when possible. When
     # changing backends (due to unimplemented calls), we close the previous
     # backend to release any open git files/contexts that may cause conflicts
     # with the new backend.

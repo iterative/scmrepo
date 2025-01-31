@@ -184,7 +184,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             # In fix_env, we delete LD_LIBRARY_PATH key if it was empty before
             # PyInstaller modified it. GitPython, in git.Repo.clone_from, uses
             # env to update its own internal state. When there is no key in
-            # env, this value is not updated and GitPython re-uses
+            # env, this value is not updated and GitPython reuses
             # LD_LIBRARY_PATH that has been set by PyInstaller.
             # See [1] for more info.
             # [1] https://github.com/gitpython-developers/GitPython/issues/924

@@ -122,7 +122,7 @@ def _collect_objects(
         and (result := _ROOT_PATH_PREFIX_REGEX.match(path := include[0]))
     ):
         root = result.group("prefix")
-        if path in {root, f'{root.rstrip("/")}/**'}:
+        if path in {root, f"{root.rstrip('/')}/**"}:
             include = []
     else:
         root = "/"
