@@ -56,7 +56,7 @@ else:
             return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
         def get_allowed_auths(self, username):
-            return "password,publickey"
+            return "publickey"
 
 
 USER = "testuser"
