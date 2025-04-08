@@ -160,7 +160,7 @@ class GitTrie:
             }
         )
 
-        return cast(dict, ret)
+        return cast("dict", ret)
 
 
 @dataclass
