@@ -132,7 +132,7 @@ class InteractiveSSHClient(SSHClient):
             self._keys_to_try = []
             options = self._conn._options  # pylint: disable=protected-access
             config = options.config
-            client_keys = cast(Sequence["FilePath"], config.get("IdentityFile", ()))
+            client_keys = cast("Sequence[FilePath]", config.get("IdentityFile", ()))
             if not client_keys:
                 client_keys = [
                     os.path.expanduser(os.path.join("~", ".ssh", path))
