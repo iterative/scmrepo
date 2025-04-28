@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from collections.abc import Coroutine, Iterator, Sequence
+from collections.abc import Coroutine, Iterator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,6 +18,7 @@ from scmrepo.asyn import BaseAsyncObject, sync_wrapper
 from scmrepo.exceptions import AuthError
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from asyncssh.auth import KbdIntPrompts, KbdIntResponse
@@ -132,7 +133,7 @@ class InteractiveSSHClient(SSHClient):
             self._keys_to_try = []
             options = self._conn._options  # pylint: disable=protected-access
             config = options.config
-            client_keys = cast(Sequence["FilePath"], config.get("IdentityFile", ()))
+            client_keys = cast("Sequence[FilePath]", config.get("IdentityFile", ()))
             if not client_keys:
                 client_keys = [
                     os.path.expanduser(os.path.join("~", ".ssh", path))
