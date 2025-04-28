@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from collections.abc import Coroutine, Iterator, Sequence
+from collections.abc import Coroutine, Iterator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -18,6 +18,7 @@ from scmrepo.asyn import BaseAsyncObject, sync_wrapper
 from scmrepo.exceptions import AuthError
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from asyncssh.auth import KbdIntPrompts, KbdIntResponse
