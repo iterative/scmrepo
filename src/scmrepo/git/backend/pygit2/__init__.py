@@ -289,7 +289,9 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             bare = True
         try:
             with RemoteCallbacks(progress=progress) as cb:
-                repo = clone_repository(url, to_path, callbacks=cb, bare=bare)
+                repo = clone_repository(
+                    url, os.fspath(to_path), callbacks=cb, bare=bare
+                )
                 if mirror:
                     cls._set_mirror(repo, progress=progress)
         except GitError as exc:

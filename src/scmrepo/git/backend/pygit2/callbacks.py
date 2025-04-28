@@ -66,6 +66,8 @@ class RemoteCallbacks(_RemoteCallbacks, AbstractContextManager):
                 else:
                     creds = Credential(username=username_from_url, url=url).fill()
                     self._store_credentials = creds
+                assert creds.username is not None
+                assert creds.password is not None
                 return UserPass(creds.username, creds.password)
             except CredentialNotFoundError:
                 pass
