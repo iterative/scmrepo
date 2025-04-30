@@ -41,6 +41,12 @@ async def _read_all(read: Callable[[int], Coroutine], n: Optional[int] = None) -
     return b"".join(result)
 
 
+async def _getpass(*args, **kwargs) -> str:
+    from getpass import getpass
+
+    return await asyncio.to_thread(getpass, *args, **kwargs)
+
+
 class _StderrWrapper:
     def __init__(self, stderr: "SSHReader", loop: asyncio.AbstractEventLoop) -> None:
         self.stderr = stderr
@@ -164,8 +170,6 @@ class InteractiveSSHClient(SSHClient):
         return None
 
     async def _read_private_key_interactive(self, path: "FilePath") -> "SSHKey":
-        from getpass import getpass
-
         from asyncssh.public_key import (
             KeyEncryptionError,
             KeyImportError,
@@ -177,11 +181,8 @@ class InteractiveSSHClient(SSHClient):
         if passphrase:
             return read_private_key(path, passphrase=passphrase)
 
-        loop = asyncio.get_running_loop()
         for _ in range(3):
-            passphrase = await loop.run_in_executor(
-                None, getpass, f"Enter passphrase for key '{path}': "
-            )
+            passphrase = await _getpass(f"Enter passphrase for key {path!r}: ")
             if passphrase:
                 try:
                     key = read_private_key(path, passphrase=passphrase)
@@ -201,23 +202,20 @@ class InteractiveSSHClient(SSHClient):
         lang: str,
         prompts: "KbdIntPrompts",
     ) -> Optional["KbdIntResponse"]:
-        from getpass import getpass
-
         if os.environ.get("GIT_TERMINAL_PROMPT") == "0":
             return None
 
-        def _getpass(prompt: str) -> str:
-            return getpass(prompt=prompt).rstrip()
-
         if instructions:
             pass
-        loop = asyncio.get_running_loop()
-        return [
-            await loop.run_in_executor(
-                None, _getpass, f"({name}) {prompt}" if name else prompt
-            )
-            for prompt, _ in prompts
-        ]
+
+        response: list[str] = []
+        for prompt, _echo in prompts:
+            p = await _getpass(f"({name}) {prompt}" if name else prompt)
+            response.append(p.rstrip())
+        return response
+
+    async def password_auth_requested(self) -> str:
+        return await _getpass()
 
 
 class AsyncSSHVendor(BaseAsyncObject, SSHVendor):

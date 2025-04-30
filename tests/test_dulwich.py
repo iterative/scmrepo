@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 import asyncssh
 import paramiko
 import pytest
+from paramiko.server import InteractiveQuery
 from pytest_mock import MockerFixture
 from pytest_test_utils.waiters import wait_until
 
@@ -52,12 +53,23 @@ class Server(paramiko.ServerInterface):
     """http://docs.paramiko.org/en/2.4/api/server.html."""
 
     def __init__(self, commands, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.commands = commands
+        self.allowed_auths = kwargs.get("allowed_auths", "publickey,password")
 
     def check_channel_exec_request(self, channel, command):
         self.commands.append(command)
         return True
+
+    def check_auth_interactive(self, username: str, submethods: str):
+        return InteractiveQuery(
+            "Password", "Enter the password", f"Password for user {USER}:"
+        )
+
+    def check_auth_interactive_response(self, responses):
+        if responses[0] == PASSWORD:
+            return paramiko.AUTH_SUCCESSFUL
+        return paramiko.AUTH_FAILED
 
     def check_auth_password(self, username, password):
         if username == USER and password == PASSWORD:
@@ -76,12 +88,12 @@ class Server(paramiko.ServerInterface):
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
     def get_allowed_auths(self, username):
-        return "password,publickey"
+        return self.allowed_auths
 
 
 @pytest.fixture
 def ssh_conn(request: pytest.FixtureRequest) -> dict[str, Any]:
-    server = Server([])
+    server = Server([], **getattr(request, "param", {}))
 
     socket.setdefaulttimeout(10)
     request.addfinalizer(lambda: socket.setdefaulttimeout(None))
@@ -133,7 +145,8 @@ def test_run_command_password(server: Server, ssh_port: int):
     assert b"test_run_command_password" in server.commands
 
 
-def test_run_command_no_password(server: Server, ssh_port: int):
+@pytest.mark.parametrize("ssh_conn", [{"allowed_auths": "publickey"}], indirect=True)
+def test_run_command_no_password(ssh_port: int):
     vendor = AsyncSSHVendor()
     with pytest.raises(AuthError):
         vendor.run_command(
@@ -143,6 +156,28 @@ def test_run_command_no_password(server: Server, ssh_port: int):
             port=ssh_port,
             password=None,
         )
+
+
+@pytest.mark.parametrize(
+    "ssh_conn",
+    [{"allowed_auths": "password"}, {"allowed_auths": "keyboard-interactive"}],
+    indirect=True,
+    ids=["password", "interactive"],
+)
+def test_should_prompt_for_password_when_no_password_passed(
+    mocker: MockerFixture, server: Server, ssh_port: int
+):
+    mocked_getpass = mocker.patch("getpass.getpass", return_value=PASSWORD)
+    vendor = AsyncSSHVendor()
+    vendor.run_command(
+        "127.0.0.1",
+        "test_run_command_password",
+        username=USER,
+        port=ssh_port,
+        password=None,
+    )
+    assert server.commands == [b"test_run_command_password"]
+    mocked_getpass.asssert_called_once()
 
 
 def test_run_command_with_privkey(server: Server, ssh_port: int):
