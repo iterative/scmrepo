@@ -535,7 +535,7 @@ class Credential(Mapping[str, str]):
         path: Optional[str] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
-        password_expiry_utc: Optional[int] = None,
+        password_expiry_utc: Optional[str] = None,
         url: Optional[str] = None,
     ):
         self.protocol = protocol
