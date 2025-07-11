@@ -452,7 +452,32 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         return sorted(ref[len(base) :] for ref in self.iter_refs(base))
 
     def list_all_commits(self) -> Iterable[str]:
-        raise NotImplementedError
+        import pygit2
+        from pygit2.enums import SortMode
+
+        # Add HEAD
+        starting_points: list[Union[Oid, str]] = []
+        if not self.repo.head_is_unborn:
+            starting_points.append(self.repo.head.target)
+
+        # Add all branches, remotes, and tags
+        for ref in self.repo.references:
+            if ref.startswith(("refs/heads/", "refs/remotes/")):
+                oid = self.repo.revparse_single(ref).id
+                starting_points.append(oid)
+            elif ref.startswith("refs/tags/"):
+                tag_obj = self.repo.revparse_single(ref)
+                if isinstance(tag_obj, pygit2.Tag):
+                    starting_points.append(tag_obj.target)
+                else:
+                    starting_points.append(tag_obj.id)
+
+        # Walk all commits
+        walker = self.repo.walk(None)
+        for oid in starting_points:
+            walker.push(oid)
+        walker.sort(SortMode.TIME)
+        return [str(commit.id) for commit in walker]
 
     def get_tree_obj(self, rev: str, **kwargs) -> Pygit2Object:
         tree = self.repo[rev].tree
