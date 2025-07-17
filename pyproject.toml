@@ -147,6 +147,7 @@ ignore = [
     "RET503", # implicit-return
     "SIM117", # multiple-with-statements
     "N818", # error-suffix-on-exception-name
+    "PLC0415", # import-outside-top-level
 ]
 select = [
     "A", # flake8-buitlins
