@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class DulwichObject(GitObject):
-    def __init__(self, repo, name, mode, sha):
+    def __init__(self, repo, name, mode, sha) -> None:
         self.repo = repo
         self._name = name
         self._mode = mode
@@ -136,7 +136,7 @@ def _get_ssh_vendor() -> "SSHVendor":
 
 
 class DulwichConfig(Config):
-    def __init__(self, config: Union["ConfigFile", "StackedConfig"]):
+    def __init__(self, config: Union["ConfigFile", "StackedConfig"]) -> None:
         self._config = config
 
     @property
@@ -183,7 +183,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def __init__(  # pylint:disable=W0231
         self, root_dir=os.curdir, search_parent_directories=True
-    ):
+    ) -> None:
         from dulwich.errors import NotGitRepository
         from dulwich.repo import Repo
 

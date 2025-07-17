@@ -14,7 +14,7 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
         password=None,
         config=None,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(
             base_url=base_url,
             username=username,
@@ -29,6 +29,7 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
         url: str,
         headers: Optional[dict[str, str]] = None,
         data: Optional[Union[bytes, Iterator[bytes]]] = None,
+        raise_for_status: bool = True,
     ):
         cached_chunks: list[bytes] = []
 
@@ -48,7 +49,10 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
 
         try:
             result = super()._http_request(
-                url, headers=headers, data=None if data is None else _cached_data()
+                url,
+                headers=headers,
+                data=None if data is None else _cached_data(),
+                raise_for_status=raise_for_status,
             )
         except HTTPUnauthorized:
             auth_header = self._get_auth()
@@ -59,7 +63,10 @@ class GitCredentialsHTTPClient(Urllib3HttpGitClient):  # pylint: disable=abstrac
             else:
                 headers = auth_header
             result = super()._http_request(
-                url, headers=headers, data=None if data is None else _cached_data()
+                url,
+                headers=headers,
+                data=None if data is None else _cached_data(),
+                raise_for_status=raise_for_status,
             )
         if self._store_credentials is not None:
             self._store_credentials.approve()

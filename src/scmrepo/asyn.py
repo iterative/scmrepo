@@ -6,7 +6,6 @@ import threading
 from typing import Any, Optional
 
 from fsspec.asyn import (  # noqa: F401, pylint:disable=unused-import
-    _selector_policy,
     sync,
     sync_wrapper,
 )
@@ -23,8 +22,7 @@ def get_loop() -> asyncio.AbstractEventLoop:
     if default_loop[0] is None:
         with lock:
             if default_loop[0] is None:
-                with _selector_policy():
-                    default_loop[0] = asyncio.new_event_loop()
+                default_loop[0] = asyncio.new_event_loop()
                 loop = default_loop[0]
                 th = threading.Thread(
                     target=loop.run_forever,  # type: ignore[attr-defined]

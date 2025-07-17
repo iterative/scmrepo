@@ -105,7 +105,7 @@ class GitCredentialHelper(CredentialHelper):
     >>> password = credentials.password
     """
 
-    def __init__(self, command: str, use_http_path: bool = False):
+    def __init__(self, command: str, use_http_path: bool = False) -> None:
         super().__init__()
         self._command = command
         self._run_kwargs: dict[str, Any] = {}
@@ -136,7 +136,7 @@ class GitCredentialHelper(CredentialHelper):
         if not shutil.which(executable) and shutil.which("git"):
             # If the helper cannot be found in PATH, it might be
             # a C git helper in GIT_EXEC_PATH
-            git_exec_path = subprocess.check_output(  # noqa: S603
+            git_exec_path = subprocess.check_output(
                 ("git", "--exec-path"),
                 text=True,
             ).strip()
@@ -353,7 +353,7 @@ def _input_tty(prompt: str = "Username: ") -> str:
 class MemoryCredentialHelper(CredentialHelper):
     """Memory credential helper that supports optional interactive input."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._credentials: dict[_CredentialKey, Credential] = {}
 
