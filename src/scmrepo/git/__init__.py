@@ -9,6 +9,7 @@ from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from functools import partialmethod
 from typing import (
+    Any,
     TYPE_CHECKING,
     Callable,
     ClassVar,
