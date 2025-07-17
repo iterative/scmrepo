@@ -71,7 +71,9 @@ class _StderrWrapper:
 
 
 class AsyncSSHWrapper(BaseAsyncObject):
-    def __init__(self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs) -> None:
+    def __init__(
+        self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs
+    ) -> None:
         super().__init__(**kwargs)
         self.conn: SSHClientConnection = conn
         self.proc: SSHClientProcess = proc
