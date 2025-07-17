@@ -71,7 +71,7 @@ class _StderrWrapper:
 
 
 class AsyncSSHWrapper(BaseAsyncObject):
-    def __init__(self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs):
+    def __init__(self, conn: "SSHClientConnection", proc: "SSHClientProcess", **kwargs) -> None:
         super().__init__(**kwargs)
         self.conn: SSHClientConnection = conn
         self.proc: SSHClientProcess = proc
@@ -109,7 +109,7 @@ class InteractiveSSHClient(SSHClient):
     _keys_to_try: Optional[list["FilePath"]] = None
     _passphrases: dict[str, str]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super(*args, **kwargs)
         self._passphrases: dict[str, str] = {}
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class LFSFilter(Filter):
     attributes = "filter=*"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self._smudge_buf: Optional[io.BytesIO] = None
         self._smudge_root: Optional[str] = None
 

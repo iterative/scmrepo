@@ -105,7 +105,7 @@ class GitCredentialHelper(CredentialHelper):
     >>> password = credentials.password
     """
 
-    def __init__(self, command: str, use_http_path: bool = False):
+    def __init__(self, command: str, use_http_path: bool = False) -> None:
         super().__init__()
         self._command = command
         self._run_kwargs: dict[str, Any] = {}
@@ -353,7 +353,7 @@ def _input_tty(prompt: str = "Username: ") -> str:
 class MemoryCredentialHelper(CredentialHelper):
     """Memory credential helper that supports optional interactive input."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._credentials: dict[_CredentialKey, Credential] = {}
 

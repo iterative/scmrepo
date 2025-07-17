@@ -295,7 +295,7 @@ class Git(Base):
     # See:
     # https://github.com/iterative/dvc/issues/5641
     # https://github.com/iterative/dvc/issues/7458
-    def _backend_func(self, name, *args, **kwargs):
+    def _backend_func(self, name, *args, **kwargs) -> BackendCls:
         backends: Iterable[str] = kwargs.pop("backends", self.backends)
         for key in backends:
             if self._last_backend is not None and key != self._last_backend:
