@@ -771,7 +771,7 @@ def test_ignored(tmp_dir: TmpDir, scm: Git, git: Git, git_backend: str):
     assert not git.is_ignored(tmp_dir / "dir1" / "file2.txt")
 
 
-@pytest.mark.skip_git_backend("pygit2", "gitpython")
+@pytest.mark.skip_git_backend("pygit2", "gitpython", "dulwich")
 def test_ignored_dir_unignored_subdirs(tmp_dir: TmpDir, scm: Git, git: Git):
     tmp_dir.gen({".gitignore": "data/**\n!data/**/\n!data/**/*.csv"})
     scm.add([".gitignore"])
