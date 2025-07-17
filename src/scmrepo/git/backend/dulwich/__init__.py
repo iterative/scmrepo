@@ -990,7 +990,7 @@ def ls_remote(url: str) -> dict[str, str]:
     from dulwich.client import HTTPUnauthorized
 
     try:
-        refs = porcelain.ls_remote(url)
+        refs = porcelain.ls_remote(url).refs
         return {os.fsdecode(ref): sha.decode("ascii") for ref, sha in refs.items()}
     except HTTPUnauthorized as exc:
         raise AuthError(url) from exc
