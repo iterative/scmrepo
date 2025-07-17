@@ -17,7 +17,7 @@ def smudge(
     batch_size: Optional[int] = None,
 ) -> BinaryIO:
     """Wrap the specified binary IO stream and run LFS smudge if necessary."""
-    reader = io.BufferedReader(fobj)  # type: ignore[arg-type]
+    reader = io.BufferedReader(fobj)  # type: ignore[type-var]
     data = reader.peek(100)
     if any(data.startswith(header) for header in HEADERS):
         # read the pointer data into memory since the raw stream is unseekable
