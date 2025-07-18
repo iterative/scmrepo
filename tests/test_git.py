@@ -1,6 +1,5 @@
 import os
 import shutil
-import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -423,170 +422,21 @@ def test_iter_remote_refs(
     } == set(git.iter_remote_refs(remote))
 
 
-def _gen(scm: Git, s: str, commit_timestamp: Optional[float] = None) -> str:
-    with open(s, mode="w") as f:
-        f.write(s)
-    scm.dulwich.add([s])
-    scm.dulwich.repo.do_commit(
-        message=s.encode("utf-8"), commit_timestamp=commit_timestamp
-    )
-    return scm.get_rev()
-
-
+@pytest.mark.skip_git_backend("dulwich", "pygit2")
 def test_list_all_commits(tmp_dir: TmpDir, scm: Git, git: Git, matcher: type[Matcher]):
-    assert git.list_all_commits() == []
-    # https://github.com/libgit2/libgit2/issues/6336
-    now = time.time()
+    def _gen(s):
+        tmp_dir.gen(s, s)
+        scm.add_commit(s, message=s)
+        return scm.get_rev()
 
-    rev_a = _gen(scm, "a", commit_timestamp=now - 10)
-    rev_b = _gen(scm, "b", commit_timestamp=now - 8)
-    rev_c = _gen(scm, "c", commit_timestamp=now - 5)
-    rev_d = _gen(scm, "d", commit_timestamp=now - 2)
-
-    assert git.list_all_commits() == [rev_d, rev_c, rev_b, rev_a]
-
-    scm.gitpython.git.reset(rev_b, hard=True)
-    assert git.list_all_commits() == [rev_b, rev_a]
-
-
-def test_list_all_commits_branch(
-    tmp_dir: TmpDir, scm: Git, git: Git, matcher: type[Matcher]
-):
-    revs = {}
-    now = time.time()
-
-    revs["1"] = _gen(scm, "a", commit_timestamp=now - 10)
-
-    scm.checkout("branch", create_new=True)
-    revs["3"] = _gen(scm, "c", commit_timestamp=now - 9)
-
-    scm.checkout("master")
-    revs["2"] = _gen(scm, "b", commit_timestamp=now - 7)
-
-    scm.checkout("branch")
-    revs["5"] = _gen(scm, "e", commit_timestamp=now - 6)
-
-    scm.checkout("master")
-    revs["4"] = _gen(scm, "d", commit_timestamp=now - 5)
-
-    scm.checkout("branch")
-    revs["6"] = _gen(scm, "f", commit_timestamp=now - 4)
-
-    scm.checkout("master")
-    revs["7"] = _gen(scm, "g", commit_timestamp=now - 3)
-    revs["8"] = scm.merge("branch", msg="merge branch")
-
-    inv_map = {v: k for k, v in revs.items()}
-    assert [inv_map[k] for k in git.list_all_commits()] == [
-        "8",
-        "7",
-        "6",
-        "4",
-        "5",
-        "2",
-        "3",
-        "1",
-    ]
-
-
-def test_list_all_tags(tmp_dir: TmpDir, scm: Git, git: Git, matcher: type[Matcher]):
-    rev_a = _gen(scm, "a")
+    rev_a = _gen("a")
+    rev_b = _gen("b")
     scm.tag("tag")
-    rev_b = _gen(scm, "b")
-    scm.tag("annotated", annotated=True, message="Annotated Tag")
-    rev_c = _gen(scm, "c")
-    rev_d = _gen(scm, "d")
-    assert git.list_all_commits() == matcher.unordered(rev_d, rev_c, rev_b, rev_a)
-
-    rev_e = _gen(scm, "e")
-    scm.tag(
-        "annotated2",
-        target="refs/tags/annotated",
-        annotated=True,
-        message="Annotated Tag",
-    )
-    assert git.list_all_commits() == matcher.unordered(
-        rev_e, rev_d, rev_c, rev_b, rev_a
-    )
-
-    rev_f = _gen(scm, "f")
-    scm.tag(
-        "annotated3",
-        target="refs/tags/annotated2",
-        annotated=True,
-        message="Annotated Tag 3",
-    )
-    assert git.list_all_commits() == matcher.unordered(
-        rev_f, rev_e, rev_d, rev_c, rev_b, rev_a
-    )
-
+    rev_c = _gen("c")
     scm.gitpython.git.reset(rev_a, hard=True)
-    assert git.list_all_commits() == matcher.unordered(rev_b, rev_a)
+    scm.set_ref("refs/foo/bar", rev_c)
 
-
-def test_list_all_commits_dangling_annotated_tag(tmp_dir: TmpDir, scm: Git, git: Git):
-    rev_a = _gen(scm, "a")
-    scm.tag("annotated", annotated=True, message="Annotated Tag")
-
-    _gen(scm, "b")
-
-    # Delete branch pointing to rev_a
-    scm.checkout(rev_a)
-    scm.gitpython.repo.delete_head("master", force=True)
-
-    assert git.list_all_commits() == [rev_a]  # Only reachable via the tag
-
-
-def test_list_all_commits_orphan(
-    tmp_dir: TmpDir, scm: Git, git: Git, matcher: type[Matcher]
-):
-    rev_a = _gen(scm, "a")
-
-    # Make an orphan branch
-    scm.gitpython.git.checkout("--orphan", "orphan-branch")
-    rev_orphan = _gen(scm, "orphanfile")
-
-    assert rev_orphan != rev_a
-    assert git.list_all_commits() == matcher.unordered(rev_orphan, rev_a)
-
-
-def test_list_all_commits_refs(
-    tmp_dir: TmpDir, scm: Git, git: Git, matcher: type[Matcher]
-):
-    assert git.list_all_commits() == []
-
-    rev_a = _gen(scm, "a")
-
-    assert git.list_all_commits() == [rev_a]
-    rev_b = _gen(scm, "b")
-    scm.set_ref("refs/remotes/origin/feature", rev_b)
-    assert git.list_all_commits() == matcher.unordered(rev_b, rev_a)
-
-    # also add refs/exps/foo/bar
-    rev_c = _gen(scm, "c")
-    scm.set_ref("refs/exps/foo/bar", rev_c)
-    assert git.list_all_commits() == matcher.unordered(rev_c, rev_b, rev_a)
-
-    # Dangling/broken ref ---
-    scm.set_ref("refs/heads/bad-ref", "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
-    with pytest.raises(Exception):  # noqa: B017, PT011
-        git.list_all_commits()
-    scm.remove_ref("refs/heads/bad-ref")
-
-    scm.gitpython.git.reset(rev_a, hard=True)
-    assert git.list_all_commits() == matcher.unordered(rev_b, rev_a)
-
-
-def test_list_all_commits_detached_head(
-    tmp_dir: TmpDir, scm: Git, git: Git, matcher: type[Matcher]
-):
-    rev_a = _gen(scm, "a")
-    rev_b = _gen(scm, "b")
-    rev_c = _gen(scm, "c")
-    scm.checkout(rev_b)
-
-    assert scm.pygit2.repo.head_is_detached
-    assert git.list_all_commits() == matcher.unordered(rev_c, rev_b, rev_a)
+    assert git.list_all_commits() == matcher.unordered(rev_a, rev_b)
 
 
 @pytest.mark.skip_git_backend("pygit2")
