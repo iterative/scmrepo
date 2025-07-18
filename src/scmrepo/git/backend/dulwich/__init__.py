@@ -17,6 +17,7 @@ from typing import (
 )
 
 from dulwich.config import ConfigFile, StackedConfig
+from dulwich.walk import ORDER_DATE
 from funcy import cached_property, reraise
 
 from scmrepo.exceptions import AuthError, CloneError, InvalidRemote, RevError, SCMError
@@ -473,7 +474,25 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return sorted(ref[len(base) :] for ref in self.iter_refs(base))
 
     def list_all_commits(self) -> Iterable[str]:
-        raise NotImplementedError
+        from dulwich.objects import Tag
+
+        repo = self.repo
+        starting_points: list[bytes] = []
+
+        # HEAD
+        head_rev = self.get_ref("HEAD")
+        if head_rev:
+            starting_points.append(head_rev.encode("utf-8"))
+
+        # Branches and remotes
+        for ref in repo.refs:
+            if ref.startswith((b"refs/heads/", b"refs/remotes/", b"refs/tags/")):
+                if isinstance(repo.refs[ref], Tag):
+                    ref = self.repo.get_peeled(repo.refs[ref])
+                starting_points.append(repo.refs[ref])
+
+        walker = self.repo.get_walker(include=starting_points, order=ORDER_DATE)
+        return [e.commit.id.decode() for e in walker]
 
     def get_tree_obj(self, rev: str, **kwargs) -> DulwichObject:
         from dulwich.objectspec import parse_tree
