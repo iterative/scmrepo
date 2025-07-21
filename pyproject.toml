@@ -192,8 +192,9 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "noxfile.py" = ["D", "PTH"]
-"tests/**" = ["S", "ARG001", "ARG002", "ANN"]
+"tests/**" = ["S", "ARG001", "ARG002", "ANN", "TID251", "TID253"]
 "docs/**" = ["INP"]
+"src/scmrepo/git/backend/gitpython.py" = ["TID251"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
@@ -202,6 +203,14 @@ parametrize-names-type = "csv"
 
 [tool.ruff.lint.flake8-type-checking]
 strict = true
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"git".msg = "importing from 'git' is not allowed except inside `gitpython` backend"
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Ban certain modules from being imported at module level, instead requiring
+# that they're imported lazily (e.g., within a function definition).
+banned-module-level-imports = ["git"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["scmrepo"]

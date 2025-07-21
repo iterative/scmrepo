@@ -4,7 +4,7 @@ from funcy import compose
 
 
 def code2desc(op_code):
-    from git import RootUpdateProgress as OP  # noqa: N814
+    from git import RootUpdateProgress as OP  # noqa: N814, TID251
 
     ops = {
         OP.COUNTING: "Counting",
@@ -44,16 +44,20 @@ class GitProgressEvent(NamedTuple):
 
 class GitProgressReporter:
     def __init__(self, fn) -> None:
-        from git.util import CallableRemoteProgress
-
-        self._reporter = CallableRemoteProgress(self.wrap_fn(fn))
+        try:
+            from git.util import CallableRemoteProgress  # noqa: TID251
+        except ImportError:
+            self._reporter = None
+        else:
+            self._reporter = CallableRemoteProgress(self.wrap_fn(fn))
 
     def __call__(self, msg: Union[str, bytes]) -> None:
-        self._reporter._parse_progress_line(
-            msg.decode("utf-8", errors="replace").strip()
-            if isinstance(msg, bytes)
-            else msg
-        )
+        if self._reporter is not None:
+            self._reporter._parse_progress_line(
+                msg.decode("utf-8", errors="replace").strip()
+                if isinstance(msg, bytes)
+                else msg
+            )
 
     @staticmethod
     def wrap_fn(fn):
