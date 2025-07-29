@@ -18,22 +18,22 @@ class LFSFilter(Filter):
         self._smudge_root: Optional[str] = None
 
     def check(self, src: "FilterSource", attr_values: list[Optional[str]]):
-        if attr_values[0] == "lfs" and src.mode != GIT_FILTER_CLEAN:
+        if attr_values[0] == "lfs" and src.mode != GIT_FILTER_CLEAN:  # type: ignore[attr-defined]
             self._smudge_buf = io.BytesIO()
-            self._smudge_root = src.repo.workdir or src.repo.path
+            self._smudge_root = src.repo.workdir or src.repo.path  # type: ignore[attr-defined]
             return
         raise Passthrough
 
     def write(
         self, data: bytes, src: "FilterSource", write_next: Callable[[bytes], None]
     ):
-        if src.mode == GIT_FILTER_CLEAN:
+        if src.mode == GIT_FILTER_CLEAN:  # type: ignore[attr-defined]
             write_next(data)
             return
         if self._smudge_buf is None:
             self._smudge_buf = io.BytesIO()
         if self._smudge_root is None:
-            self._smudge_root = src.repo.workdir or src.repo.path
+            self._smudge_root = src.repo.workdir or src.repo.path  # type: ignore[attr-defined]
         self._smudge_buf.write(data)
 
     def close(self, write_next: Callable[[bytes], None]):

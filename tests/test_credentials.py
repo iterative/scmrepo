@@ -73,7 +73,7 @@ def test_subprocess_strip_trailing_garbage_bytes(git_helper, mocker):
         "subprocess.run",
         # Simulate git-credential-osxkeychain (version 2.45), assuming initial 0-byte
         return_value=mocker.Mock(
-            stdout=f"username=foo\npassword=bar{chr(0)}{random.randbytes(15)}"
+            stdout=f"username=foo\npassword=bar{chr(0)}{random.randbytes(15)}"  # type: ignore[str-bytes-safe]
         ),
     )
     creds = git_helper.get(Credential(protocol="https", host="foo.com", path="foo.git"))

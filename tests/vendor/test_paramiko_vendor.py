@@ -41,19 +41,19 @@ else:
 
         def check_auth_password(self, username, password):
             if username == USER and password == PASSWORD:
-                return paramiko.AUTH_SUCCESSFUL
-            return paramiko.AUTH_FAILED
+                return paramiko.AUTH_SUCCESSFUL  # type: ignore[attr-defined]
+            return paramiko.AUTH_FAILED  # type: ignore[attr-defined]
 
         def check_auth_publickey(self, username, key):
             pubkey = paramiko.RSAKey.from_private_key(StringIO(CLIENT_KEY))
             if username == USER and key == pubkey:
-                return paramiko.AUTH_SUCCESSFUL
-            return paramiko.AUTH_FAILED
+                return paramiko.AUTH_SUCCESSFUL  # type: ignore[attr-defined]
+            return paramiko.AUTH_FAILED  # type: ignore[attr-defined]
 
         def check_channel_request(self, kind, chanid):
             if kind == "session":
-                return paramiko.OPEN_SUCCEEDED
-            return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
+                return paramiko.OPEN_SUCCEEDED  # type: ignore[attr-defined]
+            return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED  # type: ignore[attr-defined]
 
         def get_allowed_auths(self, username):
             return "password,publickey"

@@ -68,24 +68,24 @@ class Server(paramiko.ServerInterface):
 
     def check_auth_interactive_response(self, responses):
         if responses[0] == PASSWORD:
-            return paramiko.AUTH_SUCCESSFUL
-        return paramiko.AUTH_FAILED
+            return paramiko.AUTH_SUCCESSFUL  # type: ignore[attr-defined]
+        return paramiko.AUTH_FAILED  # type: ignore[attr-defined]
 
     def check_auth_password(self, username, password):
         if username == USER and password == PASSWORD:
-            return paramiko.AUTH_SUCCESSFUL
-        return paramiko.AUTH_FAILED
+            return paramiko.AUTH_SUCCESSFUL  # type: ignore[attr-defined]
+        return paramiko.AUTH_FAILED  # type: ignore[attr-defined]
 
     def check_auth_publickey(self, username, key):
         pubkey = paramiko.RSAKey.from_private_key(StringIO(CLIENT_KEY))
         if username == USER and key == pubkey:
-            return paramiko.AUTH_SUCCESSFUL
-        return paramiko.AUTH_FAILED
+            return paramiko.AUTH_SUCCESSFUL  # type: ignore[attr-defined]
+        return paramiko.AUTH_FAILED  # type: ignore[attr-defined]
 
     def check_channel_request(self, kind, chanid):
         if kind == "session":
-            return paramiko.OPEN_SUCCEEDED
-        return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
+            return paramiko.OPEN_SUCCEEDED  # type: ignore[attr-defined]
+        return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED  # type: ignore[attr-defined]
 
     def get_allowed_auths(self, username):
         return self.allowed_auths
@@ -111,7 +111,7 @@ def ssh_conn(request: pytest.FixtureRequest) -> dict[str, Any]:
             conn, _ = sock.accept()
         except OSError:
             return False
-        server.transport = transport = paramiko.Transport(conn)
+        server.transport = transport = paramiko.Transport(conn)  # type: ignore[attr-defined]
         request.addfinalizer(transport.close)
         host_key = paramiko.RSAKey.from_private_key(StringIO(CLIENT_KEY))
         transport.add_server_key(host_key)

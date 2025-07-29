@@ -161,8 +161,9 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return bool(func(str(path)))
 
     @property
-    def root_dir(self) -> str:
-        return self.repo.working_tree_dir
+    def root_dir(self) -> Optional[str]:
+        d = self.repo.working_tree_dir
+        return os.fspath(d) if d is not None else d
 
     @staticmethod
     @requires_git
@@ -241,7 +242,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     @property
     def dir(self) -> str:
-        return self.repo.git_dir
+        return os.fspath(self.repo.git_dir)
 
     def add(
         self,
@@ -262,7 +263,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                     paths = [path for path in paths if not self.is_ignored(path)]
                 self.git.add(*paths, **kwargs)
             else:
-                self.repo.index.add(paths)
+                self.repo.index.add(paths if isinstance(paths, str) else list(paths))
         except AssertionError as exc:
             # NOTE: GitPython is not currently able to handle index version >= 3.
             # See https://github.com/iterative/dvc/issues/610 for more details.
@@ -301,7 +302,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             kwargs["force"] = True
         if unshallow:
             kwargs["unshallow"] = True
-        infos = self.repo.remote(name=remote).fetch(**kwargs)
+        infos = self.repo.remote(name=remote).fetch(**kwargs)  # type: ignore[arg-type]
         for info in infos:
             if info.flags & info.ERROR:
                 raise SCMError(f"fetch failed: {info.note}")
@@ -350,7 +351,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def active_branch_remote(self) -> str:
         try:
-            return self.repo.active_branch.tracking_branch()
+            return self.repo.active_branch.tracking_branch()  # type: ignore[return-value]
         except (TypeError, ValueError) as exc:
             raise SCMError("No active branch tracking remote") from exc
 
@@ -428,15 +429,15 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return GitCommit(
             commit.hexsha,
             commit.committed_date,
-            commit.committer_tz_offset,
-            commit.message,
+            commit.committer_tz_offset,  # type: ignore[arg-type]
+            commit.message,  # type: ignore[arg-type]
             [str(parent) for parent in commit.parents],
-            commit.committer.name,
-            commit.committer.email,
-            commit.author.name,
-            commit.author.email,
+            commit.committer.name,  # type: ignore[arg-type]
+            commit.committer.email,  # type: ignore[arg-type]
+            commit.author.name,  # type: ignore[arg-type]
+            commit.author.email,  # type: ignore[arg-type]
             commit.authored_date,
-            commit.author_tz_offset,
+            commit.author_tz_offset,  # type: ignore[arg-type]
         )
 
     def set_ref(
@@ -744,6 +745,8 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
             if not ref.tag:
                 return ref.commit.hexsha
             tag = ref.tag
+            assert tag.tagger.email
+            assert tag.tagger.name
             return GitTag(
                 tag.tag,
                 tag.hexsha,

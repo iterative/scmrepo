@@ -171,7 +171,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             # NOTE: we want this init to be lazy so we do it on backend init.
             # for subsequent backend instances, this call will error out since
             # the filter is already registered
-            pygit2.filter_register("lfs", LFSFilter)
+            pygit2.filter_register("lfs", LFSFilter)  # type: ignore[attr-defined]
         except ValueError:
             pass
 
@@ -181,7 +181,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         self.repo.free()
 
     @property
-    def root_dir(self) -> str:
+    def root_dir(self) -> Optional[str]:
         return self.repo.workdir
 
     @cached_property
@@ -194,10 +194,10 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         from pygit2 import Tag
         from pygit2.enums import ObjectType
 
-        commit, ref = self.repo.resolve_refish(refish)
+        commit, ref = self.repo.resolve_refish(refish)  # type: ignore[attr-defined]
         if isinstance(commit, Tag):
             ref = commit
-            commit = commit.peel(ObjectType.COMMIT)
+            commit = commit.peel(ObjectType.COMMIT)  # type: ignore[call-overload]
         return commit, ref
 
     @property
@@ -354,8 +354,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         with self.release_odb_handles():
             if create_new:
                 commit = self.repo.revparse_single("HEAD")
-                new_branch = self.repo.branches.local.create(branch, commit)
-                self.repo.checkout(new_branch, strategy=strategy)
+                new_branch = self.repo.branches.local.create(branch, commit)  # type: ignore[arg-type]
+                self.repo.checkout(new_branch, strategy=strategy)  # type: ignore[attr-defined]
             else:
                 if branch == "-":
                     branch = "@{-1}"
@@ -363,12 +363,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     commit, ref = self._resolve_refish(branch)
                 except (KeyError, GitError) as exc:
                     raise RevError(f"unknown Git revision '{branch}'") from exc
-                self.repo.checkout_tree(commit, strategy=strategy)
+                self.repo.checkout_tree(commit, strategy=strategy)  # type: ignore[attr-defined]
                 detach = kwargs.get("detach", False)
                 if ref and not detach:
-                    self.repo.set_head(ref.name)
+                    self.repo.set_head(ref.name)  # type: ignore[attr-defined]
                 else:
-                    self.repo.set_head(commit.id)
+                    self.repo.set_head(commit.id)  # type: ignore[attr-defined]
 
     def fetch(
         self,
@@ -389,7 +389,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             commit = self.repo[self.repo.head.target]
-            self.repo.create_branch(branch, commit)
+            self.repo.create_branch(branch, commit)  # type: ignore[arg-type]
         except GitError as exc:
             raise SCMError(f"Failed to create branch '{branch}'") from exc
 
@@ -431,7 +431,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             # if HEAD points to a nonexistent branch we still return the
             # branch name (without "refs/heads/" prefix) to match gitpython's
             # behavior
-            return self.repo.references["HEAD"].target[11:]
+            return self.repo.references["HEAD"].target[11:]  # type: ignore[index]
         return self.repo.head.shorthand
 
     def active_branch_remote(self) -> str:
@@ -474,13 +474,13 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         # Walk all commits
         walker = self.repo.walk(None)
-        for oid in starting_points:
-            walker.push(oid)
+        for o in starting_points:
+            walker.push(o)
         walker.sort(SortMode.TIME)
         return [str(commit.id) for commit in walker]
 
     def get_tree_obj(self, rev: str, **kwargs) -> Pygit2Object:
-        tree = self.repo[rev].tree
+        tree = self.repo[rev].tree  # type: ignore[attr-defined]
         return Pygit2Object(tree, backend=self)
 
     def get_rev(self) -> str:
@@ -571,7 +571,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             obj = self.repo[ref.target]
             if isinstance(obj, Tag):
-                return str(obj.peel(ObjectType.COMMIT).id)
+                return str(obj.peel(ObjectType.COMMIT).id)  # type: ignore[call-overload]
         except ValueError:
             pass
 
@@ -784,7 +784,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         from scmrepo.git import Stash
 
         try:
-            oid = self.repo.stash(
+            oid = self.repo.stash(  # type: ignore[attr-defined]
                 self.committer,
                 message=message,
                 include_untracked=include_untracked,
@@ -795,8 +795,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         commit = self.repo[oid]
 
         if ref != Stash.DEFAULT_STASH:
-            self.set_ref(ref, commit.id, message=commit.message)
-            self.repo.stash_drop()
+            self.set_ref(ref, commit.id, message=commit.message)  # type: ignore[attr-defined,arg-type]
+            self.repo.stash_drop()  # type: ignore[attr-defined]
         return str(oid), False
 
     def _stash_apply(
@@ -813,11 +813,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         def _apply(index):
             try:
-                self.repo.index.read(False)
+                self.repo.index.read(False)  # type: ignore[attr-defined]
                 strategy = self._get_checkout_strategy()
                 if skip_conflicts:
                     strategy |= CheckoutStrategy.ALLOW_CONFLICTS
-                self.repo.stash_apply(
+                self.repo.stash_apply(  # type: ignore[attr-defined]
                     index, strategy=strategy, reinstate_index=reinstate_index
                 )
             except GitError as exc:
@@ -839,7 +839,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         try:
             _apply(0)
         finally:
-            self.repo.stash_drop()
+            self.repo.stash_drop()  # type: ignore[attr-defined]
 
     def _stash_drop(self, ref: str, index: int):
         from scmrepo.git import Stash
@@ -847,7 +847,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         if ref != Stash.DEFAULT_STASH:
             raise NotImplementedError
 
-        self.repo.stash_drop(index)
+        self.repo.stash_drop(index)  # type: ignore[attr-defined]
 
     def _describe(
         self,
@@ -865,16 +865,16 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         from pygit2 import IndexEntry
         from pygit2.enums import ResetMode
 
-        self.repo.index.read(False)
+        self.repo.index.read(False)  # type: ignore[attr-defined]
         if paths is not None:
-            tree = self.repo.revparse_single("HEAD").tree
+            tree = self.repo.revparse_single("HEAD").tree  # type: ignore[attr-defined]
             for path in paths:
                 rel = relpath(path, self.root_dir)
                 if os.name == "nt":
                     rel = rel.replace("\\", "/")
                 obj = tree[rel]
-                self.repo.index.add(IndexEntry(rel, obj.id, obj.filemode))
-            self.repo.index.write()
+                self.repo.index.add(IndexEntry(rel, obj.id, obj.filemode))  # type: ignore[attr-defined]
+            self.repo.index.write()  # type: ignore[attr-defined]
         elif hard:
             self.repo.reset(self.repo.head.target, ResetMode.HARD)
         else:
@@ -900,7 +900,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             strategy |= CheckoutStrategy.ALLOW_CONFLICTS
         strategy = self._get_checkout_strategy(strategy)
 
-        index = self.repo.index
+        index = self.repo.index  # type: ignore[attr-defined]
         if paths:
             path_list: Optional[list[str]] = [
                 relpath(path, self.root_dir) for path in paths
@@ -914,7 +914,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             path_list = None
 
         with self.release_odb_handles():
-            self.repo.checkout_index(index=index, paths=path_list, strategy=strategy)
+            self.repo.checkout_index(index=index, paths=path_list, strategy=strategy)  # type: ignore[attr-defined]
 
             if index.conflicts and (ours or theirs):
                 for ancestor, ours_entry, theirs_entry in index.conflicts:
@@ -925,9 +925,10 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                         index.add(ours_entry)
                     else:
                         entry = theirs_entry
+                    assert self.root_dir
                     path = os.path.join(self.root_dir, entry.path)
                     with open(path, "wb") as fobj:
-                        fobj.write(self.repo.get(entry.id).read_raw())
+                        fobj.write(self.repo.get(entry.id).read_raw())  # type: ignore[attr-defined]
                     index.add(entry.path)
                 index.write()
 
@@ -990,8 +991,8 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             raise SCMError("Cannot merge with 'squash' and 'commit'")
 
         with self.release_odb_handles():
-            self.repo.index.read(False)
-            obj, _ref = self.repo.resolve_refish(rev)
+            self.repo.index.read(False)  # type: ignore[attr-defined]
+            obj, _ref = self.repo.resolve_refish(rev)  # type: ignore[attr-defined]
             try:
                 analysis, ff_pref = self.repo.merge_analysis(obj.id)
             except GitError as exc:
@@ -1003,12 +1004,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 return None
 
             try:
-                self.repo.merge(obj.id)
-                self.repo.index.write()
+                self.repo.merge(obj.id)  # type: ignore[attr-defined]
+                self.repo.index.write()  # type: ignore[attr-defined]
             except GitError as exc:
                 raise SCMError("Merge failed") from exc
 
-            if self.repo.index.conflicts:
+            if self.repo.index.conflicts:  # type: ignore[attr-defined]
                 raise MergeConflictError("Merge contained conflicts")
 
             try:
@@ -1017,7 +1018,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                         return self._merge_ff(rev, obj)
 
                     if analysis & MergeAnalysis.UNBORN:
-                        self.repo.set_head(obj.id)
+                        self.repo.set_head(obj.id)  # type: ignore[attr-defined]
                         return str(obj.id)
 
                 if ff_pref & MergePreference.FASTFORWARD_ONLY:
@@ -1030,12 +1031,12 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 # HEAD is not moved and merge changes stay in index
                 return None
             finally:
-                self.repo.state_cleanup()
-                self.repo.index.write()
+                self.repo.state_cleanup()  # type: ignore[attr-defined]
+                self.repo.index.write()  # type: ignore[attr-defined]
 
     def _merge_ff(self, rev: str, obj) -> str:
         if self.repo.head_is_detached:
-            self.repo.set_head(obj.id)
+            self.repo.set_head(obj.id)  # type: ignore[attr-defined]
         else:
             branch = self.get_ref("HEAD", follow=False)
             assert branch
@@ -1049,7 +1050,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def _merge_commit(self, msg: Optional[str], obj) -> str:
         if not msg:
             raise SCMError("Merge commit message is required")
-        tree = self.repo.index.write_tree()
+        tree = self.repo.index.write_tree()  # type: ignore[attr-defined]
         merge_commit = self.repo.create_commit(
             "HEAD",
             self.author,
@@ -1103,7 +1104,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         if path:
             return Pygit2Config(_Pygit2Config(path))
-        return Pygit2Config(self.repo.config)
+        return Pygit2Config(self.repo.config)  # type: ignore[attr-defined]
 
     def check_attr(
         self,
@@ -1123,7 +1124,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             except (KeyError, GitError) as exc:
                 raise SCMError(f"Invalid commit '{source}'") from exc
         try:
-            return self.repo.get_attr(
+            return self.repo.get_attr(  # type: ignore[attr-defined]
                 path, attr, flags=flags, commit=commit.id if commit else None
             )
         except GitError as exc:
