@@ -1111,6 +1111,7 @@ def proxy_server():
         pass
 
     _ProxyServer.setUpClass()
+    assert _ProxyServer.PROXY
     yield f"http://{_ProxyServer.PROXY.flags.hostname}:{_ProxyServer.PROXY.flags.port}"
     _ProxyServer.tearDownClass()
 

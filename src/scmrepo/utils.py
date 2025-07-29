@@ -1,9 +1,13 @@
 import os
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
+from typing import Callable, TypeVar, Union
+
+K = TypeVar("K")
+V = TypeVar("V")
 
 
-class LazyDict(MutableMapping):
-    def __init__(self, values):
+class LazyDict(MutableMapping[K, V]):
+    def __init__(self, values: dict[K, Union[V, Callable[[], V]]]):
         self._values = values
 
     def __getitem__(self, item):
@@ -13,16 +17,16 @@ class LazyDict(MutableMapping):
             self._values[item] = value
         return value
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: K, value: Union[V, Callable[[], V]]) -> None:
         self._values[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: K) -> None:
         del self._values[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[K]:
         return iter(self._values)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._values)
 
 

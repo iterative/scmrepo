@@ -40,7 +40,7 @@ class BaseGitBackend(ABC):
 
     @property
     @abstractmethod
-    def root_dir(self) -> str:
+    def root_dir(self) -> Optional[str]:
         pass
 
     @staticmethod
