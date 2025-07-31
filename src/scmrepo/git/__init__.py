@@ -412,6 +412,7 @@ class Git(Base):
     check_attr = partialmethod(_backend_func, "check_attr")
 
     get_tree_obj = partialmethod(_backend_func, "get_tree_obj")
+    list_submodules = partialmethod(_backend_func, "list_submodules")
 
     def branch_revs(self, branch: str, end_rev: Optional[str] = None) -> Iterable[str]:
         """Iterate over revisions in a given branch (from newest to oldest).
