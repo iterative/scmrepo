@@ -382,7 +382,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         with reraise((Error, CommitError), SCMError("Git commit failed")):
             try:
-                commit(self.root_dir, message=msg, no_verify=no_verify)
+                commit(self.repo, message=msg, no_verify=no_verify)
             except InvalidUserIdentity as exc:
                 raise SCMError("Git username and email must be configured") from exc
             except TimezoneFormatError as exc:
@@ -425,7 +425,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.porcelain import Error, branch_create
 
         try:
-            branch_create(self.root_dir, branch)
+            branch_create(self.repo, branch)
         except Error as exc:
             raise SCMError(f"Failed to create branch '{branch}'") from exc
 
@@ -909,7 +909,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         with reraise(Error, SCMError("Git status failed")):
             staged, unstaged, untracked = git_status(
-                self.root_dir, ignored=ignored, untracked_files=untracked_files
+                self.repo, ignored=ignored, untracked_files=untracked_files
             )
 
         return (
