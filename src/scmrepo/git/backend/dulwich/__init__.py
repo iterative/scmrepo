@@ -356,14 +356,12 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 # that the result of relpath(path, root_dir) is actually the
                 # path relative to the submodule root.
                 fs_path = relpath(path, self.root_dir)
+                in_submodule = False
                 for sm_path in self._submodules.values():
-                    assert self.root_dir
-                    if fs_path.startswith(sm_path):
-                        path = os.path.join(
-                            self.root_dir,
-                            relpath(fs_path, sm_path),
-                        )
-                        break
+                    in_submodule = fs_path == sm_path or fs_path.startswith(sm_path)
+                if in_submodule:
+                    continue
+
             if os.path.isdir(path):
                 for root, _, fs in os.walk(path):
                     for fpath in fs:

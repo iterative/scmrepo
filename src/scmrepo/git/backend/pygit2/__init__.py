@@ -865,6 +865,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         from pygit2 import IndexEntry
         from pygit2.enums import ResetMode
 
+        if self.repo.listall_submodules():
+            raise NotImplementedError(
+                "pygit2 seems to remove files from submodules on reset"
+            )
+
         self.repo.index.read(False)  # type: ignore[attr-defined]
         if paths is not None:
             tree = self.repo.revparse_single("HEAD").tree  # type: ignore[attr-defined]
