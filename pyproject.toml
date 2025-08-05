@@ -42,7 +42,7 @@ Source = "https://github.com/iterative/scmrepo"
 [project.optional-dependencies]
 tests = [
     "aioresponses>=0.7,<0.8",
-    "paramiko>=3.4.0,<4",
+    "paramiko>=3.4.0,<5",
     "pytest>=7,<9",
     "pytest-asyncio>=0.23.2,<2",
     "pytest-cov>=4.1.0",
