@@ -103,3 +103,7 @@ class Base(AbstractContextManager):
 
     def _reset(self) -> None:
         pass
+
+    def list_submodules(self) -> list[str]:
+        """Returns a list of submodules in the repo."""
+        return []

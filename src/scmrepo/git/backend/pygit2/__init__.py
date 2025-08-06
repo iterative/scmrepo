@@ -269,6 +269,9 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         # can be reacquired later as needed.
         self.repo.free()
 
+    def list_submodules(self) -> list[str]:
+        return self.repo.listall_submodules()
+
     @classmethod
     def clone(
         cls,
@@ -864,6 +867,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
     def reset(self, hard: bool = False, paths: Optional[Iterable[str]] = None):
         from pygit2 import IndexEntry
         from pygit2.enums import ResetMode
+
+        if self.list_submodules():
+            raise NotImplementedError(
+                "pygit2 seems to remove files from submodules on reset"
+            )
 
         self.repo.index.read(False)  # type: ignore[attr-defined]
         if paths is not None:

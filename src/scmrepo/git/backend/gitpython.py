@@ -789,3 +789,6 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
         if info == "unset":
             return False
         return info
+
+    def list_submodules(self) -> list[str]:
+        raise NotImplementedError

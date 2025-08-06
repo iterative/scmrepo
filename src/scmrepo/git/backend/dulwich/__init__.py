@@ -199,6 +199,9 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         self._submodules: dict[str, str] = self._find_submodules()
         self._stashes: dict = {}
 
+    def list_submodules(self) -> list[str]:
+        raise NotImplementedError
+
     def _find_submodules(self) -> dict[str, str]:
         """Return dict mapping submodule names to submodule paths.
 
@@ -349,21 +352,6 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def _expand_paths(self, paths: list[str], force: bool = False) -> Iterator[str]:
         for path in paths:
-            if not os.path.isabs(path) and self._submodules:
-                # NOTE: If path is inside a submodule, Dulwich expects the
-                # staged paths to be relative to the submodule root (not the
-                # parent git repo root). We append path to root_dir here so
-                # that the result of relpath(path, root_dir) is actually the
-                # path relative to the submodule root.
-                fs_path = relpath(path, self.root_dir)
-                for sm_path in self._submodules.values():
-                    assert self.root_dir
-                    if fs_path.startswith(sm_path):
-                        path = os.path.join(
-                            self.root_dir,
-                            relpath(fs_path, sm_path),
-                        )
-                        break
             if os.path.isdir(path):
                 for root, _, fs in os.walk(path):
                     for fpath in fs:
