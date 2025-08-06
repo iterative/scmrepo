@@ -55,10 +55,11 @@ class LFSFilter(Filter):
             except InvalidRemote:
                 url = None
             fobj = smudge(scm.lfs_storage, self._smudge_buf, url=url)
-            data = fobj.read(io.DEFAULT_BUFFER_SIZE)
-            try:
-                while data:
-                    write_next(data)
-                    data = fobj.read(io.DEFAULT_BUFFER_SIZE)
-            except KeyboardInterrupt:
-                return
+            with fobj:
+                data = fobj.read(io.DEFAULT_BUFFER_SIZE)
+                try:
+                    while data:
+                        write_next(data)
+                        data = fobj.read(io.DEFAULT_BUFFER_SIZE)
+                except KeyboardInterrupt:
+                    return
