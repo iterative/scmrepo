@@ -2,15 +2,19 @@
 requires = ["setuptools>=77", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools_scm]
-
 [project]
 name = "scmrepo"
 description = "scmrepo"
 readme = "README.rst"
+<<<<<<<
 license = "Apache-2.0"
 authors = [{ name = "Iterative", email = "support@dvc.org" }]
+=======
+license = {text = "Apache-2.0"}
+authors = [{name = "Iterative", email = "support@dvc.org"}]
+>>>>>>>
 classifiers = [
+<<<<<<<
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -18,6 +22,15 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Development Status :: 4 - Beta",
+=======
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Development Status :: 4 - Beta"
+>>>>>>>
 ]
 requires-python = ">=3.9"
 dynamic = ["version"]
@@ -48,20 +61,37 @@ tests = [
     "pytest-docker>=1,<4",
     "pytest-mock",
     "pytest-sugar",
+<<<<<<<
     "pytest-test-utils>=0.1.0,<0.2",
     "proxy.py",
+=======
+
+[project.optional-dependencies]
+tests = [
+  "pytest==7.2.0",
+  "pytest-sugar==0.9.5",
+  "pytest-cov==3.0.0",
+  "pytest-mock==3.8.2",
+  "mypy==1.9.0"
+>>>>>>>
 ]
 dev = [
+<<<<<<<
     "mypy==1.17.1",
     "scmrepo[tests]",
     "types-certifi",
     "types-mock",
     "types-paramiko",
     "types-tqdm",
+=======
+  "scmrepo[tests]",
+>>>>>>>
 ]
 
 [tool.setuptools.package-data]
 scmrepo = ["py.typed"]
+
+[tool.setuptools_scm]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -86,13 +116,13 @@ source = ["src", "*/site-packages"]
 [tool.coverage.report]
 show_missing = true
 exclude_lines = [
-    "pragma: no cover",
-    "if __name__ == .__main__.:",
-    "if typing.TYPE_CHECKING:",
-    "if TYPE_CHECKING:",
-    "raise NotImplementedError",
-    "raise AssertionError",
-    "@overload",
+  "pragma: no cover",
+  "if __name__ == .__main__.:",
+  "if typing.TYPE_CHECKING:",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "raise AssertionError",
+  "@overload"
 ]
 
 [tool.mypy]
@@ -125,7 +155,11 @@ module = [
 ignore_missing_imports = true
 
 [tool.codespell]
+<<<<<<<
 ignore-words-list = "cachable, keypair"
+=======
+ignore-words-list = " "
+>>>>>>>
 skip = "CODE_OF_CONDUCT.rst"
 
 [tool.ruff]
@@ -134,6 +168,7 @@ show-fixes = true
 
 [tool.ruff.lint]
 ignore = [
+<<<<<<<
     "S101", # assert
     "PLR2004", # magic-value-comparison
     "PLW2901", # redefined-loop-name
@@ -148,7 +183,26 @@ ignore = [
     "SIM117", # multiple-with-statements
     "N818", # error-suffix-on-exception-name
     "PLC0415", # import-outside-top-level
+=======
+  "S101",  # assert
+  "PLR2004",  # magic-value-comparison
+  "PLW2901",  # redefined-loop-name
+  "ISC001",  # single-line-implicit-string-concatenation
+  "SIM105",  # suppressible-exception
+  "SIM108",  # if-else-block-instead-of-if-exp
+  "D203",  # one blank line before class
+  "D213"  # multi-line-summary-second-line
+>>>>>>>
 ]
+<<<<<<<
+=======
+select = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"noxfile.py" = ["D", "PTH"]
+"tests/**" = ["S", "ARG001", "ARG002", "ANN"]
+"docs/**" = ["INP"]
+>>>>>>>
 select = [
     "A", # flake8-buitlins
     "ASYNC", # flake8-async

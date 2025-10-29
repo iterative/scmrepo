@@ -14,7 +14,13 @@ project = nox.project.load_toml()
 python_versions = nox.project.python_versions(project)
 
 
+<<<<<<<
 @nox.session(python=python_versions)
+=======
+@nox.session(
+    python=["3.8", "3.9", "3.10", "3.11", "3.12", "pypy3.8", "pypy3.9", "pypy3.10"],
+)
+>>>>>>>
 def tests(session: nox.Session) -> None:
     session.install(".[tests]")
     session.run(
@@ -31,11 +37,14 @@ def lint(session: nox.Session) -> None:
     session.install("pre-commit")
     session.install("-e", ".[dev]")
 
+<<<<<<<
     args = *(session.posargs or ("--show-diff-on-failure",)), "--all-files"
     session.run("pre-commit", "run", *args)
     session.run("python", "-m", "mypy")
 
 
+=======
+>>>>>>>
 @nox.session
 def build(session: nox.Session) -> None:
     session.install("build", "setuptools", "twine")

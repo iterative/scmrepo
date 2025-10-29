@@ -2,7 +2,11 @@ default_language_version:
   python: python3
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
+<<<<<<<
     rev: v6.0.0
+=======
+    rev: v5.0.0
+>>>>>>>
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -20,7 +24,11 @@ repos:
       - id: sort-simple-yaml
       - id: trailing-whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
+<<<<<<<
     rev: 'v0.13.1'
+=======
+    rev: 'v0.11.8'
+>>>>>>>
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
@@ -30,3 +38,10 @@ repos:
     hooks:
       - id: codespell
         additional_dependencies: ["tomli"]
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.14.0
+    hooks:
+      - id: pretty-format-toml
+        args: [--autofix, --no-sort]
+      - id: pretty-format-yaml
+        args: [--autofix, --indent, '2', '--offset', '2', --preserve-quotes]

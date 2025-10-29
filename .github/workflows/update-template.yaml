@@ -9,8 +9,18 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+<<<<<<<
     - name: Check out the repository
       uses: actions/checkout@v5
+=======
+      - name: Check out the repository
+        uses: actions/checkout@v4
+>>>>>>>
 
+<<<<<<<
     - name: Update template via cruft
       uses: iterative/py-template@main
+=======
+      - name: Update template
+        uses: iterative/py-template@main
+>>>>>>>
