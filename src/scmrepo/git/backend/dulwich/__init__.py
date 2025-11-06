@@ -250,7 +250,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 url,
                 target=to_path,
                 errstream=(
-                    DulwichProgressReporter(progress) if progress else NoneStream()
+                    DulwichProgressReporter(progress) if progress else NoneStream()  # type: ignore[arg-type]
                 ),
                 bare=bare,
             )
@@ -278,8 +278,11 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
     def _set_default_tracking_branch(repo: "Repo"):
         from dulwich.refs import LOCAL_BRANCH_PREFIX, parse_symref_value
 
+        head_ref = repo.refs.read_ref(b"HEAD")
+        if head_ref is None:
+            return
         try:
-            ref = parse_symref_value(repo.refs.read_ref(b"HEAD"))
+            ref = parse_symref_value(head_ref)
         except ValueError:
             return
         if ref.startswith(LOCAL_BRANCH_PREFIX):
@@ -307,7 +310,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         fetch(
             repo,
             remote_location=b"origin",
-            errstream=(DulwichProgressReporter(progress) if progress else NoneStream()),
+            errstream=(DulwichProgressReporter(progress) if progress else NoneStream()),  # type: ignore[arg-type]
         )
 
     @staticmethod
@@ -599,11 +602,11 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             if base:
                 yield from (
                     os.fsdecode(ref)
-                    for ref in client.get_refs(path)
+                    for ref in client.get_refs(path.encode())
                     if ref.startswith(os.fsencode(base))
                 )
             else:
-                yield from (os.fsdecode(ref) for ref in client.get_refs(path))
+                yield from (os.fsdecode(ref) for ref in client.get_refs(path.encode()))
         except NotGitRepository as exc:
             raise InvalidRemote(url) from exc
         except HTTPUnauthorized as exc:
@@ -634,7 +637,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             raise SCMError(f"'{url}' is not a valid Git remote or URL") from exc
 
         change_result = {}
-        selected_refs = []
+        selected_refs: list[tuple[Optional[bytes], Optional[bytes], bool]] = []
 
         def update_refs(refs):
             from dulwich.objects import ZERO_SHA
@@ -649,6 +652,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             )
             new_refs = {}
             for lh, rh, _ in selected_refs:
+                assert rh is not None
                 refname = os.fsdecode(rh)
                 if rh in refs and lh is not None:
                     if refs[rh] == self.repo.refs[lh]:
@@ -679,9 +683,9 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         try:
             result = client.send_pack(
-                path,
+                path.encode(),
                 update_refs,
-                generate_pack_data=self.repo.generate_pack_data,
+                generate_pack_data=self.repo.generate_pack_data,  # type: ignore[arg-type]
                 progress=(DulwichProgressReporter(progress) if progress else None),
             )
         except (NotGitRepository, SendPackError) as exc:
@@ -717,7 +721,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         from dulwich.porcelain import DivergedBranches, check_diverged, get_remote_repo
         from dulwich.refs import DictRefsContainer
 
-        fetch_refs = []
+        fetch_refs: list[tuple[Optional[bytes], Optional[bytes], bool]] = []
 
         def determine_wants(
             remote_refs: dict[bytes, bytes],
@@ -736,7 +740,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             return [
                 remote_refs[lh]
                 for (lh, _, _) in fetch_refs
-                if remote_refs[lh] not in self.repo.object_store
+                if lh is not None and remote_refs[lh] not in self.repo.object_store
             ]
 
         with reraise(Exception, SCMError(f"'{url}' is not a valid Git remote or URL")):
@@ -749,33 +753,34 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             SCMError(f"Git failed to fetch ref from '{url}'"),
         ):
             fetch_result = client.fetch(
-                path,
+                path.encode(),
                 self.repo,
                 progress=DulwichProgressReporter(progress) if progress else None,
-                determine_wants=determine_wants,
+                determine_wants=determine_wants,  # type: ignore[arg-type]
             )
 
             result = {}
 
             for lh, rh, _ in fetch_refs:
+                assert rh is not None
                 refname = os.fsdecode(rh)
+                assert lh is not None
+                fetch_ref_lh = fetch_result.refs[lh]
+                assert fetch_ref_lh is not None
                 if rh in self.repo.refs:
-                    if self.repo.refs[rh] == fetch_result.refs[lh]:
+                    if self.repo.refs[rh] == fetch_ref_lh:
                         result[refname] = SyncStatus.UP_TO_DATE
                         continue
                     try:
                         check_diverged(
                             self.repo,
                             self.repo.refs[rh],
-                            fetch_result.refs[lh],
+                            fetch_ref_lh,
                         )
                     except DivergedBranches:
                         if not force:
                             overwrite = (
-                                on_diverged(
-                                    os.fsdecode(rh),
-                                    os.fsdecode(fetch_result.refs[lh]),
-                                )
+                                on_diverged(os.fsdecode(rh), os.fsdecode(fetch_ref_lh))
                                 if on_diverged
                                 else False
                             )
@@ -783,7 +788,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
                                 result[refname] = SyncStatus.DIVERGED
                                 continue
 
-                self.repo.refs[rh] = fetch_result.refs[lh]
+                self.repo.refs[rh] = fetch_ref_lh
                 result[refname] = SyncStatus.SUCCESS
         return result
 
@@ -865,6 +870,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
         return results
 
     def diff(self, rev_a: str, rev_b: str, binary=False) -> str:
+        from dulwich.objects import Commit
         from dulwich.patch import write_tree_diff
 
         try:
@@ -872,6 +878,9 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             commit_b = self.repo[os.fsencode(rev_b)]
         except KeyError as exc:
             raise RevError("Invalid revision") from exc
+
+        assert isinstance(commit_a, Commit)
+        assert isinstance(commit_b, Commit)
 
         buf = BytesIO()
         write_tree_diff(buf, self.repo.object_store, commit_a.tree, commit_b.tree)
@@ -958,20 +967,22 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             ref = self.repo.refs[name_b]
         except KeyError:
             return None
-        if ref in self.repo and isinstance(self.repo[ref], Tag):
-            tag = self.repo[ref]
-            _typ, target_sha = tag.object
-            tagger_name, tagger_email = _parse_identity(tag.tagger.decode("utf-8"))
-            return GitTag(
-                os.fsdecode(tag.name),
-                tag.id,
-                target_sha.decode("ascii"),
-                tagger_name,
-                tagger_email,
-                tag.tag_time,
-                tag.tag_timezone,
-                tag.message.decode("utf-8"),
-            )
+        if ref in self.repo:
+            shafile = self.repo[ref]
+            if isinstance(shafile, Tag):
+                tag = shafile
+                _typ, target_sha = tag.object
+                tagger_name, tagger_email = _parse_identity(tag.tagger.decode("utf-8"))
+                return GitTag(
+                    os.fsdecode(tag.name),
+                    tag.id.decode("ascii"),
+                    target_sha.decode("ascii"),
+                    tagger_name,
+                    tagger_email,
+                    tag.tag_time,
+                    tag.tag_timezone,
+                    tag.message.decode("utf-8"),
+                )
         return os.fsdecode(ref)
 
     def get_config(self, path: Optional[str] = None) -> "Config":
@@ -1000,13 +1011,16 @@ def _parse_identity(identity: str) -> tuple[str, str]:
     return m.group("name"), m.group("email")
 
 
-def ls_remote(url: str) -> dict[str, str]:
+def ls_remote(url: str) -> dict[str, Optional[str]]:
     from dulwich import porcelain
     from dulwich.client import HTTPUnauthorized
 
     try:
         refs = porcelain.ls_remote(url).refs
-        return {os.fsdecode(ref): sha.decode("ascii") for ref, sha in refs.items()}
+        return {
+            os.fsdecode(ref): sha.decode("ascii") if sha is not None else None
+            for ref, sha in refs.items()
+        }
     except HTTPUnauthorized as exc:
         raise AuthError(url) from exc
     except Exception as exc:

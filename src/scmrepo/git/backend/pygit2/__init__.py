@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from pygit2 import Commit, Oid, Signature
+    from pygit2 import Commit, Oid, Reference, Signature, Tag
     from pygit2.config import Config as _Pygit2Config
     from pygit2.enums import CheckoutStrategy
     from pygit2.remotes import Remote
@@ -67,15 +67,11 @@ class Pygit2Object(GitObject):
                 else:
                     pass
                 if raw:
-                    blob_kwargs = {}
+                    blobio = BlobIO(self.obj)
                 else:
                     assert key is not None
                     path = "/".join(key)
-                    blob_kwargs = {
-                        "as_path": path,
-                        "commit_id": commit.id,
-                    }
-                blobio = BlobIO(self.obj, **blob_kwargs)
+                    blobio = BlobIO(self.obj, as_path=path, commit_id=commit.id)
                 if mode == "rb":
                     return blobio
                 return TextIOWrapper(blobio, encoding=encoding)
@@ -190,14 +186,17 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         return RefdbFsBackend(self.repo)
 
-    def _resolve_refish(self, refish: str):
+    def _resolve_refish(
+        self, refish: str
+    ) -> tuple["Commit", Union["Reference", "Tag"]]:
         from pygit2 import Tag
         from pygit2.enums import ObjectType
 
-        commit, ref = self.repo.resolve_refish(refish)  # type: ignore[attr-defined]
+        ref: Union[Reference, Tag]
+        commit, ref = self.repo.resolve_refish(refish)
         if isinstance(commit, Tag):
             ref = commit
-            commit = commit.peel(ObjectType.COMMIT)  # type: ignore[call-overload]
+            commit = commit.peel(ObjectType.COMMIT)
         return commit, ref
 
     @property
@@ -313,6 +312,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         # duplicate config section for each remote config entry. We just edit
         # the config directly so that it creates a single section to be
         # consistent with CLI Git
+        assert url is not None
         repo.config["remote.origin.url"] = url
         repo.config["remote.origin.fetch"] = "+refs/*:refs/*"
         repo.config["remote.origin.mirror"] = True
@@ -347,7 +347,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         force: bool = False,
         **kwargs,
     ):
-        from pygit2 import GitError
+        from pygit2 import Commit, GitError
         from pygit2.enums import CheckoutStrategy
 
         strategy = self._get_checkout_strategy(
@@ -356,9 +356,10 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
         with self.release_odb_handles():
             if create_new:
-                commit = self.repo.revparse_single("HEAD")
-                new_branch = self.repo.branches.local.create(branch, commit)  # type: ignore[arg-type]
-                self.repo.checkout(new_branch, strategy=strategy)  # type: ignore[attr-defined]
+                _commit = self.repo.revparse_single("HEAD")
+                assert isinstance(_commit, Commit)
+                new_branch = self.repo.branches.local.create(branch, _commit)
+                self.repo.checkout(new_branch, strategy=strategy)
             else:
                 if branch == "-":
                     branch = "@{-1}"
@@ -582,7 +583,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def remove_ref(self, name: str, old_ref: Optional[str] = None):
         ref = self.repo.references.get(name)
-        if not ref and not old_ref:
+        if not ref:
             return
         if old_ref and old_ref != str(ref.target):
             raise SCMError(f"Failed to remove '{name}'")
@@ -676,6 +677,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         """Return a pygit2.Remote suitable for the specified Git URL or remote name."""
         try:
             remote = self.repo.remotes[url]
+            assert remote.url is not None
             url = remote.url
         except ValueError:
             pass
@@ -685,6 +687,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
         if os.name == "nt":
             url = url.removeprefix("file://")
         remote = self.repo.remotes.create_anonymous(url)
+        assert remote.url is not None
         parsed = urlparse(remote.url)
         if parsed.scheme in ("git", "git+ssh", "ssh") or is_scp_style_url(remote.url):
             raise NotImplementedError
@@ -838,7 +841,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     _apply(i)
                     return
 
-        self.set_ref(Stash.DEFAULT_STASH, commit.id, message=commit.message)
+        self.set_ref(Stash.DEFAULT_STASH, commit.id, message=commit.message)  # type: ignore[arg-type]
         try:
             _apply(0)
         finally:
@@ -936,7 +939,9 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                     assert self.root_dir
                     path = os.path.join(self.root_dir, entry.path)
                     with open(path, "wb") as fobj:
-                        fobj.write(self.repo.get(entry.id).read_raw())  # type: ignore[attr-defined]
+                        obj = self.repo.get(entry.id)
+                        assert obj is not None
+                        fobj.write(obj.read_raw())
                     index.add(entry.path)
                 index.write()
 
@@ -1074,7 +1079,9 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     def get_remote_url(self, remote: str) -> str:
         try:
-            return self.repo.remotes[remote].url
+            url = self.repo.remotes[remote].url
+            assert url is not None
+            return url
         except KeyError as exc:
             raise InvalidRemote(remote) from exc
 

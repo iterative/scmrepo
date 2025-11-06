@@ -168,7 +168,7 @@ class InteractiveSSHClient(SSHClient):
                 pubkey = read_public_key(pubkey_to_load)
             except (OSError, KeyImportError):
                 pubkey = None
-            return SSHLocalKeyPair(key, pubkey)
+            return SSHLocalKeyPair(key, pubkey, cert=None, enc_key=None)
         return None
 
     async def _read_private_key_interactive(self, path: "FilePath") -> "SSHKey":

@@ -267,7 +267,7 @@ class _SSHLFSClient(LFSClient):
         action = "upload" if upload else "download"
         return json.loads(
             self._ssh.run_command(
-                command=f"git-lfs-authenticate {path} {action}",
+                command=f"git-lfs-authenticate {path} {action}".encode(),
                 host=host,
                 port=port,
                 username=username,
