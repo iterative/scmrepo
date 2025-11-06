@@ -48,6 +48,7 @@ def _isolate(tmp_dir_factory: TempDirFactory, monkeypatch: pytest.MonkeyPatch) -
         monkeypatch.setenv("HOMEPATH", home_path)
     else:
         monkeypatch.setenv("HOME", str(home_dir))
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(home_dir / ".config"))
 
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     contents = b"""
@@ -58,7 +59,7 @@ email=dvctester@example.com
 defaultBranch=master
 """
     (home_dir / ".gitconfig").write_bytes(contents)
-    pygit2.settings.search_path[pygit2.GIT_CONFIG_LEVEL_GLOBAL] = str(home_dir)  # type: ignore[attr-defined]
+    pygit2.settings.search_path[pygit2.GIT_CONFIG_LEVEL_GLOBAL] = str(home_dir)  # type: ignore[attr-defined, index]
 
 
 @pytest.fixture

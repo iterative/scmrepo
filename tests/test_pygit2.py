@@ -22,8 +22,9 @@ def test_pygit_resolve_refish(tmp_dir: TmpDir, scm: Git, use_sha: str):
 
     if use_sha:
         # refish will be annotated tag SHA (not commit SHA)
-        ref = backend.repo.references.get(f"refs/tags/{tag}")
-        refish = str(ref.target)
+        _ref = backend.repo.references.get(f"refs/tags/{tag}")
+        assert _ref
+        refish = str(_ref.target)
     else:
         refish = tag
 
