@@ -333,8 +333,10 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         paths = [paths] if isinstance(paths, str) else list(paths)
 
+        worktree = self.repo.get_worktree()
+
         if update and not paths:
-            self.repo.stage(list(self.repo.open_index()))
+            worktree.stage(list(self.repo.open_index()))
             return
 
         files: list[bytes] = [
@@ -345,13 +347,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             if os.name == "nt":
                 # NOTE: we need git/unix separator to compare against index
                 # paths but repo.stage() expects to be called with OS paths
-                self.repo.stage(
+                worktree.stage(
                     [fname for fname in files if fname.replace(b"\\", b"/") in index]
                 )
             else:
-                self.repo.stage([fname for fname in files if fname in index])
+                worktree.stage([fname for fname in files if fname in index])
         else:
-            self.repo.stage(files)
+            worktree.stage(files)
 
     def _expand_paths(self, paths: list[str], force: bool = False) -> Iterator[str]:
         for path in paths:
