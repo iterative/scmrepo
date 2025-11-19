@@ -601,14 +601,13 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
             raise InvalidRemote(url) from exc
 
         try:
+            refs = client.get_refs(path.encode()).refs
+
             if base:
-                yield from (
-                    os.fsdecode(ref)
-                    for ref in client.get_refs(path.encode())
-                    if ref.startswith(os.fsencode(base))
-                )
+                base_b = os.fsencode(base)
+                yield from (os.fsdecode(ref) for ref in refs if ref.startswith(base_b))
             else:
-                yield from (os.fsdecode(ref) for ref in client.get_refs(path.encode()))
+                yield from (os.fsdecode(ref) for ref in refs)
         except NotGitRepository as exc:
             raise InvalidRemote(url) from exc
         except HTTPUnauthorized as exc:
