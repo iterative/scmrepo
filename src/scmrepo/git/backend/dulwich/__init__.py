@@ -605,11 +605,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
             if base:
                 base_b = os.fsencode(base)
-                yield from (
-                    os.fsdecode(ref)
-                    for ref in refs
-                    if ref.startswith(base_b)
-                )
+                yield from (os.fsdecode(ref) for ref in refs if ref.startswith(base_b))
             else:
                 yield from (os.fsdecode(ref) for ref in refs)
         except NotGitRepository as exc:
