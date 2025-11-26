@@ -693,6 +693,26 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
             raise NotImplementedError
         yield remote
 
+    @staticmethod
+    def _get_remote_refs(remote: "Remote", callbacks) -> dict[str, "Oid"]:
+        """Get remote refs using the appropriate pygit2 API.
+
+        pygit2 1.19.0 deprecated ls_remotes() in favor of list_heads(),
+        but 1.19.0+ requires Python 3.11+.
+        """
+        if hasattr(remote, "list_heads"):
+            result: dict[str, Oid] = {}
+            for head in remote.list_heads(callbacks=callbacks, proxy=True):
+                assert head.name is not None
+                result[head.name] = head.oid
+            return result
+        return {
+            head["name"]: head["oid"]
+            for head in remote.ls_remotes(  # type: ignore[attr-defined]
+                callbacks=callbacks, proxy=True
+            )
+        }
+
     def fetch_refspecs(
         self,
         url: str,
@@ -731,14 +751,9 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 SCMError(f"Git failed to fetch ref from '{url}'"),
             ):
                 with RemoteCallbacks(progress=progress) as cb:
-                    remote_refs: dict[str, Oid] = (
-                        {
-                            head["name"]: head["oid"]
-                            for head in remote.ls_remotes(callbacks=cb, proxy=True)
-                        }
-                        if not force
-                        else {}
-                    )
+                    remote_refs: dict[str, Oid] = {}
+                    if not force:
+                        remote_refs = self._get_remote_refs(remote, cb)
                     remote.fetch(
                         refspecs=refspecs, callbacks=cb, message="fetch", proxy=True
                     )
