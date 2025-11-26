@@ -731,14 +731,11 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
                 SCMError(f"Git failed to fetch ref from '{url}'"),
             ):
                 with RemoteCallbacks(progress=progress) as cb:
-                    remote_refs: dict[str, Oid] = (
-                        {
-                            head["name"]: head["oid"]
-                            for head in remote.ls_remotes(callbacks=cb, proxy=True)
-                        }
-                        if not force
-                        else {}
-                    )
+                    remote_refs: dict[str, Oid] = {}
+                    if not force:
+                        for head in remote.list_heads(callbacks=cb, proxy=True):
+                            assert head.name is not None
+                            remote_refs[head.name] = head.oid
                     remote.fetch(
                         refspecs=refspecs, callbacks=cb, message="fetch", proxy=True
                     )
