@@ -427,7 +427,7 @@ def _gen(scm: Git, s: str, commit_timestamp: Optional[float] = None) -> str:
     with open(s, mode="w") as f:
         f.write(s)
     scm.dulwich.add([s])
-    scm.dulwich.repo.do_commit(
+    scm.dulwich.repo.get_worktree().commit(
         message=s.encode("utf-8"), commit_timestamp=commit_timestamp
     )
     return scm.get_rev()
