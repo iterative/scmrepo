@@ -200,6 +200,7 @@ class LFSServerMock:
         ("X-RateLimit-Reset", lambda: f"{int(time()) + 1}"),
     ],
 )
+@pytest.mark.filterwarnings("ignore:enable_cleanup_closed ignored.*:DeprecationWarning")
 def test_rate_limit_retry(
     storage: LFSStorage, rate_limit_header: str, rate_limit_value: Callable[[], str]
 ):
@@ -232,6 +233,7 @@ def test_rate_limit_retry(
         ("X-RateLimit-Reset", lambda: f"{int(time()) + 1}"),
     ],
 )
+@pytest.mark.filterwarnings("ignore:enable_cleanup_closed ignored.*:DeprecationWarning")
 def test_rate_limit_max_retries_batch(
     storage: LFSStorage, rate_limit_header: str, rate_limit_value: Callable[[], str]
 ):
@@ -259,6 +261,7 @@ def test_rate_limit_max_retries_batch(
         ("X-RateLimit-Reset", lambda: f"{int(time()) + 1}"),
     ],
 )
+@pytest.mark.filterwarnings("ignore:enable_cleanup_closed ignored.*:DeprecationWarning")
 def test_rate_limit_max_retries_objects(
     storage: LFSStorage, rate_limit_header: str, rate_limit_value: Callable[[], str]
 ):
