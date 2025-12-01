@@ -37,11 +37,14 @@ jobs:
         python-version: ${{ matrix.pyv }}
         allow-prereleases: true
 
-    - name: Upgrade pip and nox
-      run: |
-        python -m pip install --upgrade pip nox
-        pip --version
-        nox --version
+    - uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+        cache-suffix: ${{ matrix.pyv }}
+        cache-dependency-glob: pyproject.toml
+
+    - name: Install nox
+      run: uv pip install --system nox --upgrade
 
     - name: Lint code
       run: nox -s lint
@@ -52,11 +55,11 @@ jobs:
     - name: Upload coverage report
       uses: codecov/codecov-action@v5
 
-    - name: Run tests with dev dependencies
+    - name: Run tests with upstream-dev dependencies
       if: ${{ github.event_name == 'schedule' && matrix.pyv != '3.9' }}
       run: nox -s tests-${{ matrix.pyv }} -- --slow --cov-report=xml
       env:
-        TEST_DEV_DEPS: "1"
+        TEST_WITH_UPSTREAM_DEPS: "1"
 
     - name: Build package
       run: nox -s build

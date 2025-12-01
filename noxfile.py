@@ -5,6 +5,7 @@ import os
 
 import nox
 
+nox.options.default_venv_backend = "uv|virtualenv"
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = "lint", "tests"
 locations = "src", "tests"
@@ -17,8 +18,8 @@ python_versions = nox.project.python_versions(project)
 @nox.session(python=python_versions)
 def tests(session: nox.Session) -> None:
     deps = [".[tests]"]
-    if os.getenv("TEST_DEV_DEPS") == "1":
-        deps.extend(["dulwich @ git+https://github.com/jelmer/dulwich.git"])
+    if os.getenv("TEST_WITH_UPSTREAM_DEPS") == "1":
+        deps.extend(["--group", "upstream-deps"])
     session.install(*deps)
     session.run(
         "pytest",

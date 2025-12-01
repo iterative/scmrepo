@@ -62,6 +62,11 @@ dev = [
     "types-tqdm",
 ]
 
+[dependency-groups]
+upstream-deps = [
+    "dulwich @ git+https://github.com/jelmer/dulwich.git",
+]
+
 [tool.setuptools.package-data]
 scmrepo = ["py.typed"]
 

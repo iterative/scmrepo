@@ -21,16 +21,14 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Python 3.13
+    - name: Set up Python 3.14
       uses: actions/setup-python@v6
       with:
-        python-version: '3.13'
+        python-version: '3.14'
 
-    - name: Upgrade pip and nox
-      run: |
-        pip install --upgrade pip nox
-        pip --version
-        nox --version
+    - uses: astral-sh/setup-uv@v7
+    - name: Install nox
+      run: uv pip install --system nox --upgrade
 
     - name: Build package
       run: nox -s build
