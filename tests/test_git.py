@@ -428,7 +428,7 @@ def _gen(scm: Git, s: str, commit_timestamp: Optional[float] = None) -> str:
         f.write(s)
     scm.dulwich.add([s])
     scm.dulwich.repo.get_worktree().commit(
-        message=s.encode("utf-8"), commit_timestamp=commit_timestamp
+        message=s.encode("utf-8"), commit_timestamp=commit_timestamp, sign=False
     )
     return scm.get_rev()
 
@@ -1117,7 +1117,7 @@ def proxy_server():
 
 
 def test_clone_proxy_server(proxy_server: str, scm: Git, git: Git, tmp_dir: TmpDir):
-    url = "https://github.com/iterative/dvcyaml-schema"
+    url = "https://github.com/treeverse/dvcyaml-schema"
 
     p = (
         Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])
@@ -1138,7 +1138,7 @@ proxy = {proxy_server}
 
 
 def test_iter_remote_refs_proxy_server(proxy_server: str, scm: Git, tmp_dir: TmpDir):
-    url = "https://github.com/iterative/dvcyaml-schema"
+    url = "https://github.com/treeverse/dvcyaml-schema"
     git = GitBackends.DEFAULT["dulwich"](".")
 
     p = (
@@ -1164,7 +1164,7 @@ proxy = {proxy_server}
 def test_fetch_refspecs_proxy_server(
     proxy_server: str, scm: Git, git: Git, tmp_dir: TmpDir
 ):
-    url = "https://github.com/iterative/dvcyaml-schema"
+    url = "https://github.com/treeverse/dvcyaml-schema"
 
     p = (
         Path(os.environ["HOME"] if "HOME" in os.environ else os.environ["USERPROFILE"])

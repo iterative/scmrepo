@@ -86,7 +86,7 @@ def test_git_stash_drop(tmp_dir: TmpDir, scm: Git, ref: Optional[str]):
 
 
 reason = """libgit2 stash_save() is flaky on linux when run inside pytest
-    https://github.com/iterative/dvc/pull/5286#issuecomment-792574294"""
+    https://github.com/treeverse/dvc/pull/5286#issuecomment-792574294"""
 
 
 @pytest.mark.xfail(
