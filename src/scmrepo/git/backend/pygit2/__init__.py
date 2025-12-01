@@ -259,7 +259,7 @@ class Pygit2Backend(BaseGitBackend):  # pylint:disable=abstract-method
 
     # Workaround to force git_backend_odb_pack to release open file handles
     # in DVC's mixed git-backend environment.
-    # See https://github.com/iterative/dvc/issues/5641
+    # See https://github.com/treeverse/dvc/issues/5641
     @contextmanager
     def release_odb_handles(self):
         yield

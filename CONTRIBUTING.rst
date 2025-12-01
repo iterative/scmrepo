@@ -12,8 +12,8 @@ Here is a list of important resources for contributors:
 - `Code of Conduct`_
 
 .. _Apache 2.0 license: https://opensource.org/licenses/Apache-2.0
-.. _Source Code: https://github.com/iterative/scmrepo
-.. _Issue Tracker: https://github.com/iterative/scmrepo/issues
+.. _Source Code: https://github.com/treeverse/scmrepo
+.. _Issue Tracker: https://github.com/treeverse/scmrepo/issues
 
 How to report a bug
 -------------------
@@ -104,6 +104,6 @@ To run linting and code formatting checks, you can invoke a `lint` session in no
 It is recommended to open an issue before starting work on anything.
 This will allow a chance to talk it over with the owners and validate your approach.
 
-.. _pull request: https://github.com/iterative/scmrepo/pulls
+.. _pull request: https://github.com/treeverse/scmrepo/pulls
 .. github-only
 .. _Code of Conduct: CODE_OF_CONDUCT.rst

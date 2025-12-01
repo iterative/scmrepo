@@ -58,7 +58,7 @@ class LFSClient(AbstractContextManager):
             return RetryClient(
                 connector=aiohttp.TCPConnector(
                     # Force cleanup of closed SSL transports.
-                    # See https://github.com/iterative/dvc/issues/7414
+                    # See https://github.com/treeverse/dvc/issues/7414
                     enable_cleanup_closed=True,
                 ),
                 timeout=aiohttp.ClientTimeout(

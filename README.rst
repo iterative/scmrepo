@@ -17,11 +17,11 @@ scmrepo
 .. |License| image:: https://img.shields.io/pypi/l/scmrepo
    :target: https://opensource.org/licenses/Apache-2.0
    :alt: License
-.. |Tests| image:: https://github.com/iterative/scmrepo/workflows/Tests/badge.svg
-   :target: https://github.com/iterative/scmrepo/actions?workflow=Tests
+.. |Tests| image:: https://github.com/treeverse/scmrepo/workflows/Tests/badge.svg
+   :target: https://github.com/treeverse/scmrepo/actions?workflow=Tests
    :alt: Tests
-.. |Codecov| image:: https://codecov.io/gh/iterative/scmrepo/branch/main/graph/badge.svg
-   :target: https://app.codecov.io/gh/iterative/scmrepo
+.. |Codecov| image:: https://codecov.io/gh/treeverse/scmrepo/branch/main/graph/badge.svg
+   :target: https://app.codecov.io/gh/treeverse/scmrepo
    :alt: Codecov
 .. |pre-commit| image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white
    :target: https://github.com/pre-commit/pre-commit
@@ -106,7 +106,7 @@ please `file an issue`_ along with a detailed description.
 .. _fsspec: https://filesystem-spec.readthedocs.io/
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/api.html?highlight=walk#fsspec.spec.AbstractFileSystem
 .. _PyPI: https://pypi.org/
-.. _file an issue: https://github.com/iterative/scmrepo/issues
+.. _file an issue: https://github.com/treeverse/scmrepo/issues
 .. _pip: https://pip.pypa.io/
 .. github-only
 .. _Contributor Guide: CONTRIBUTING.rst

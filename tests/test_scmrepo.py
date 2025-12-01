@@ -9,7 +9,7 @@ from scmrepo.progress import GitProgressEvent
 
 def test_clone(tmp_dir: TmpDir, matcher: type[Matcher]):
     progress = MagicMock()
-    url = "https://github.com/iterative/dvcyaml-schema"
+    url = "https://github.com/treeverse/dvcyaml-schema"
     rev = "cf279597596b54c5b0ce089eb4bda41ebbbb5db4"
 
     repo = Git.clone(url, "dir", rev=rev, progress=progress)
@@ -20,7 +20,7 @@ def test_clone(tmp_dir: TmpDir, matcher: type[Matcher]):
 
 
 def test_clone_shallow(tmp_dir: TmpDir):
-    url = "https://github.com/iterative/dvcyaml-schema"
+    url = "https://github.com/treeverse/dvcyaml-schema"
     shallow_branch = "master"
 
     repo = Git.clone(url, "dir", shallow_branch=shallow_branch)

@@ -103,7 +103,7 @@ class GitPythonObject(GitObject):
     def name(self) -> str:
         # NOTE: `obj.name` is not always a basename. See [1] for more details.
         #
-        # [1] https://github.com/iterative/dvc/issues/3481
+        # [1] https://github.com/treeverse/dvc/issues/3481
         return os.path.basename(self.obj.path)
 
     @property
@@ -266,7 +266,7 @@ class GitPythonBackend(BaseGitBackend):  # pylint:disable=abstract-method
                 self.repo.index.add(paths if isinstance(paths, str) else list(paths))
         except AssertionError as exc:
             # NOTE: GitPython is not currently able to handle index version >= 3.
-            # See https://github.com/iterative/dvc/issues/610 for more details.
+            # See https://github.com/treeverse/dvc/issues/610 for more details.
             raise UnsupportedIndexFormat from exc
 
     def commit(self, msg: str, no_verify: bool = False):

@@ -119,7 +119,7 @@ def _get_ssh_vendor() -> "SSHVendor":
         return SubprocessSSHVendor()
 
     if sys.platform == "win32" and os.environ.get("MSYSTEM") and shutil.which("ssh"):
-        # see https://github.com/iterative/dvc/issues/7702
+        # see https://github.com/treeverse/dvc/issues/7702
         logger.debug(
             "dulwich: native win32 Python inside MSYS2/git-bash, using MSYS2 OpenSSH"
         )
@@ -375,7 +375,7 @@ class DulwichBackend(BaseGitBackend):  # pylint:disable=abstract-method
 
         with reraise((Error, CommitError), SCMError("Git commit failed")):
             try:
-                commit(self.repo, message=msg, no_verify=no_verify)
+                commit(self.repo, message=msg, no_verify=no_verify, sign=False)
             except InvalidUserIdentity as exc:
                 raise SCMError("Git username and email must be configured") from exc
             except TimezoneFormatError as exc:

@@ -68,9 +68,9 @@ def test_pygit_stash_apply_conflicts(
 @pytest.mark.parametrize(
     "url",
     [
-        "git@github.com:iterative/scmrepo.git",
-        "github.com:iterative/scmrepo.git",
-        "user@github.com:iterative/scmrepo.git",
+        "git@github.com:treeverse/scmrepo.git",
+        "github.com:treeverse/scmrepo.git",
+        "user@github.com:treeverse/scmrepo.git",
         "ssh://login@server.com:12345/repository.git",
     ],
 )
@@ -104,11 +104,11 @@ def test_pygit_use_env_vars_for_signature(
     with pytest.raises(SCMError):
         getattr(git.pygit2, name)
 
-    mocker.patch.dict(os.environ, {f"GIT_{name.upper()}_EMAIL": "olivaw@iterative.ai"})
+    mocker.patch.dict(os.environ, {f"GIT_{name.upper()}_EMAIL": "olivaw@treeverse.io"})
     with pytest.raises(SCMError):
         getattr(git.pygit2, name)
 
     mocker.patch.dict(os.environ, {f"GIT_{name.upper()}_NAME": "R. Daneel Olivaw"})
     assert getattr(git.pygit2, name) == Signature(
-        email="olivaw@iterative.ai", name="R. Daneel Olivaw"
+        email="olivaw@treeverse.io", name="R. Daneel Olivaw"
     )
